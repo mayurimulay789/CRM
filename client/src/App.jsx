@@ -1,12 +1,23 @@
-function App() {
-  return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold text-blue-600 mb-4">Vite + React + Tailwind</h1>
-        <p className="text-gray-700">Your frontend setup is ready!</p>
-      </div>
-    </div>
-  )
-}
+import React from "react";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import DemoPage from "./components/Demo/DemoPage";
+import OnlineDemo from "./components/Demo/OnlineDemo";
+import OfflineDemo from "./components/Demo/OfflineDemo";
+import OneToOneDemo from "./components/Demo/OneToOneDemo";
+import LiveClasses from "./components/Demo/LiveClasses";
 
-export default App
+const App = () => {
+  return (
+    <Router>
+      <Routes>
+        <Route path="/" element={<DemoPage />} />
+        <Route path="/online-demo" element={<OnlineDemo />} />
+        <Route path="/offline-demo" element={<OfflineDemo />} />
+        <Route path="/one-to-one-demo" element={<OneToOneDemo />} />
+        <Route path="/live-classes" element={<LiveClasses />} />
+      </Routes>
+    </Router>
+  );
+};
+
+export default App;
