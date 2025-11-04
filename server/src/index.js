@@ -4,8 +4,8 @@ const cors = require("cors");
 const dotenv = require("dotenv");
 const path = require("path");
 
-// ✅ Load environment variables
-dotenv.config({ path: path.join(__dirname, "../.env") });
+dotenv.config({ path: path.resolve(__dirname, "../.env") });
+
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -13,6 +13,7 @@ const PORT = process.env.PORT || 5000;
 // ✅ Middleware
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // ✅ Connect MongoDB
 mongoose
@@ -24,16 +25,28 @@ mongoose
   .catch((err) => console.error("❌ MongoDB connection error:", err));
 
 // ✅ Import Routes
-const onlineDemoRoutes = require("./routes/onlineDemoRoutes");
-const offlineDemoRoutes = require("./routes/offlineDemoRoutes");
-const oneToOneRoutes = require("./routes/oneToOneRoutes");
-const liveClassRoutes = require ("./routes/liveClassRoutes");
+const onlineDemoRoutes = require("../routes/onlineDemoRoutes");
+const offlineDemoRoutes = require("../routes/offlineDemoRoutes");
+const oneToOneRoutes = require("../routes/oneToOneRoutes");
+const liveClassRoutes = require("../routes/liveClassRoutes");
+
+// ✅ Import additional routes (these were missing)
+const authRoutes = require("../routes/auth");
+const admissionRoutes = require("../routes/admissionRoutes");
+const enrolledStudentRoutes = require("../routes/enrolledStudentRoutes");
+const paymentRoutes = require("../routes/paymentRoutes");
+const batchRoutes = require("../routes/batchRoutes");
 
 // ✅ Use Routes
 app.use("/api/onlineDemos", onlineDemoRoutes);
 app.use("/api/offlineDemos", offlineDemoRoutes);
 app.use("/api/oneToOneDemos", oneToOneRoutes);
 app.use("/api/liveclasses", liveClassRoutes);
+app.use("/api/auth", authRoutes);
+app.use("/api/admissions", admissionRoutes);
+app.use("/api/enrolled-students", enrolledStudentRoutes);
+app.use("/api/payments", paymentRoutes);
+app.use("/api/batches", batchRoutes);
 
 // ✅ Test route
 app.get("/", (req, res) => {

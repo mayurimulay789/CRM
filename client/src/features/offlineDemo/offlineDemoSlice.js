@@ -1,26 +1,26 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import axios from "axios";
+import axiosInstance from "../../utils/axios";
 
 // ✅ API endpoints
-const BASE_URL = "http://localhost:5000/api/offlineDemos";
+const BASE_URL = "/offlineDemos";
 
 export const fetchOfflineDemos = createAsyncThunk("offlineDemo/fetchAll", async () => {
-  const res = await axios.get(BASE_URL);
+  const res = await axiosInstance.get(BASE_URL);
   return res.data;
 });
 
 export const addOfflineDemo = createAsyncThunk("offlineDemo/add", async (data) => {
-  const res = await axios.post(BASE_URL, data);
+  const res = await axiosInstance.post(BASE_URL, data);
   return res.data;
 });
 
 export const updateOfflineDemo = createAsyncThunk("offlineDemo/update", async ({ id, data }) => {
-  const res = await axios.put(`${BASE_URL}/${id}`, data);
+  const res = await axiosInstance.put(`${BASE_URL}/${id}`, data);
   return res.data;
 });
 
 export const deleteOfflineDemo = createAsyncThunk("offlineDemo/delete", async (id) => {
-  await axios.delete(`${BASE_URL}/${id}`);
+  await axiosInstance.delete(`${BASE_URL}/${id}`);
   return id;
 });
 

@@ -1,5 +1,5 @@
 import { configureStore } from "@reduxjs/toolkit";
-import onlineDemoReducer from "../features/onlineDemo/onlineDemoSlice";
+import onlineDemoReducer from "../store/slices/onlineDemoSlice";
 import offlineDemoReducer from "../features/offlineDemo/offlineDemoSlice";
 import oneToOneReducer from "../features/oneToOne/oneToOneSlice";
 import liveClassesReducer from "../features/liveClasses/liveClassesSlice";

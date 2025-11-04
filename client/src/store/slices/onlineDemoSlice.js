@@ -1,11 +1,11 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import axios from "axios";
+import axiosInstance from "../../utils/axios";
 
 // ✅ API calls (adjust API URLs as needed)
 export const fetchOnlineDemos = createAsyncThunk(
   "onlineDemo/fetchAll",
   async () => {
-    const response = await axios.get("http://localhost:5000/api/onlineDemos");
+    const response = await axiosInstance.get("/onlineDemos");
     return response.data;
   }
 );
@@ -13,7 +13,7 @@ export const fetchOnlineDemos = createAsyncThunk(
 export const addOnlineDemo = createAsyncThunk(
   "onlineDemo/add",
   async (data) => {
-    const response = await axios.post("http://localhost:5000/api/onlineDemos", data);
+    const response = await axiosInstance.post("/onlineDemos", data);
     return response.data;
   }
 );
@@ -21,7 +21,7 @@ export const addOnlineDemo = createAsyncThunk(
 export const updateOnlineDemo = createAsyncThunk(
   "onlineDemo/update",
   async ({ id, data }) => {
-    const response = await axios.put(`http://localhost:5000/api/onlineDemos/${id}`, data);
+    const response = await axiosInstance.put(`/onlineDemos/${id}`, data);
     return response.data;
   }
 );
@@ -29,7 +29,7 @@ export const updateOnlineDemo = createAsyncThunk(
 export const deleteOnlineDemo = createAsyncThunk(
   "onlineDemo/delete",
   async (id) => {
-    await axios.delete(`http://localhost:5000/api/onlineDemos/${id}`);
+    await axiosInstance.delete(`/onlineDemos/${id}`);
     return id;
   }
 );

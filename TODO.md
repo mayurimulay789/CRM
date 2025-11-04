@@ -1,8 +1,11 @@
-# TODO for DemoManagement Feature
+# TODO: Modify Admin Sidebar Batches Section
 
-- [x] Create DemoManagement component in client/src/components/DemoManagement.jsx with class type options (Online, Offline, 1-2-1, Live) and a form for demo details (Sr.No, Course, Date, Timing, Mode, Medium, Trainer)
-- [x] Update client/src/App.jsx to import and render DemoManagement component
-- [x] Create backend model for Demo in server/src/models/Demo.js using Mongoose
-- [x] Create routes for demos in server/src/routes/demos.js with POST endpoint to save demo data
-- [x] Update server/src/index.js to import and use the demos routes
-- [x] Test the integration by running the server and client, and submitting the form (Server running on port 5000, Client on port 5174, .env created with MONGO_URI)
+## Tasks
+- [x] Edit AdminSidebar.jsx to replace expandable Batches section with a single "Batches" button
+- [x] Edit AdminDashboard.jsx to add handling for 'batches' activeSection to render BatchManagement
+- [x] Test the changes to ensure the sidebar updates correctly and navigation works
+
+## Details
+- Remove sub-options: Closed Batch, Running Batch, Upcoming Batch
+- Make Batches a single button that sets activeSection to 'batches'
+- Ensure BatchManagement component is rendered for the 'batches' case
