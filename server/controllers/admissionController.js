@@ -34,6 +34,7 @@ exports.createAdmission = async (req, res) => {
 
 // Get all admissions
 exports.getAdmissions = async (req, res) => {
+  console.log('Fetching admissions');
   try {
     const admissions = await Admission.find().sort({ createdAt: -1 });
     res.status(200).json({

@@ -7,6 +7,7 @@ import StudentManagement from '../../components/admin/UserManagement/StudentMana
 import BatchManagement from '../../components/admin/Batches/BatchManagement';
 import DemoManagement from '../../components/admin/Demo/DemoManagement';
 import AdmissionManagement from '../../components/admin/Admission/AdmissionManagement';
+import CourseManagement from '../../components/admin/Courses/CourseManagement';
 import MISReports from '../../components/admin/MIS/MISReports';
 
 const AdminDashboardComponent = ({ activeSection }) => {
@@ -45,6 +46,10 @@ const AdminDashboardComponent = ({ activeSection }) => {
       case 'student-grievance':
       case 'campus-grievance':
         return <ComplaintManagement activeSection={activeSection} />;
+
+      // Course Management
+      case 'course-management':
+        return <CourseManagement />;
       
       // MIS
       case 'mis':
@@ -70,7 +75,8 @@ const AdminDashboardComponent = ({ activeSection }) => {
   };
 
   return (
-    <div className="flex-1 bg-gray-50 min-h-screen">
+    // flex-1 bg-gray-50 min-h-screen
+    <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
       {renderContent()}
     </div>
   );

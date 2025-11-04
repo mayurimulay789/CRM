@@ -8,6 +8,7 @@ const authRoutes = require("../routes/auth");
 const admissionRoutes = require('../routes/admissionRoutes');
 const enrolledStudentRoutes = require('../routes/enrolledStudentRoutes');
 const paymentRoutes = require('../routes/paymentRoutes');
+const courseRoutes = require('../routes/courseRoutes');
 
 
 dotenv.config({path: '../.env'});
@@ -38,9 +39,10 @@ app.get('/', (req, res) => {
 
 // Routes
 app.use("/api/auth", authRoutes);
-app.use('/api/admissions', admissionRoutes);
+app.use('/api/admission', admissionRoutes);
 app.use('/api/enrolled-students', enrolledStudentRoutes);
 app.use('/api/payments', paymentRoutes);
+app.use('/api/courses', courseRoutes);
 
 // Start server
 app.listen(PORT, () => {
