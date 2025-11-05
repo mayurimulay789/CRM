@@ -6,7 +6,7 @@ import {
   updateLiveClass,
   deleteLiveClass,
   setSearchQuery,
-} from "../../features/liveClasses/liveClassesSlice";
+} from "../../../features/liveClasses/liveClassesSlice";
 import {
   FiSearch,
   FiRefreshCw,

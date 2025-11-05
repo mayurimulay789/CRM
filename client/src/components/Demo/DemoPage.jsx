@@ -11,16 +11,16 @@ const DemoPage = () => {
         Demo Management
       </Typography>
       <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
-        <Button variant="contained" onClick={() => navigate("/online-demo")}>
+        <Button variant="contained" onClick={() => navigate("/demo/online")}>
           Online Demo
         </Button>
-        <Button variant="contained" onClick={() => navigate("/offline-demo")}>
+        <Button variant="contained" onClick={() => navigate("/demo/offline")}>
           Offline Demo
         </Button>
-        <Button variant="contained" onClick={() => navigate("/one-to-one-demo")}>
+        <Button variant="contained" onClick={() => navigate("/demo/one-to-one")}>
           1-1 Demo
         </Button>
-        <Button variant="contained" onClick={() => navigate("/live-classes")}>
+        <Button variant="contained" onClick={() => navigate("/demo/live-classes")}>
           Live Classes
         </Button>
       </Box>

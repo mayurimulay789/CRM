@@ -5,7 +5,7 @@ import {
   updateOnlineDemo,
   deleteOnlineDemo,
   setSearchQuery,
-} from "../../features/onlineDemo/onlineDemoSlice";
+} from "../../../store/slices/onlineDemoSlice";
 import { useDispatch, useSelector } from "react-redux";
 import {
   FiSearch,
@@ -18,6 +18,7 @@ import {
   FiX,
   FiFilter,
   FiColumns,
+  FiEye,
 } from "react-icons/fi";
 import { jsPDF } from "jspdf";
 import { autoTable } from "jspdf-autotable";
@@ -27,11 +28,18 @@ const OnlineDemo = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { rows, searchQuery } = useSelector((state) => state.onlineDemo);
+  const { user } = useSelector((state) => state.auth); // Get user from auth state
+
+  // Role checks
+  const isAdmin = user?.role === 'Admin';
+  const isCounsellor = user?.role === 'Counsellor';
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isColumnsOpen, setIsColumnsOpen] = useState(false);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [editingRow, setEditingRow] = useState(null);
   const [errors, setErrors] = useState({});
+  const [filterErrors, setFilterErrors] = useState({});
 
   const [formData, setFormData] = useState({
     course: "",
@@ -42,6 +50,14 @@ const OnlineDemo = () => {
     trainer: "",
   });
 
+  const [filterData, setFilterData] = useState({
+    branch: "",
+    trainer: "",
+    mode: "",
+    dateFrom: "",
+    dateTo: "",
+  });
+
   const defaultColumns = ["Course", "Date", "Timing", "Mode", "Medium", "Trainer"];
   const [visibleColumns, setVisibleColumns] = useState(defaultColumns);
   const [columnSearch, setColumnSearch] = useState("");
@@ -50,11 +66,24 @@ const OnlineDemo = () => {
     dispatch(fetchOnlineDemos());
   }, [dispatch]);
 
-  const filteredRows = rows.filter(
-    (r) =>
+  // Get unique values for dropdowns
+  const uniqueBranches = [...new Set(rows.map(r => r.branch).filter(Boolean))];
+  const uniqueTrainers = [...new Set(rows.map(r => r.trainer).filter(Boolean))];
+  const uniqueModes = [...new Set(rows.map(r => r.mode).filter(Boolean))];
+
+  const filteredRows = rows.filter((r) => {
+    const matchesSearch =
       r.course?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      r.trainer?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+      r.trainer?.toLowerCase().includes(searchQuery.toLowerCase());
+
+    const matchesBranch = !filterData.branch || r.branch === filterData.branch;
+    const matchesTrainer = !filterData.trainer || r.trainer === filterData.trainer;
+    const matchesMode = !filterData.mode || r.mode === filterData.mode;
+    const matchesDateFrom = !filterData.dateFrom || new Date(r.date) >= new Date(filterData.dateFrom);
+    const matchesDateTo = !filterData.dateTo || new Date(r.date) <= new Date(filterData.dateTo);
+
+    return matchesSearch && matchesBranch && matchesTrainer && matchesMode && matchesDateFrom && matchesDateTo;
+  });
 
   // ✅ Validation
   const validateForm = () => {
@@ -71,7 +100,7 @@ const OnlineDemo = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  // ✅ Add / Update
+  // ✅ Add / Update - Only for Counsellors
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validateForm()) return;
@@ -94,7 +123,7 @@ const OnlineDemo = () => {
     dispatch(fetchOnlineDemos());
   };
 
-  // ✅ Delete
+  // ✅ Delete - Only for Counsellors
   const handleDelete = async (id) => {
     if (window.confirm("Are you sure you want to delete this demo?")) {
       await dispatch(deleteOnlineDemo(id));
@@ -102,7 +131,7 @@ const OnlineDemo = () => {
     }
   };
 
-  // ✅ PDF Export instead of CSV
+  // ✅ PDF Export instead of CSV - Available for both roles
   const handleExport = () => {
     const doc = new jsPDF();
     doc.text("Online Demo Data", 14, 12);
@@ -145,7 +174,7 @@ const OnlineDemo = () => {
 
   return (
     <div className="min-h-screen bg-white relative">
-      {/* ✅ Top Section */}
+      {/* ✅ Top Section with Role Badge */}
       <div className="bg-gray-100 px-6 py-3 flex justify-between items-center shadow-sm border-b">
         <button
           onClick={() => navigate(-1)}
@@ -153,36 +182,65 @@ const OnlineDemo = () => {
         >
           <FiArrowLeft /> Go Back
         </button>
-        <button
-          className="flex items-center gap-2 bg-gray-200 text-gray-700 px-3 py-2 rounded-md hover:bg-gray-300 transition"
-          title="Filter"
-        >
-          <FiFilter />
-        </button>
+        
+        <div className="flex items-center gap-4">
+          {/* Role Badge */}
+          <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+            isAdmin
+              ? 'bg-purple-100 text-purple-800 border border-purple-300'
+              : 'bg-green-100 text-green-800 border border-green-300'
+          }`}>
+            {isAdmin ? '👨‍💻 Admin View' : '💼 Counsellor'}
+          </span>
+
+          {/* Filter Button - Available for both roles */}
+          <button
+            onClick={() => setIsFilterOpen(true)}
+            className="flex items-center gap-2 bg-gray-200 text-gray-700 px-3 py-2 rounded-md hover:bg-gray-300 transition"
+            title="Filter"
+          >
+            <FiFilter />
+          </button>
+
+          {/* Export PDF Button - Available for both roles */}
+          <button
+            onClick={handleExport}
+            className="flex items-center gap-2 bg-gray-200 text-gray-700 px-3 py-2 rounded-md hover:bg-gray-300 transition"
+            title="Export PDF"
+          >
+            <FiDownload />
+          </button>
+        </div>
       </div>
 
       {/* ✅ Title and Actions */}
       <div className="bg-gray-100 mt-4 mx-6 p-4 rounded-lg shadow-sm">
         <div className="flex flex-wrap justify-between items-center mb-3">
-          <h2 className="text-xl font-semibold text-gray-800">Online Demo</h2>
-          <button
-            onClick={() => {
-              setIsFormOpen(true);
-              setEditingRow(null);
-              setFormData({
-                course: "",
-                date: "",
-                time: "",
-                mode: "",
-                medium: "",
-                trainer: "",
-              });
-              setErrors({});
-            }}
-            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition shadow"
-          >
-            <FiPlus /> Add Online Demo
-          </button>
+          <h2 className="text-xl font-semibold text-gray-800">
+            Online Demo {isAdmin && <span className="text-sm text-gray-600 ml-2">(View Only)</span>}
+          </h2>
+          
+          {/* Add Button - Only for Counsellors */}
+          {isCounsellor && (
+            <button
+              onClick={() => {
+                setIsFormOpen(true);
+                setEditingRow(null);
+                setFormData({
+                  course: "",
+                  date: "",
+                  time: "",
+                  mode: "",
+                  medium: "",
+                  trainer: "",
+                });
+                setErrors({});
+              }}
+              className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition shadow"
+            >
+              <FiPlus /> Add Online Demo
+            </button>
+          )}
         </div>
 
         {/* Columns + Search/Reload/Export */}
@@ -233,34 +291,53 @@ const OnlineDemo = () => {
                     </label>
                   ))}
                 </div>
+                <div className="flex gap-2 mt-2">
+                  <button
+                    onClick={() => setVisibleColumns(defaultColumns)}
+                    className="bg-green-500 text-white px-2 py-1 rounded text-xs hover:bg-green-600 transition"
+                  >
+                    Show All
+                  </button>
+                  <button
+                    onClick={() => setVisibleColumns([])}
+                    className="bg-red-500 text-white px-2 py-1 rounded text-xs hover:bg-red-600 transition"
+                  >
+                    Hide All
+                  </button>
+                  <button
+                    onClick={() => setVisibleColumns(defaultColumns)}
+                    className="bg-blue-500 text-white px-2 py-1 rounded text-xs hover:bg-blue-700 transition"
+                  >
+                    Reset
+                  </button>
+                </div>
               </div>
             )}
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            <div className="relative">
-              <FiSearch className="absolute left-3 top-3 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search"
-                value={searchQuery}
-                onChange={(e) => dispatch(setSearchQuery(e.target.value))}
-                className="pl-10 pr-3 py-2 border border-gray-300 rounded-md w-64 focus:ring-2 focus:ring-blue-500 transition"
-              />
-            </div>
-            <button
-              onClick={() => dispatch(fetchOnlineDemos())}
-              className="p-2 border border-gray-300 rounded-md hover:bg-gray-200 text-gray-700 transition"
-              title="Reload"
-            >
-              <FiRefreshCw />
-            </button>
-            <button
-              onClick={handleExport}
-              className="flex items-center gap-2 border border-gray-300 px-3 py-2 rounded-md hover:bg-gray-200 text-gray-700 transition"
-            >
-              <FiDownload /> Export PDF
-            </button>
+            {/* Search and Reload - Only for Counsellors */}
+            {isCounsellor && (
+              <>
+                <div className="relative">
+                  <FiSearch className="absolute left-3 top-3 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Search"
+                    value={searchQuery}
+                    onChange={(e) => dispatch(setSearchQuery(e.target.value))}
+                    className="pl-10 pr-3 py-2 border border-gray-300 rounded-md w-64 focus:ring-2 focus:ring-blue-500 transition"
+                  />
+                </div>
+                <button
+                  onClick={() => dispatch(fetchOnlineDemos())}
+                  className="p-2 border border-gray-300 rounded-md hover:bg-gray-200 text-gray-700 transition"
+                  title="Reload"
+                >
+                  <FiRefreshCw />
+                </button>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -283,7 +360,14 @@ const OnlineDemo = () => {
                       </th>
                     )
                 )}
-                <th className="px-4 py-3 font-medium">Actions</th>
+                {/* Show Actions column only for Counsellors */}
+                {isCounsellor && (
+                  <th className="px-4 py-3 font-medium">Actions</th>
+                )}
+                {/* Show View column for Admin */}
+                {isAdmin && (
+                  <th className="px-4 py-3 font-medium">View</th>
+                )}
               </tr>
             </thead>
             <tbody>
@@ -309,31 +393,46 @@ const OnlineDemo = () => {
                     {visibleColumns.includes("Trainer") && (
                       <td className="px-4 py-2 border-r">{row.trainer}</td>
                     )}
-                    <td className="px-4 py-2 flex gap-2">
-                      <button
-                        onClick={() => {
-                          setEditingRow(row);
-                          setFormData({ ...row });
-                          setErrors({});
-                          setIsFormOpen(true);
-                        }}
-                        className="text-blue-600 hover:text-blue-800 transition"
-                      >
-                        <FiEdit />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(row._id)}
-                        className="text-red-500 hover:text-red-700 transition"
-                      >
-                        <FiTrash2 />
-                      </button>
-                    </td>
+                    
+                    {/* Actions - Only for Counsellors */}
+                    {isCounsellor && (
+                      <td className="px-4 py-2 flex gap-2">
+                        <button
+                          onClick={() => {
+                            setEditingRow(row);
+                            setFormData({ ...row });
+                            setErrors({});
+                            setIsFormOpen(true);
+                          }}
+                          className="text-blue-600 hover:text-blue-800 transition"
+                          title="Edit"
+                        >
+                          <FiEdit />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(row._id)}
+                          className="text-red-500 hover:text-red-700 transition"
+                          title="Delete"
+                        >
+                          <FiTrash2 />
+                        </button>
+                      </td>
+                    )}
+                    
+                    {/* View-only indicator for Admin */}
+                    {isAdmin && (
+                      <td className="px-4 py-2">
+                        <span className="text-gray-400 flex justify-center" title="View Only">
+                          <FiEye />
+                        </span>
+                      </td>
+                    )}
                   </tr>
                 ))
               ) : (
                 <tr>
                   <td
-                    colSpan={visibleColumns.length + 2}
+                    colSpan={visibleColumns.length + (isCounsellor ? 2 : isAdmin ? 2 : 1)}
                     className="text-center py-6 text-gray-500 text-sm"
                   >
                     No records found
@@ -345,8 +444,8 @@ const OnlineDemo = () => {
         </div>
       </div>
 
-      {/* ✅ Modal Form (2-column layout) */}
-      {isFormOpen && (
+      {/* ✅ Modal Form - ONLY FOR COUNSELLORS */}
+      {isFormOpen && isCounsellor && (
         <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl p-6 relative border border-gray-200">
             <button
@@ -450,6 +549,134 @@ const OnlineDemo = () => {
                   className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm"
                 >
                   {editingRow ? "Update" : "Submit"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ✅ Filter Modal - Available for both roles */}
+      {isFilterOpen && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg p-6 relative border border-gray-200">
+            <button
+              onClick={() => setIsFilterOpen(false)}
+              className="absolute top-3 right-3 text-gray-500 hover:text-gray-700"
+            >
+              <FiX />
+            </button>
+
+            <h3 className="text-lg font-semibold mb-4 text-center text-gray-800">
+              Filter Online Demos
+            </h3>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                setFilterErrors({});
+                setIsFilterOpen(false);
+              }}
+              className="space-y-4"
+            >
+              {/* Branch */}
+              <div>
+                <label className="text-sm font-medium text-gray-700">Branch</label>
+                <select
+                  value={filterData.branch}
+                  onChange={(e) => setFilterData({ ...filterData, branch: e.target.value })}
+                  className="border rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-blue-500 text-sm"
+                >
+                  <option value="">All Branches</option>
+                  {uniqueBranches.map((branch) => (
+                    <option key={branch} value={branch}>
+                      {branch}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Trainer */}
+              <div>
+                <label className="text-sm font-medium text-gray-700">Trainer</label>
+                <select
+                  value={filterData.trainer}
+                  onChange={(e) => setFilterData({ ...filterData, trainer: e.target.value })}
+                  className="border rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-blue-500 text-sm"
+                >
+                  <option value="">All Trainers</option>
+                  {uniqueTrainers.map((trainer) => (
+                    <option key={trainer} value={trainer}>
+                      {trainer}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Mode */}
+              <div>
+                <label className="text-sm font-medium text-gray-700">Mode</label>
+                <select
+                  value={filterData.mode}
+                  onChange={(e) => setFilterData({ ...filterData, mode: e.target.value })}
+                  className="border rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-blue-500 text-sm"
+                >
+                  <option value="">All Modes</option>
+                  {uniqueModes.map((mode) => (
+                    <option key={mode} value={mode}>
+                      {mode}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Date From */}
+              <div>
+                <label className="text-sm font-medium text-gray-700">Date From</label>
+                <input
+                  type="date"
+                  value={filterData.dateFrom}
+                  onChange={(e) => setFilterData({ ...filterData, dateFrom: e.target.value })}
+                  className="border rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-blue-500 text-sm"
+                />
+                {filterErrors.dateFrom && <p className="text-red-500 text-xs mt-1">{filterErrors.dateFrom}</p>}
+              </div>
+
+              {/* Date To */}
+              <div>
+                <label className="text-sm font-medium text-gray-700">Date To</label>
+                <input
+                  type="date"
+                  value={filterData.dateTo}
+                  onChange={(e) => setFilterData({ ...filterData, dateTo: e.target.value })}
+                  className="border rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-blue-500 text-sm"
+                />
+                {filterErrors.dateTo && <p className="text-red-500 text-xs mt-1">{filterErrors.dateTo}</p>}
+              </div>
+
+              {/* Buttons */}
+              <div className="flex justify-end gap-2 mt-6">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFilterData({
+                      branch: "",
+                      trainer: "",
+                      mode: "",
+                      dateFrom: "",
+                      dateTo: "",
+                    });
+                    setFilterErrors({});
+                  }}
+                  className="px-4 py-2 border rounded-md text-gray-600 hover:bg-gray-100 text-sm"
+                >
+                  Reset
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm"
+                >
+                  Submit
                 </button>
               </div>
             </form>
