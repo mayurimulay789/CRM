@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
+import toast from 'react-hot-toast';
 import { registerUser, clearError, clearSuccess } from '../store/slices/authSlice';
 
 const RegistrationForm = () => {
@@ -61,6 +62,7 @@ const RegistrationForm = () => {
 
     // ✅ Dispatch register action (Redux handles everything)
     dispatch(registerUser(formData));
+    toast.success('Registration successful! Please login.');
   };
 
   // ✅ Determine which message to display

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
+import toast from 'react-hot-toast';
 import { loginUser, clearError, clearSuccess } from '../store/slices/authSlice';
-import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline'; 
+import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
 
 const LoginForm = () => {
   const navigate = useNavigate();
@@ -48,6 +49,7 @@ const LoginForm = () => {
     }
 
     dispatch(loginUser(formData));
+    toast.success('Login successful!');
   };
 
   const displayMessage = localMessage || error || success;

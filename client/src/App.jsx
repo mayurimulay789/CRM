@@ -1,6 +1,7 @@
 import React, { useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { Provider, useDispatch, useSelector } from "react-redux";
+import { Toaster } from 'react-hot-toast';
 import { store } from "./store/store";
 import { getCurrentUser } from "./store/slices/authSlice";
 
@@ -93,6 +94,29 @@ function AppContent() {
         </Routes>
       </div>
       {/* <Footer /> */}
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          success: {
+            style: {
+              background: 'green',
+              color: 'white',
+            },
+          },
+          error: {
+            style: {
+              background: 'red',
+              color: 'white',
+            },
+          },
+          warning: {
+            style: {
+              background: 'orange',
+              color: 'white',
+            },
+          },
+        }}
+      />
     </Router>
   );
 }

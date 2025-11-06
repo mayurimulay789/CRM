@@ -1,18 +1,59 @@
-import React, { useState } from 'react';
-import { useDispatch } from 'react-redux';
+import React, { useState, useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import AddBatchForm from '../../AddBatchForm';
 import KanbanBoard from './KanbanBoard';
 import { getBatches } from '../../../store/slices/batchSlice';
 
 const BatchManagement = ({ activeSection }) => {
+  const dispatch = useDispatch();
+  const { batches, loading } = useSelector((state) => state.batch);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [showEditForm, setShowEditForm] = useState(false);
+  const [editingBatch, setEditingBatch] = useState(null);
+
+  useEffect(() => {
+    // Preload batches when component mounts
+    if (batches.length === 0 && !loading) {
+      dispatch(getBatches());
+    }
+  }, [dispatch, batches.length, loading]);
+
+  useEffect(() => {
+    // Scroll to top when switching views
+    window.scrollTo(0, 0);
+  }, [showAddForm]);
 
   const handleAddBatch = () => {
     setShowAddForm(true);
   };
 
+  const handleEditBatch = (batch) => {
+    setEditingBatch(batch);
+    setShowEditForm(true);
+  };
+
   const handleBack = () => {
     setShowAddForm(false);
+    setShowEditForm(false);
+    setEditingBatch(null);
+  };
+
+  const handleEditSubmit = () => {
+    setShowEditForm(false);
+    setEditingBatch(null);
+    // Optionally refetch batches if needed
+    dispatch(getBatches());
+  };
+
+  const renderContent = () => {
+    if (showAddForm) {
+      return <AddBatchForm onBack={handleBack} />;
+    }
+    if (showEditForm && editingBatch) {
+      return <AddBatchForm onBack={handleBack} isEdit={true} batchData={editingBatch} onEditSubmit={handleEditSubmit} />;
+    }
+
+    return <KanbanBoard onEditBatch={handleEditBatch} />;
   };
 
   return (
@@ -36,11 +77,7 @@ const BatchManagement = ({ activeSection }) => {
           </button>
         )}
       </div>
-      {showAddForm ? (
-        <AddBatchForm onBack={handleBack} />
-      ) : (
-        <KanbanBoard />
-      )}
+      {renderContent()}
     </div>
   );
 };

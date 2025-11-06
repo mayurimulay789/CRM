@@ -36,6 +36,7 @@ const admissionRoutes = require("../routes/admissionRoutes");
 const enrolledStudentRoutes = require("../routes/enrolledStudentRoutes");
 const paymentRoutes = require("../routes/paymentRoutes");
 const batchRoutes = require("../routes/batchRoutes");
+const trainerRoutes = require("../routes/trainerRoutes");
 
 // ✅ Use Routes
 app.use("/api/onlineDemos", onlineDemoRoutes);
@@ -47,6 +48,7 @@ app.use("/api/admissions", admissionRoutes);
 app.use("/api/enrolled-students", enrolledStudentRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/batches", batchRoutes);
+app.use("/api/trainers", trainerRoutes);
 
 // ✅ Test route
 app.get("/", (req, res) => {

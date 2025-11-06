@@ -18,7 +18,7 @@ const batchSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['Upcoming', 'Running', 'Completed', 'Cancelled'],
+    enum: ['Upcoming', 'Running', 'Closed', 'Cancelled'],
     default: 'Upcoming',
   },
   branch: {
@@ -30,8 +30,8 @@ const batchSchema = new mongoose.Schema({
     trim: true,
   },
   classRoom: {
-    type: String,
-    trim: true,
+    type: Number,
+    min: 0,
   },
   code: {
     type: String,
@@ -73,10 +73,7 @@ const batchSchema = new mongoose.Schema({
   mergingTill: {
     type: Date,
   },
-  batchDays: {
-    type: String,
-    trim: true,
-  },
+
   batchExtenApproval: {
     type: String,
     trim: true,
@@ -96,7 +93,7 @@ const batchSchema = new mongoose.Schema({
 });
 
 // Index for better query performance
-batchSchema.index({ status: 1, startDate: 1 });
+batchSchema.index({ status: 1, createdAt: -1 });
 batchSchema.index({ createdBy: 1 });
 
 module.exports = mongoose.model('Batch', batchSchema);

@@ -7,6 +7,7 @@ import {
   setSearchQuery,
 } from "../../../store/slices/onlineDemoSlice";
 import { useDispatch, useSelector } from "react-redux";
+import toast from 'react-hot-toast';
 import {
   FiSearch,
   FiRefreshCw,
@@ -99,9 +100,13 @@ const OnlineDemo = () => {
     e.preventDefault();
     if (!validateForm()) return;
 
-    if (editingRow)
+    if (editingRow) {
       await dispatch(updateOnlineDemo({ id: editingRow._id, data: formData }));
-    else await dispatch(addOnlineDemo(formData));
+      toast.success('Online demo updated successfully!');
+    } else {
+      await dispatch(addOnlineDemo(formData));
+      toast.success('Online demo added successfully!');
+    }
 
     setIsFormOpen(false);
     setEditingRow(null);

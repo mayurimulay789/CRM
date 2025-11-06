@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   DndContext,
@@ -24,7 +24,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { getBatches, updateBatch } from '../../../store/slices/batchSlice';
 
-const KanbanColumn = ({ id, title, items }) => {
+const KanbanColumn = ({ id, title, items, onEditBatch }) => {
   const { setNodeRef, isOver } = useDroppable({
     id,
   });
@@ -35,7 +35,7 @@ const KanbanColumn = ({ id, title, items }) => {
         return 'bg-gradient-to-br from-yellow-50 to-orange-50 border-yellow-200';
       case 'running':
         return 'bg-gradient-to-br from-green-50 to-emerald-50 border-green-200';
-      case 'completed':
+      case 'closed':
         return 'bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200';
       default:
         return 'bg-gray-100 border-gray-200';
@@ -48,7 +48,7 @@ const KanbanColumn = ({ id, title, items }) => {
         return 'text-yellow-800';
       case 'running':
         return 'text-green-800';
-      case 'completed':
+      case 'closed':
         return 'text-blue-800';
       default:
         return 'text-gray-800';
@@ -68,7 +68,7 @@ const KanbanColumn = ({ id, title, items }) => {
       <SortableContext items={items.map(item => item._id)} strategy={verticalListSortingStrategy}>
         <div className="space-y-3">
           {items.map((batch) => (
-            <BatchCard key={batch._id} batch={batch} />
+            <BatchCard key={batch._id} batch={batch} onEditBatch={onEditBatch} />
           ))}
         </div>
       </SortableContext>
@@ -76,7 +76,7 @@ const KanbanColumn = ({ id, title, items }) => {
   );
 };
 
-const BatchCard = ({ batch }) => {
+const BatchCard = ({ batch, onEditBatch }) => {
   const {
     attributes,
     listeners,
@@ -97,7 +97,7 @@ const BatchCard = ({ batch }) => {
         return 'bg-gradient-to-r from-yellow-400 to-orange-400 text-white';
       case 'Running':
         return 'bg-gradient-to-r from-green-400 to-emerald-400 text-white';
-      case 'Completed':
+      case 'Closed':
         return 'bg-gradient-to-r from-blue-400 to-indigo-400 text-white';
       default:
         return 'bg-gray-400 text-white';
@@ -114,6 +114,20 @@ const BatchCard = ({ batch }) => {
         isDragging ? 'opacity-50 rotate-2 scale-105' : ''
       }`}
     >
+      {batch.status !== 'Closed' && (
+        <div className="absolute bottom-3 right-3">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onEditBatch(batch);
+            }}
+            className="text-gray-500 hover:text-gray-700 text-lg"
+            title="Edit Batch"
+          >
+            📝
+          </button>
+        </div>
+      )}
       <div className={`absolute top-3 right-3 px-3 py-1 rounded-full text-xs font-semibold shadow-sm ${getStatusColor(batch.status)}`}>
         {batch.status}
       </div>
@@ -131,15 +145,9 @@ const BatchCard = ({ batch }) => {
   );
 };
 
-const KanbanBoard = () => {
-  const dispatch = useDispatch();
+const KanbanBoard = ({ onEditBatch }) => {
   const { batches, loading, error } = useSelector((state) => state.batch);
   const [activeId, setActiveId] = useState(null);
-  const [columns, setColumns] = useState({
-    upcoming: [],
-    running: [],
-    completed: [],
-  });
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -152,17 +160,15 @@ const KanbanBoard = () => {
     })
   );
 
-  useEffect(() => {
-    dispatch(getBatches());
-  }, [dispatch]);
+  // Remove the useEffect that was dispatching getBatches
+  // Batches are now preloaded in BatchManagement component
 
-  useEffect(() => {
-    const grouped = {
+  const columns = useMemo(() => {
+    return {
       upcoming: batches.filter(batch => batch.status === 'Upcoming'),
       running: batches.filter(batch => batch.status === 'Running'),
-      completed: batches.filter(batch => batch.status === 'Completed'),
+      closed: batches.filter(batch => batch.status === 'Closed'),
     };
-    setColumns(grouped);
   }, [batches]);
 
   const handleDragStart = (event) => {
@@ -189,14 +195,16 @@ const KanbanBoard = () => {
 
     // Determine source column
     let sourceColumn = null;
-    Object.keys(columns).forEach(key => {
+    const columnKeys = Object.keys(columns);
+    for (const key of columnKeys) {
       if (columns[key].some(batch => batch._id === activeId)) {
         sourceColumn = key;
+        break;
       }
-    });
+    }
 
     // Check if dropped on a column (not on another batch)
-    const columnIds = ['upcoming', 'running', 'completed'];
+    const columnIds = ['upcoming', 'running', 'closed'];
     const destColumn = columnIds.includes(overId) ? overId : null;
 
     if (!sourceColumn || !destColumn || sourceColumn === destColumn) {
@@ -207,8 +215,8 @@ const KanbanBoard = () => {
     // Check if move is allowed
     const allowedMoves = {
       upcoming: ['running'], // Upcoming can only go to Running
-      running: ['completed'], // Running can go to Completed
-      completed: [], // Completed cannot be moved
+      running: ['closed'], // Running can go to Closed
+      closed: ['running'], // Closed cannot be moved
     };
 
     if (!allowedMoves[sourceColumn].includes(destColumn)) {
@@ -220,7 +228,7 @@ const KanbanBoard = () => {
     const statusMap = {
       upcoming: 'Upcoming',
       running: 'Running',
-      completed: 'Completed',
+      closed: 'Closed',
     };
 
     const newStatus = statusMap[destColumn];
@@ -262,16 +270,19 @@ const KanbanBoard = () => {
             id="upcoming"
             title="📅 Upcoming"
             items={columns.upcoming}
+            onEditBatch={onEditBatch}
           />
           <KanbanColumn
             id="running"
             title="🚀 Running"
             items={columns.running}
+            onEditBatch={onEditBatch}
           />
           <KanbanColumn
-            id="completed"
-            title="✅ Completed"
-            items={columns.completed}
+            id="closed"
+            title="✅ Closed"
+            items={columns.closed}
+            onEditBatch={onEditBatch}
           />
         </div>
       </div>

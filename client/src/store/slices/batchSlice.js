@@ -18,8 +18,18 @@ export const createBatch = createAsyncThunk(
 
 export const getBatches = createAsyncThunk(
   'batch/getBatches',
-  async (params = {}, { rejectWithValue }) => {
+  async (params = {}, { rejectWithValue, getState }) => {
     try {
+      const { status } = params;
+      const state = getState().batch;
+      const cacheKey = status?.toLowerCase();
+      const cache = state.cache[cacheKey];
+
+      // Check if data is cached and less than 5 minutes old
+      if (cache && cache.timestamp && (Date.now() - cache.timestamp < 300000)) {
+        return { data: cache.data, pagination: state.pagination, cached: true };
+      }
+
       const response = await batchAPI.getBatches(params);
       return response.data;
     } catch (error) {
@@ -101,6 +111,11 @@ const initialState = {
     hasNext: false,
     hasPrev: false,
   },
+  cache: {
+    upcoming: { data: [], timestamp: null },
+    running: { data: [], timestamp: null },
+    closed: { data: [], timestamp: null },
+  },
 };
 
 // Batch Slice
@@ -114,8 +129,18 @@ const batchSlice = createSlice({
     clearSuccess: (state) => {
       state.success = null;
     },
+    setError: (state, action) => {
+      state.error = action.payload;
+    },
     resetCurrentBatch: (state) => {
       state.currentBatch = null;
+    },
+    clearCache: (state) => {
+      state.cache = {
+        upcoming: { data: [], timestamp: null },
+        running: { data: [], timestamp: null },
+        closed: { data: [], timestamp: null },
+      };
     },
   },
   extraReducers: (builder) => {
@@ -129,7 +154,13 @@ const batchSlice = createSlice({
         state.loading = false;
         state.batches.unshift(action.payload.data); // Add to beginning of array
         state.success = action.payload.message || 'Batch created successfully';
-        state.totalBatches += 1;
+        state.pagination.totalBatches += 1;
+        // Clear cache when new batch is created
+        state.cache = {
+          upcoming: { data: [], timestamp: null },
+          running: { data: [], timestamp: null },
+          closed: { data: [], timestamp: null },
+        };
       })
       .addCase(createBatch.rejected, (state, action) => {
         state.loading = false;
@@ -144,6 +175,17 @@ const batchSlice = createSlice({
         state.loading = false;
         state.batches = action.payload.data;
         state.pagination = action.payload.pagination;
+
+        // Cache the data if not from cache
+        if (!action.payload.cached) {
+          const status = action.meta.arg?.status?.toLowerCase();
+          if (status && state.cache[status]) {
+            state.cache[status] = {
+              data: action.payload.data,
+              timestamp: Date.now(),
+            };
+          }
+        }
       })
       .addCase(getBatches.rejected, (state, action) => {
         state.loading = false;
@@ -181,6 +223,12 @@ const batchSlice = createSlice({
           state.currentBatch = action.payload.data;
         }
         state.success = action.payload.message || 'Batch updated successfully';
+        // Clear cache when batch is updated
+        state.cache = {
+          upcoming: { data: [], timestamp: null },
+          running: { data: [], timestamp: null },
+          closed: { data: [], timestamp: null },
+        };
       })
       .addCase(updateBatch.rejected, (state, action) => {
         state.loading = false;
@@ -197,7 +245,13 @@ const batchSlice = createSlice({
           (batch) => batch._id !== action.meta.arg
         );
         state.success = action.payload.message || 'Batch deleted successfully';
-        state.totalBatches -= 1;
+        state.pagination.totalBatches -= 1;
+        // Clear cache when batch is deleted
+        state.cache = {
+          upcoming: { data: [], timestamp: null },
+          running: { data: [], timestamp: null },
+          closed: { data: [], timestamp: null },
+        };
       })
       .addCase(deleteBatch.rejected, (state, action) => {
         state.loading = false;
@@ -220,6 +274,6 @@ const batchSlice = createSlice({
   },
 });
 
-export const { clearError, clearSuccess, resetCurrentBatch } = batchSlice.actions;
+export const { clearError, clearSuccess, setError, resetCurrentBatch, clearCache } = batchSlice.actions;
 
 export default batchSlice.reducer;
