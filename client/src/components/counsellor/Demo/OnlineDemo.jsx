@@ -5,7 +5,7 @@ import {
   updateOnlineDemo,
   deleteOnlineDemo,
   setSearchQuery,
-} from "../../features/onlineDemo/onlineDemoSlice";
+} from "../../../store/slices/onlineDemoSlice";
 import { useDispatch, useSelector } from "react-redux";
 import {
   FiSearch,
@@ -30,8 +30,10 @@ const OnlineDemo = () => {
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isColumnsOpen, setIsColumnsOpen] = useState(false);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [editingRow, setEditingRow] = useState(null);
   const [errors, setErrors] = useState({});
+  const [filterErrors, setFilterErrors] = useState({});
 
   const [formData, setFormData] = useState({
     course: "",
@@ -42,6 +44,14 @@ const OnlineDemo = () => {
     trainer: "",
   });
 
+  const [filterData, setFilterData] = useState({
+    branch: "",
+    trainer: "",
+    mode: "",
+    dateFrom: "",
+    dateTo: "",
+  });
+
   const defaultColumns = ["Course", "Date", "Timing", "Mode", "Medium", "Trainer"];
   const [visibleColumns, setVisibleColumns] = useState(defaultColumns);
   const [columnSearch, setColumnSearch] = useState("");
@@ -50,11 +60,24 @@ const OnlineDemo = () => {
     dispatch(fetchOnlineDemos());
   }, [dispatch]);
 
-  const filteredRows = rows.filter(
-    (r) =>
+  // Get unique values for dropdowns
+  const uniqueBranches = [...new Set(rows.map(r => r.branch).filter(Boolean))];
+  const uniqueTrainers = [...new Set(rows.map(r => r.trainer).filter(Boolean))];
+  const uniqueModes = [...new Set(rows.map(r => r.mode).filter(Boolean))];
+
+  const filteredRows = rows.filter((r) => {
+    const matchesSearch =
       r.course?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      r.trainer?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+      r.trainer?.toLowerCase().includes(searchQuery.toLowerCase());
+
+    const matchesBranch = !filterData.branch || r.branch === filterData.branch;
+    const matchesTrainer = !filterData.trainer || r.trainer === filterData.trainer;
+    const matchesMode = !filterData.mode || r.mode === filterData.mode;
+    const matchesDateFrom = !filterData.dateFrom || new Date(r.date) >= new Date(filterData.dateFrom);
+    const matchesDateTo = !filterData.dateTo || new Date(r.date) <= new Date(filterData.dateTo);
+
+    return matchesSearch && matchesBranch && matchesTrainer && matchesMode && matchesDateFrom && matchesDateTo;
+  });
 
   // ✅ Validation
   const validateForm = () => {
@@ -154,6 +177,7 @@ const OnlineDemo = () => {
           <FiArrowLeft /> Go Back
         </button>
         <button
+          onClick={() => setIsFilterOpen(true)}
           className="flex items-center gap-2 bg-gray-200 text-gray-700 px-3 py-2 rounded-md hover:bg-gray-300 transition"
           title="Filter"
         >
@@ -218,6 +242,26 @@ const OnlineDemo = () => {
                   onChange={(e) => setColumnSearch(e.target.value)}
                   className="w-full border rounded px-2 py-1 mb-2 text-sm focus:ring-2 focus:ring-blue-500"
                 />
+                <div className="flex gap-2 mb-2">
+                  <button
+                    onClick={() => setVisibleColumns(defaultColumns)}
+                    className="bg-green-500 text-white px-2 py-1 rounded text-xs hover:bg-green-600 transition"
+                  >
+                    Show All
+                  </button>
+                  <button
+                    onClick={() => setVisibleColumns([])}
+                    className="bg-red-500 text-white px-2 py-1 rounded text-xs hover:bg-red-600 transition"
+                  >
+                    Hide All
+                  </button>
+                  <button
+                    onClick={() => setVisibleColumns(defaultColumns)}
+                    className="bg-blue-500 text-white px-2 py-1 rounded text-xs hover:bg-blue-700 transition"
+                  >
+                    Reset
+                  </button>
+                </div>
                 <div className="max-h-40 overflow-y-auto space-y-1">
                   {filteredColumns.map((col) => (
                     <label
@@ -450,6 +494,134 @@ const OnlineDemo = () => {
                   className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm"
                 >
                   {editingRow ? "Update" : "Submit"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ✅ Filter Modal */}
+      {isFilterOpen && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg p-6 relative border border-gray-200">
+            <button
+              onClick={() => setIsFilterOpen(false)}
+              className="absolute top-3 right-3 text-gray-500 hover:text-gray-700"
+            >
+              <FiX />
+            </button>
+
+            <h3 className="text-lg font-semibold mb-4 text-center text-gray-800">
+              Filter Online Demos
+            </h3>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                setFilterErrors({});
+                setIsFilterOpen(false);
+              }}
+              className="space-y-4"
+            >
+              {/* Branch */}
+              <div>
+                <label className="text-sm font-medium text-gray-700">Branch</label>
+                <select
+                  value={filterData.branch}
+                  onChange={(e) => setFilterData({ ...filterData, branch: e.target.value })}
+                  className="border rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-blue-500 text-sm"
+                >
+                  <option value="">All Branches</option>
+                  {uniqueBranches.map((branch) => (
+                    <option key={branch} value={branch}>
+                      {branch}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Trainer */}
+              <div>
+                <label className="text-sm font-medium text-gray-700">Trainer</label>
+                <select
+                  value={filterData.trainer}
+                  onChange={(e) => setFilterData({ ...filterData, trainer: e.target.value })}
+                  className="border rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-blue-500 text-sm"
+                >
+                  <option value="">All Trainers</option>
+                  {uniqueTrainers.map((trainer) => (
+                    <option key={trainer} value={trainer}>
+                      {trainer}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Mode */}
+              <div>
+                <label className="text-sm font-medium text-gray-700">Mode</label>
+                <select
+                  value={filterData.mode}
+                  onChange={(e) => setFilterData({ ...filterData, mode: e.target.value })}
+                  className="border rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-blue-500 text-sm"
+                >
+                  <option value="">All Modes</option>
+                  {uniqueModes.map((mode) => (
+                    <option key={mode} value={mode}>
+                      {mode}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Date From */}
+              <div>
+                <label className="text-sm font-medium text-gray-700">Date From</label>
+                <input
+                  type="date"
+                  value={filterData.dateFrom}
+                  onChange={(e) => setFilterData({ ...filterData, dateFrom: e.target.value })}
+                  className="border rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-blue-500 text-sm"
+                />
+                {filterErrors.dateFrom && <p className="text-red-500 text-xs mt-1">{filterErrors.dateFrom}</p>}
+              </div>
+
+              {/* Date To */}
+              <div>
+                <label className="text-sm font-medium text-gray-700">Date To</label>
+                <input
+                  type="date"
+                  value={filterData.dateTo}
+                  onChange={(e) => setFilterData({ ...filterData, dateTo: e.target.value })}
+                  className="border rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-blue-500 text-sm"
+                />
+                {filterErrors.dateTo && <p className="text-red-500 text-xs mt-1">{filterErrors.dateTo}</p>}
+              </div>
+
+              {/* Buttons */}
+              <div className="flex justify-end gap-2 mt-6">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFilterData({
+                      branch: "",
+                      trainer: "",
+                      mode: "",
+                      dateFrom: "",
+                      dateTo: "",
+                    });
+                    setFilterErrors({});
+                  }}
+                  className="px-4 py-2 border rounded-md text-gray-600 hover:bg-gray-100 text-sm"
+                >
+                  Reset
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm"
+                >
+                  Submit
                 </button>
               </div>
             </form>
