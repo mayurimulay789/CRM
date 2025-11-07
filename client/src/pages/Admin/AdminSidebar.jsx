@@ -20,6 +20,65 @@ const AdminSidebar = ({ activeSection, setActiveSection }) => {
     navigate('/');
   };
 
+  // Color mapping for consistent styling
+  const colorClasses = {
+    gray: { bg: 'bg-gray-100', text: 'text-gray-700', border: 'border-gray-200', dot: 'bg-gray-400' },
+    green: { bg: 'bg-green-100', text: 'text-green-700', border: 'border-green-200', dot: 'bg-green-400' },
+    blue: { bg: 'bg-blue-100', text: 'text-blue-700', border: 'border-blue-200', dot: 'bg-blue-400' },
+    purple: { bg: 'bg-purple-100', text: 'text-purple-700', border: 'border-purple-200', dot: 'bg-purple-400' },
+    orange: { bg: 'bg-orange-100', text: 'text-orange-700', border: 'border-orange-200', dot: 'bg-orange-400' },
+    pink: { bg: 'bg-pink-100', text: 'text-pink-700', border: 'border-pink-200', dot: 'bg-pink-400' },
+    red: { bg: 'bg-red-100', text: 'text-red-700', border: 'border-red-200', dot: 'bg-red-400' },
+    indigo: { bg: 'bg-indigo-100', text: 'text-indigo-700', border: 'border-indigo-200', dot: 'bg-indigo-400' },
+    teal: { bg: 'bg-teal-100', text: 'text-teal-700', border: 'border-teal-200', dot: 'bg-teal-400' },
+    amber: { bg: 'bg-amber-100', text: 'text-amber-700', border: 'border-amber-200', dot: 'bg-amber-400' },
+    rose: { bg: 'bg-rose-100', text: 'text-rose-700', border: 'border-rose-200', dot: 'bg-rose-400' },
+    cyan: { bg: 'bg-cyan-100', text: 'text-cyan-700', border: 'border-cyan-200', dot: 'bg-cyan-400' }
+  };
+
+  const expandableSections = [
+    {
+      title: "📚 Batches",
+      isOpen: isBatchesOpen,
+      setIsOpen: setIsBatchesOpen,
+      items: [
+        { key: 'closed-batch', label: 'Closed Batch', color: 'gray' },
+        { key: 'running-batch', label: 'Running Batch', color: 'green' },
+        { key: 'upcoming-batch', label: 'Upcoming Batch', color: 'blue' }
+      ]
+    },
+    {
+      title: "🎯 Demo",
+      isOpen: isDemoOpen,
+      setIsOpen: setIsDemoOpen,
+      items: [
+        { key: 'online-demo', label: 'Online', color: 'purple' },
+        { key: 'offline-demo', label: 'Offline', color: 'orange' },
+        { key: 'one-to-one-demo', label: '1-2-1', color: 'pink' },
+        { key: 'live-class-demo', label: 'Live Class', color: 'red' }
+      ]
+    },
+    {
+      title: "🎓 Admission",
+      isOpen: isAdmissionOpen,
+      setIsOpen: setIsAdmissionOpen,
+      items: [
+        { key: 'admission-form', label: 'Admission Form', color: 'indigo' },
+        { key: 'enrolled-student', label: 'Enrolled Student', color: 'teal' },
+        { key: 'payment-invoice-sheet', label: 'Payment Invoice', color: 'amber' }
+      ]
+    },
+    {
+      title: "📋 Complaint",
+      isOpen: isComplaintOpen,
+      setIsOpen: setIsComplaintOpen,
+      items: [
+        { key: 'student-grievance', label: 'Student Grievance', color: 'rose' },
+        { key: 'campus-grievance', label: 'Campus Grievance', color: 'cyan' }
+      ]
+    }
+  ];
+
   return (
     <div className="w-80 bg-gradient-to-b from-white to-indigo-50 shadow-2xl min-h-screen flex flex-col border-r border-indigo-100">
       {/* Premium Admin Header */}
@@ -73,6 +132,21 @@ const AdminSidebar = ({ activeSection, setActiveSection }) => {
               🏠
             </div>
             <span className="font-semibold">Admin Dashboard</span>
+          </button>
+
+            {/* Course Management */}
+          <button
+            onClick={() => setActiveSection('course-management')}
+            className={`w-full text-left px-5 py-4 rounded-2xl transition-all duration-300 flex items-center space-x-4 group ${
+              activeSection === 'course-management' 
+                ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-lg shadow-purple-200' 
+                : 'bg-white text-gray-700 hover:shadow-md border border-indigo-100 hover:transform hover:-translate-y-0.5'
+            }`}
+          >
+            <div className={`text-xl ${activeSection === 'course-management' ? 'scale-110' : 'group-hover:scale-110'} transition-transform`}>
+              📚
+            </div>
+            <span className="font-semibold">Course Management</span>
           </button>
 
           {/* User Management */}
@@ -151,6 +225,16 @@ const AdminSidebar = ({ activeSection, setActiveSection }) => {
           {/* Expandable Sections */}
           {[
             {
+              title: "📚 Batches",
+              isOpen: isBatchesOpen,
+              setIsOpen: setIsBatchesOpen,
+              items: [
+                { key: 'closed-batch', label: 'Closed Batch', color: 'gray' },
+                { key: 'running-batch', label: 'Running Batch', color: 'green' },
+                { key: 'upcoming-batch', label: 'Upcoming Batch', color: 'blue' }
+              ]
+            },
+            {
               title: "🎯 Demo",
               isOpen: isDemoOpen,
               setIsOpen: setIsDemoOpen,
@@ -197,26 +281,31 @@ const AdminSidebar = ({ activeSection, setActiveSection }) => {
               
               {section.isOpen && (
                 <div className="px-3 pb-3 space-y-2">
-                  {section.items.map((item) => (
-                    <button
-                      key={item.key}
-                      onClick={() => setActiveSection(item.key)}
-                      className={`w-full text-left px-4 py-3 rounded-xl transition-all duration-300 flex items-center space-x-3 group ${
-                        activeSection === item.key 
-                          ? `bg-${item.color}-100 text-${item.color}-700 border border-${item.color}-200 shadow-sm` 
-                          : 'text-gray-600 hover:bg-gray-50 hover:shadow-sm'
-                      }`}
-                    >
-                      <div className={`w-2 h-2 rounded-full bg-${item.color}-400`}></div>
-                      <span className="text-sm font-medium">{item.label}</span>
-                    </button>
-                  ))}
+                  {section.items.map((item) => {
+                    const colorClass = colorClasses[item.color];
+                    return (
+                      <button
+                        key={item.key}
+                        onClick={() => setActiveSection(item.key)}
+                        className={`w-full text-left px-4 py-3 rounded-xl transition-all duration-300 flex items-center space-x-3 group ${
+                          activeSection === item.key 
+                            ? `${colorClass.bg} ${colorClass.text} ${colorClass.border} shadow-sm` 
+                            : 'text-gray-600 hover:bg-gray-50 hover:shadow-sm'
+                        }`}
+                      >
+                        <div className={`w-2 h-2 rounded-full ${colorClass.dot}`}></div>
+                        <span className="text-sm font-medium">{item.label}</span>
+                      </button>
+                    );
+                  })}
                 </div>
               )}
             </div>
           ))}
 
-          {/* MIS */}
+        
+
+          {/* MIS Reports */}
           <button
             onClick={() => setActiveSection('mis')}
             className={`w-full text-left px-5 py-4 rounded-2xl transition-all duration-300 flex items-center space-x-4 group ${

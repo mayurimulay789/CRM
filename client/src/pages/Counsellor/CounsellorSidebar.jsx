@@ -74,6 +74,21 @@ const CounsellorSidebar = ({ activeSection, setActiveSection }) => {
             <span className="font-semibold">Dashboard</span>
           </button>
 
+          {/* Student Management */}
+          <button
+            onClick={() => setActiveSection('student-management')}
+            className={`w-full text-left px-5 py-4 rounded-2xl transition-all duration-300 flex items-center space-x-4 group ${
+              activeSection === 'student-management' 
+                ? 'bg-gradient-to-r from-green-500 to-green-600 text-white shadow-lg shadow-green-200' 
+                : 'bg-white text-gray-700 hover:bg-green-50 hover:shadow-md border border-green-100'
+            }`}
+          >
+            <div className={`text-xl ${activeSection === 'student-management' ? 'scale-110' : 'group-hover:scale-110'} transition-transform`}>
+              
+            </div>
+            <span className="font-semibold">Student Management</span>
+          </button>
+
           {/* My Works */}
           <button
             onClick={() => setActiveSection('my-works')}
@@ -117,7 +132,7 @@ const CounsellorSidebar = ({ activeSection, setActiveSection }) => {
               isOpen: isAdmissionOpen,
               setIsOpen: setIsAdmissionOpen,
               items: [
-                { key: 'admission-form', label: 'Admission Form', color: 'indigo' },
+                { key: 'admission-management', label: 'Admission Status', color: 'indigo' },
                 { key: 'enrolled-student', label: 'Enrolled Student', color: 'teal' },
                 { key: 'payment-invoice-sheet', label: 'Payment Invoice', color: 'amber' }
               ]
