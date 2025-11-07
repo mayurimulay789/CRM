@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import React, { useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { Provider, useDispatch, useSelector } from "react-redux";
@@ -36,11 +37,42 @@ function AppContent() {
   const { loading } = useSelector((state) => state.auth);
 
   // ✅ Fetch user on app load
+=======
+
+import React, { useEffect } from "react";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { Provider, useDispatch, useSelector } from "react-redux";
+import { store } from "./store/store";
+import { getCurrentUser } from "./store/slices/authSlice";
+
+import Home from "./pages/Home.jsx";
+import Navbar from "./components/Navbar.jsx";
+import Footer from "./components/Footer.jsx";
+
+import RegistrationForm from "./components/RegistrationForm.jsx";
+import LoginForm from "./components/LoginForm.jsx";
+
+import AdminDashboardPage from "./pages/AdminDashboardPage.jsx";
+import CounsellorDashboardPage from "./pages/CounsellorDashboardPage.jsx";
+import ProtectedRoute from "./components/ProtectedRoute.jsx";
+
+
+// App Content (Redux connected component)
+function AppContent() {
+  const dispatch = useDispatch();
+  const { loading } = useSelector(state => state.auth);
+
+  // ✅ Check if user is logged in on app start
+>>>>>>> 796f7396510349a3599e146e7987a6e0c9dcc0ef
   useEffect(() => {
     dispatch(getCurrentUser());
   }, [dispatch]);
 
+<<<<<<< HEAD
   // ✅ Loader while verifying authentication
+=======
+  // Show loading while checking authentication
+>>>>>>> 796f7396510349a3599e146e7987a6e0c9dcc0ef
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -54,6 +86,7 @@ function AppContent() {
       <Navbar />
       <div className="App scroll-smooth pt-16">
         <Routes>
+<<<<<<< HEAD
           {/* 🌐 Public Routes */}
           <Route path="/" element={<Home />} />
           <Route path="/register" element={<RegistrationForm />} />
@@ -62,18 +95,37 @@ function AppContent() {
           {/* 🧑‍💼 Protected Routes */}
           <Route
             path="/admin-panel"
+=======
+          {/* Public Routes */}
+          <Route path="/" element={<Home />} />
+          <Route path="/register" element={<RegistrationForm />} />
+          <Route path="/login" element={<LoginForm />} />
+          
+          {/* ✅ Protected Routes (Require Authentication) */}
+          <Route 
+            path="/admin-panel" 
+>>>>>>> 796f7396510349a3599e146e7987a6e0c9dcc0ef
             element={
               <ProtectedRoute>
                 <AdminDashboardPage />
               </ProtectedRoute>
+<<<<<<< HEAD
             }
           />
           <Route
             path="/counsellor-panel"
+=======
+            } 
+          />
+          {/* ✅ Protected Routes (Require Authentication) */}
+          <Route 
+            path="/counsellor-panel" 
+>>>>>>> 796f7396510349a3599e146e7987a6e0c9dcc0ef
             element={
               <ProtectedRoute>
                 <CounsellorDashboardPage />
               </ProtectedRoute>
+<<<<<<< HEAD
             }
           />
           <Route
@@ -117,13 +169,24 @@ function AppContent() {
           },
         }}
       />
+=======
+            } 
+          />
+        </Routes>
+      </div>
+      {/* <Footer /> */}
+>>>>>>> 796f7396510349a3599e146e7987a6e0c9dcc0ef
     </Router>
   );
 }
 
+<<<<<<< HEAD
 // --------------------
 // Main App Wrapper
 // --------------------
+=======
+// Main App Component with Redux Provider
+>>>>>>> 796f7396510349a3599e146e7987a6e0c9dcc0ef
 function App() {
   return (
     <Provider store={store}>
@@ -132,4 +195,8 @@ function App() {
   );
 }
 
+<<<<<<< HEAD
 export default App;
+=======
+export default App;
+>>>>>>> 796f7396510349a3599e146e7987a6e0c9dcc0ef

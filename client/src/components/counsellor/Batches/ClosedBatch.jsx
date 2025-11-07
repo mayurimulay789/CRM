@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import React, { useEffect, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { getBatches } from '../../../store/slices/batchSlice';
@@ -190,6 +191,18 @@ const ClosedBatch = () => {
           </div>
         </div>
       )}
+=======
+import React from 'react';
+
+const ClosedBatch = () => {
+  return (
+    <div className="p-6">
+      <h1 className="text-2xl font-bold text-gray-800 mb-6">ClosedBatch</h1>
+      <div className="bg-white rounded-lg shadow p-6">
+        <p>ClosedBatch content will be displayed here.</p>
+        {/* Add your component logic and JSX here */}
+      </div>
+>>>>>>> 796f7396510349a3599e146e7987a6e0c9dcc0ef
     </div>
   );
 };

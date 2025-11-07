@@ -6,6 +6,20 @@ const path = require("path");
 
 dotenv.config({ path: path.resolve(__dirname, "../.env") });
 
+<<<<<<< HEAD
+=======
+// Import routes
+const authRoutes = require("../routes/auth");
+const admissionRoutes = require('../routes/admissionRoutes');
+const enrolledStudentRoutes = require('../routes/enrolledStudentRoutes');
+const paymentRoutes = require('../routes/paymentRoutes');
+const courseRoutes = require('../routes/courseRoutes');
+const studentRoutes = require('../routes/studentRoutes');
+
+
+dotenv.config({path: '../.env'});
+// dotenv.config({ path: "./.env" });
+>>>>>>> 796f7396510349a3599e146e7987a6e0c9dcc0ef
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -14,6 +28,11 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+<<<<<<< HEAD
+=======
+
+
+>>>>>>> 796f7396510349a3599e146e7987a6e0c9dcc0ef
 
 // ✅ Connect MongoDB
 mongoose
@@ -55,5 +74,20 @@ app.get("/", (req, res) => {
   res.json({ message: "Backend server running ✅" });
 });
 
+<<<<<<< HEAD
 // ✅ Start server
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+=======
+// Routes
+app.use("/api/auth", authRoutes);
+app.use('/api/admissions', admissionRoutes);
+app.use('/api/enrolled-students', enrolledStudentRoutes);
+app.use('/api/payments', paymentRoutes);
+app.use('/api/courses', courseRoutes);
+app.use('/api/students', studentRoutes);
+
+// Start server
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
+>>>>>>> 796f7396510349a3599e146e7987a6e0c9dcc0ef

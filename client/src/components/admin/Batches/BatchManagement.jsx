@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import AddBatchForm from '../../AddBatchForm';
@@ -78,6 +79,18 @@ const BatchManagement = ({ activeSection }) => {
         )}
       </div>
       {renderContent()}
+=======
+import React from 'react';
+
+const BatchManagement = () => {
+  return (
+    <div className="p-6">
+      <h1 className="text-2xl font-bold text-gray-800 mb-6">BatchManagement</h1>
+      <div className="bg-white rounded-lg shadow p-6">
+        <p>BatchManagement content will be displayed here.</p>
+        {/* Add your component logic and JSX here */}
+      </div>
+>>>>>>> 796f7396510349a3599e146e7987a6e0c9dcc0ef
     </div>
   );
 };
