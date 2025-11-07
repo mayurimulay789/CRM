@@ -2,12 +2,14 @@ import { configureStore } from '@reduxjs/toolkit';
 import authReducer from './slices/authSlice';
 import admissionReducer from './slices/admissionSlice';
 import courseReducer from './slices/courseSlice';
+import studentReducer from './slices/studentSlice';
 
 export const store = configureStore({
   reducer: {
     auth: authReducer,
-    admissions: admissionReducer,
+    admissions: admissionReducer, // Added admission reducer
     courses: courseReducer,
+    students: studentReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

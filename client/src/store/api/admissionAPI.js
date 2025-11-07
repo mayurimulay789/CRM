@@ -1,16 +1,81 @@
+// import axios from 'axios';
+
+// const API_URL = import.meta.env.VITE_API_URL;
+
+// // Create axios instance with auth header
+// const api = axios.create({
+//   baseURL: `${API_URL}/admission`,
+// });
+
+// api.interceptors.request.use(
+//   (config) => {
+//     const token = localStorage.getItem('token');
+//     console.log('Attaching token to request:', token);
+//     if (token) {
+//       config.headers.Authorization = `Bearer ${token}`;
+//     }
+//     return config;
+//   },
+//   (error) => {
+//     return Promise.reject(error);
+//   }
+// );
+
+// const admissionAPI = {
+//   // Create new admission
+//   createAdmission: async (admissionData) => {
+//     const response = await api.post('/admissions', admissionData); // Use api instead of axios
+//     return response;
+//   },
+
+//   // Get all admissions
+//   getAdmissions: async () => {
+//     const response = await api.get('/admissions'); // Use api instead of axios
+//     return response;
+//   },
+
+//   // Get single admission by admissionNo
+//   getAdmission: async (admissionNo) => {
+//     const response = await api.get(`/admissions/${admissionNo}`); // Use api instead of axios
+//     return response;
+//   },
+
+//   // Update admission
+//   updateAdmission: async (admissionNo, admissionData) => {
+//     const response = await api.put(`/admissions/${admissionNo}`, admissionData); // Use api instead of axios
+//     return response;
+//   },
+
+//   // Delete admission
+//   deleteAdmission: async (admissionNo) => {
+//     const response = await api.delete(`/admissions/${admissionNo}`); // Use api instead of axios
+//     return response;
+//   },
+
+//   // Verify email
+//   verifyEmail: async (admissionNo) => {
+//     const response = await api.patch(`/admissions/${admissionNo}/verify-email`); // Use api instead of axios
+//     return response;
+//   }
+// };
+
+// export default admissionAPI;
+
+
+
 import axios from 'axios';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
-// Create axios instance with auth header
-const api = axios.create({
-  baseURL: `${API_URL}/admission`,
+// Create axios instance for admission API
+const admissionApi = axios.create({
+  baseURL: `${API_URL}/admissions`,
 });
 
-api.interceptors.request.use(
+// Add auth interceptor to admission API
+admissionApi.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
-    console.log('Attaching token to request:', token);
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -22,41 +87,71 @@ api.interceptors.request.use(
 );
 
 const admissionAPI = {
+  // Get all admissions with filters
+  getAllAdmissions: async (params = {}) => {
+    const response = await admissionApi.get('/', { params });
+    return response;
+  },
+
+  // Get admission by ID
+  getAdmissionById: async (admissionId) => {
+    const response = await admissionApi.get(`/${admissionId}`);
+    return response;
+  },
+
+  // Get admission by admission number
+  getAdmissionByAdmissionNo: async (admissionNo) => {
+    const response = await admissionApi.get(`/admissionNo/${admissionNo}`);
+    return response;
+  },
+
+  // Get admissions by student
+  getAdmissionsByStudent: async (studentId) => {
+    const response = await admissionApi.get(`/student/${studentId}`);
+    return response;
+  },
+
+  // Get admissions by course
+  getAdmissionsByCourse: async (courseId) => {
+    const response = await admissionApi.get(`/course/${courseId}`);
+    return response;
+  },
+
   // Create new admission
   createAdmission: async (admissionData) => {
-    const response = await api.post('/admissions', admissionData); // Use api instead of axios
-    return response;
-  },
-
-  // Get all admissions
-  getAdmissions: async () => {
-    const response = await api.get('/admissions'); // Use api instead of axios
-    return response;
-  },
-
-  // Get single admission by admissionNo
-  getAdmission: async (admissionNo) => {
-    const response = await api.get(`/admissions/${admissionNo}`); // Use api instead of axios
+    const response = await admissionApi.post('/', admissionData);
     return response;
   },
 
   // Update admission
-  updateAdmission: async (admissionNo, admissionData) => {
-    const response = await api.put(`/admissions/${admissionNo}`, admissionData); // Use api instead of axios
+  updateAdmission: async (admissionId, admissionData) => {
+    const response = await admissionApi.put(`/${admissionId}`, admissionData);
+    return response;
+  },
+
+  // Update admission status
+  updateAdmissionStatus: async (admissionId, statusData) => {
+    const response = await admissionApi.patch(`/${admissionId}/status`, statusData);
+    return response;
+  },
+
+  // Verify admission email
+  verifyAdmissionEmail: async (admissionId) => {
+    const response = await admissionApi.patch(`/${admissionId}/verify-email`);
     return response;
   },
 
   // Delete admission
-  deleteAdmission: async (admissionNo) => {
-    const response = await api.delete(`/admissions/${admissionNo}`); // Use api instead of axios
+  deleteAdmission: async (admissionId) => {
+    const response = await admissionApi.delete(`/${admissionId}`);
     return response;
   },
 
-  // Verify email
-  verifyEmail: async (admissionNo) => {
-    const response = await api.patch(`/admissions/${admissionNo}/verify-email`); // Use api instead of axios
+  // Get admission statistics
+  getAdmissionStats: async () => {
+    const response = await admissionApi.get('/stats/summary');
     return response;
-  }
+  },
 };
 
 export default admissionAPI;
