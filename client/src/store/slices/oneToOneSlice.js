@@ -1,11 +1,11 @@
 // src/features/oneToOne/oneToOneSlice.js
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import axios from "axios";
+import axiosInstance from "../../utils/axios";
 
 export const fetchOneToOneDemos = createAsyncThunk(
   "oneToOne/fetchAll",
   async () => {
-    const res = await axios.get("http://localhost:5000/api/oneToOneDemos");
+    const res = await axiosInstance.get("/oneToOneDemos");
     return res.data;
   }
 );
@@ -13,7 +13,7 @@ export const fetchOneToOneDemos = createAsyncThunk(
 export const addOneToOneDemo = createAsyncThunk(
   "oneToOne/add",
   async (data) => {
-    const res = await axios.post("http://localhost:5000/api/oneToOneDemos", data);
+    const res = await axiosInstance.post("/oneToOneDemos", data);
     return res.data;
   }
 );
@@ -21,7 +21,7 @@ export const addOneToOneDemo = createAsyncThunk(
 export const updateOneToOneDemo = createAsyncThunk(
   "oneToOne/update",
   async ({ id, data }) => {
-    const res = await axios.put(`http://localhost:5000/api/oneToOneDemos/${id}`, data);
+    const res = await axiosInstance.put(`/oneToOneDemos/${id}`, data);
     return res.data;
   }
 );
@@ -29,7 +29,7 @@ export const updateOneToOneDemo = createAsyncThunk(
 export const deleteOneToOneDemo = createAsyncThunk(
   "oneToOne/delete",
   async (id) => {
-    await axios.delete(`http://localhost:5000/api/oneToOneDemos/${id}`);
+    await axiosInstance.delete(`/oneToOneDemos/${id}`);
     return id;
   }
 );

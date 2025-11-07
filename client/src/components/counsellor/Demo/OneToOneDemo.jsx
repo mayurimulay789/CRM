@@ -7,6 +7,7 @@ import {
   deleteOneToOneDemo,
   setSearchQuery,
 } from "../../../store/slices/oneToOneSlice";
+import { getTrainers } from "../../../store/slices/trainerSlice"; // Import getTrainers
 import {
   FiSearch,
   FiRefreshCw,
@@ -29,6 +30,7 @@ const OneToOneDemo = () => {
   const dispatch = useDispatch();
   const { rows, searchQuery } = useSelector((state) => state.oneToOne);
   const { user } = useSelector((state) => state.auth); // Get user from auth state
+  const { trainers } = useSelector((state) => state.trainer); // Get trainers from trainer state
 
   // Role checks
   const isAdmin = user?.role === 'Admin';
@@ -84,6 +86,7 @@ const OneToOneDemo = () => {
 
   useEffect(() => {
     dispatch(fetchOneToOneDemos());
+    dispatch(getTrainers()); // Fetch trainers when component mounts
   }, [dispatch]);
 
   useEffect(() => {
@@ -99,6 +102,9 @@ const OneToOneDemo = () => {
   // Get unique values for dropdowns
   const uniqueStatuses = [...new Set(rows.map(r => r.status).filter(Boolean))];
   const uniqueTrainers = [...new Set(rows.map(r => r.trainer).filter(Boolean))];
+
+  // Filter active trainers for dropdown
+  const activeTrainers = trainers.filter(trainer => trainer.status === 'Active');
 
   const filteredRows = rows.filter((r) => {
     const matchSearch = !searchQuery
@@ -120,6 +126,7 @@ const OneToOneDemo = () => {
       newErrors.email = "Invalid email format";
     if (formData.mobile && !/^[0-9]{10}$/.test(formData.mobile))
       newErrors.mobile = "Mobile number must be 10 digits";
+    if (!formData.trainer.trim()) newErrors.trainer = "Please select a trainer";
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -363,7 +370,10 @@ const OneToOneDemo = () => {
                 />
               </div>
               <button
-                onClick={() => dispatch(fetchOneToOneDemos())}
+                onClick={() => {
+                  dispatch(fetchOneToOneDemos());
+                  dispatch(getTrainers()); // Refresh trainers on reload
+                }}
                 className="p-2 border border-gray-300 rounded-md hover:bg-gray-200"
               >
                 <FiRefreshCw />
@@ -491,7 +501,6 @@ const OneToOneDemo = () => {
                 { label: "Timing", name: "timing", type: "time" },
                 { label: "Email", name: "email", type: "email" },
                 { label: "Mobile", name: "mobile", type: "text" },
-                { label: "Trainer", name: "trainer", type: "text" },
                 { label: "Counselor", name: "counselor", type: "text" },
                 { label: "Counselor Remark", name: "counselorRemark", type: "text" },
                 { label: "Trainer Reply", name: "trainerReply", type: "text" },
@@ -531,6 +540,34 @@ const OneToOneDemo = () => {
                   )}
                 </div>
               ))}
+
+              {/* Trainer - Updated to dropdown */}
+              <div>
+                <label className="block text-sm font-medium mb-1">Trainer *</label>
+                <select
+                  name="trainer"
+                  value={formData.trainer}
+                  onChange={(e) =>
+                    setFormData({ ...formData, trainer: e.target.value })
+                  }
+                  className="w-full border rounded px-3 py-2"
+                  required
+                >
+                  <option value="">Select Trainer</option>
+                  {activeTrainers.length > 0 ? (
+                    activeTrainers.map((trainer) => (
+                      <option key={trainer._id} value={trainer.name}>
+                        {trainer.name} {trainer.specialization && `- ${trainer.specialization}`}
+                      </option>
+                    ))
+                  ) : (
+                    <option value="" disabled>No trainers available</option>
+                  )}
+                </select>
+                {errors.trainer && (
+                  <p className="text-red-500 text-xs mt-1">{errors.trainer}</p>
+                )}
+              </div>
 
               <div className="col-span-2 flex justify-end mt-4">
                 <button

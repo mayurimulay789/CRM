@@ -6,6 +6,7 @@ import {
   deleteOnlineDemo,
   setSearchQuery,
 } from "../../../store/slices/onlineDemoSlice";
+import { getTrainers } from "../../../store/slices/trainerSlice"; // Import getTrainers
 import { useDispatch, useSelector } from "react-redux";
 import {
   FiSearch,
@@ -29,6 +30,7 @@ const OnlineDemo = () => {
   const dispatch = useDispatch();
   const { rows, searchQuery } = useSelector((state) => state.onlineDemo);
   const { user } = useSelector((state) => state.auth); // Get user from auth state
+  const { trainers } = useSelector((state) => state.trainer); // Get trainers from trainer state
 
   // Role checks
   const isAdmin = user?.role === 'Admin';
@@ -64,12 +66,16 @@ const OnlineDemo = () => {
 
   useEffect(() => {
     dispatch(fetchOnlineDemos());
+    dispatch(getTrainers()); // Fetch trainers when component mounts
   }, [dispatch]);
 
   // Get unique values for dropdowns
   const uniqueBranches = [...new Set(rows.map(r => r.branch).filter(Boolean))];
   const uniqueTrainers = [...new Set(rows.map(r => r.trainer).filter(Boolean))];
   const uniqueModes = [...new Set(rows.map(r => r.mode).filter(Boolean))];
+
+  // Filter active trainers for dropdown
+  const activeTrainers = trainers.filter(trainer => trainer.status === 'Active');
 
   const filteredRows = rows.filter((r) => {
     const matchesSearch =
@@ -95,7 +101,7 @@ const OnlineDemo = () => {
     if (!formData.time.trim()) newErrors.time = "Timing is required";
     if (!formData.mode) newErrors.mode = "Please select mode";
     if (!formData.medium.trim()) newErrors.medium = "Medium is required";
-    if (!formData.trainer.trim()) newErrors.trainer = "Trainer name is required";
+    if (!formData.trainer.trim()) newErrors.trainer = "Please select a trainer";
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -330,7 +336,10 @@ const OnlineDemo = () => {
                   />
                 </div>
                 <button
-                  onClick={() => dispatch(fetchOnlineDemos())}
+                  onClick={() => {
+                    dispatch(fetchOnlineDemos());
+                    dispatch(getTrainers()); // Refresh trainers on reload
+                  }}
                   className="p-2 border border-gray-300 rounded-md hover:bg-gray-200 text-gray-700 transition"
                   title="Reload"
                 >
@@ -508,15 +517,25 @@ const OnlineDemo = () => {
                 {errors.medium && <p className="text-red-500 text-xs mt-1">{errors.medium}</p>}
               </div>
 
-              {/* Trainer */}
+              {/* Trainer - Updated to dropdown */}
               <div>
-                <label className="text-sm font-medium text-gray-700">Trainer</label>
-                <input
-                  type="text"
+                <label className="text-sm font-medium text-gray-700">Trainer *</label>
+                <select
                   value={formData.trainer}
                   onChange={(e) => setFormData({ ...formData, trainer: e.target.value })}
                   className="border rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-blue-500 text-sm"
-                />
+                >
+                  <option value="">Select Trainer</option>
+                  {activeTrainers.length > 0 ? (
+                    activeTrainers.map((trainer) => (
+                      <option key={trainer._id} value={trainer.name}>
+                        {trainer.name} {trainer.specialization && `- ${trainer.specialization}`}
+                      </option>
+                    ))
+                  ) : (
+                    <option value="" disabled>No trainers available</option>
+                  )}
+                </select>
                 {errors.trainer && <p className="text-red-500 text-xs mt-1">{errors.trainer}</p>}
               </div>
 

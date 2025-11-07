@@ -7,6 +7,7 @@ import {
   deleteLiveClass,
   setSearchQuery,
 } from "../../../features/liveClasses/liveClassesSlice";
+import { getTrainers } from "../../../store/slices/trainerSlice";
 import {
   FiSearch,
   FiRefreshCw,
@@ -19,6 +20,7 @@ import {
   FiFilter,
   FiColumns,
   FiEye,
+  FiClock,
 } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import { jsPDF } from "jspdf";
@@ -28,7 +30,8 @@ const LiveClassDemo = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { rows, searchQuery } = useSelector((state) => state.liveClasses);
-  const { user } = useSelector((state) => state.auth); // Get user from auth state
+  const { user } = useSelector((state) => state.auth);
+  const { trainers } = useSelector((state) => state.trainer);
 
   // Role checks
   const isAdmin = user?.role === 'Admin';
@@ -37,8 +40,11 @@ const LiveClassDemo = () => {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isColumnsOpen, setIsColumnsOpen] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [isTimePickerOpen, setIsTimePickerOpen] = useState(false);
   const [editingRow, setEditingRow] = useState(null);
+  const [formSubmitted, setFormSubmitted] = useState(false);
   const dropdownRef = useRef(null);
+  const timePickerRef = useRef(null);
 
   const defaultColumns = [
     "Name",
@@ -82,14 +88,36 @@ const LiveClassDemo = () => {
 
   const [errors, setErrors] = useState({});
 
+  // Time picker state
+  const [timePicker, setTimePicker] = useState({
+    hour: 9,
+    minute: 0,
+    period: "AM"
+  });
+
+  // Month names for formatting
+  const monthNames = [
+    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+  ];
+
+  // Time options
+  const hours = Array.from({ length: 12 }, (_, i) => i + 1);
+  const minutes = Array.from({ length: 12 }, (_, i) => i * 5); // 0, 5, 10, 15, ... 55
+  const periods = ["AM", "PM"];
+
   useEffect(() => {
     dispatch(fetchLiveClasses());
+    dispatch(getTrainers());
   }, [dispatch]);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
         setIsColumnsOpen(false);
+      }
+      if (timePickerRef.current && !timePickerRef.current.contains(e.target)) {
+        setIsTimePickerOpen(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -99,6 +127,131 @@ const LiveClassDemo = () => {
   // Get unique values for dropdowns
   const uniqueStatuses = [...new Set(rows.map(r => r.status).filter(Boolean))];
   const uniqueTrainers = [...new Set(rows.map(r => r.trainer).filter(Boolean))];
+
+  // Filter active trainers for dropdown
+  const activeTrainers = trainers.filter(trainer => trainer.status === 'Active');
+
+  // Format date to dd MMM yyyy (e.g., "9 Oct 2025")
+  const formatDisplayDate = (dateString) => {
+    if (!dateString) return "";
+    
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return dateString;
+      
+      const day = date.getDate();
+      const month = monthNames[date.getMonth()];
+      const year = date.getFullYear();
+      
+      return `${day} ${month} ${year}`;
+    } catch (error) {
+      return dateString;
+    }
+  };
+
+  // Format time to AM/PM
+  const formatDisplayTime = (timeString) => {
+    if (!timeString) return "";
+    
+    try {
+      // Handle both "HH:MM" and "HH:MM:SS" formats
+      const [hours, minutes] = timeString.split(':');
+      const hour = parseInt(hours, 10);
+      const minute = minutes || '00';
+      
+      if (isNaN(hour)) return timeString;
+      
+      const period = hour >= 12 ? 'PM' : 'AM';
+      const displayHour = hour % 12 || 12;
+      
+      return `${displayHour}:${minute.toString().padStart(2, '0')} ${period}`;
+    } catch (error) {
+      return timeString;
+    }
+  };
+
+  // Parse time from AM/PM to 24-hour format
+  const parseTimeInput = (timeString) => {
+    if (!timeString) return "";
+    
+    try {
+      const match = timeString.match(/(\d+):(\d+)\s*(AM|PM)/i);
+      if (!match) return timeString;
+      
+      let [_, hours, minutes, period] = match;
+      let hour = parseInt(hours, 10);
+      let minute = parseInt(minutes, 10);
+      
+      if (period.toUpperCase() === 'PM' && hour !== 12) {
+        hour += 12;
+      } else if (period.toUpperCase() === 'AM' && hour === 12) {
+        hour = 0;
+      }
+      
+      return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+    } catch (error) {
+      return timeString;
+    }
+  };
+
+  // Open time picker
+  const openTimePicker = () => {
+    if (formData.timing) {
+      // Parse existing time
+      const match = formData.timing.match(/(\d+):(\d+)\s*(AM|PM)/i);
+      if (match) {
+        let [_, hour, minute, period] = match;
+        setTimePicker({
+          hour: parseInt(hour, 10),
+          minute: parseInt(minute, 10),
+          period: period.toUpperCase()
+        });
+      }
+    }
+    setIsTimePickerOpen(true);
+  };
+
+  // Select time from picker
+  const selectTime = (hour, minute, period) => {
+    const formattedTime = `${hour}:${minute.toString().padStart(2, '0')} ${period}`;
+    setFormData(prev => ({
+      ...prev,
+      timing: formattedTime
+    }));
+    setIsTimePickerOpen(false);
+    
+    // Clear error if any
+    if (formSubmitted && errors.timing) {
+      setErrors(prev => ({
+        ...prev,
+        timing: ""
+      }));
+    }
+  };
+
+  // Quick time selection
+  const quickTimes = [
+    { label: "9:00 AM", hour: 9, minute: 0, period: "AM" },
+    { label: "9:30 AM", hour: 9, minute: 30, period: "AM" },
+    { label: "10:00 AM", hour: 10, minute: 0, period: "AM" },
+    { label: "10:30 AM", hour: 10, minute: 30, period: "AM" },
+    { label: "11:00 AM", hour: 11, minute: 0, period: "AM" },
+    { label: "11:30 AM", hour: 11, minute: 30, period: "AM" },
+    { label: "12:00 PM", hour: 12, minute: 0, period: "PM" },
+    { label: "12:30 PM", hour: 12, minute: 30, period: "PM" },
+    { label: "1:00 PM", hour: 1, minute: 0, period: "PM" },
+    { label: "1:30 PM", hour: 1, minute: 30, period: "PM" },
+    { label: "2:00 PM", hour: 2, minute: 0, period: "PM" },
+    { label: "2:30 PM", hour: 2, minute: 30, period: "PM" },
+    { label: "3:00 PM", hour: 3, minute: 0, period: "PM" },
+    { label: "3:30 PM", hour: 3, minute: 30, period: "PM" },
+    { label: "4:00 PM", hour: 4, minute: 0, period: "PM" },
+    { label: "4:30 PM", hour: 4, minute: 30, period: "PM" },
+    { label: "5:00 PM", hour: 5, minute: 0, period: "PM" },
+    { label: "5:30 PM", hour: 5, minute: 30, period: "PM" },
+    { label: "6:00 PM", hour: 6, minute: 0, period: "PM" },
+    { label: "6:30 PM", hour: 6, minute: 30, period: "PM" },
+  ];
 
   const filteredRows = rows.filter((r) => {
     const matchesSearch =
@@ -114,51 +267,124 @@ const LiveClassDemo = () => {
     return matchesSearch && matchesStatus && matchesTrainer && matchesDateFrom && matchesDateTo;
   });
 
+  // Validation rules
   const validateForm = () => {
     const newErrors = {};
-    if (!formData.name.trim()) newErrors.name = "Name is required";
-    if (!formData.date) newErrors.date = "Date is required";
-    if (!formData.timing) newErrors.timing = "Timing is required";
-    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email))
+
+    // Required fields
+    if (!formData.name.trim()) {
+      newErrors.name = "Name is required";
+    } else if (formData.name.trim().length < 2) {
+      newErrors.name = "Name must be at least 2 characters";
+    }
+
+    if (!formData.date) {
+      newErrors.date = "Date is required";
+    } else {
+      try {
+        const selectedDate = new Date(formData.date);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        if (isNaN(selectedDate.getTime())) {
+          newErrors.date = "Invalid date format";
+        } else if (selectedDate < today) {
+          newErrors.date = "Date cannot be in the past";
+        }
+      } catch (error) {
+        newErrors.date = "Invalid date format";
+      }
+    }
+
+    if (!formData.timing) {
+      newErrors.timing = "Timing is required";
+    } else {
+      // Validate time format
+      const timeRegex = /^(0?[1-9]|1[0-2]):[0-5][0-9]\s?(AM|PM)$/i;
+      if (!timeRegex.test(formData.timing.trim())) {
+        newErrors.timing = "Please select a valid time";
+      }
+    }
+
+    if (!formData.trainer) {
+      newErrors.trainer = "Please select a trainer";
+    }
+
+    // Optional fields with validation
+    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       newErrors.email = "Invalid email format";
-    if (formData.mobile && !/^[0-9]{10}$/.test(formData.mobile))
-      newErrors.mobile = "Mobile number must be 10 digits";
+    }
+
+    if (formData.mobile) {
+      if (!/^[0-9]{10}$/.test(formData.mobile.replace(/\s/g, ''))) {
+        newErrors.mobile = "Mobile number must be 10 digits";
+      }
+    }
+
+    if (formData.counselorRemark && formData.counselorRemark.length > 200) {
+      newErrors.counselorRemark = "Remark cannot exceed 200 characters";
+    }
+
+    if (formData.addRemark && formData.addRemark.length > 200) {
+      newErrors.addRemark = "Remark cannot exceed 200 characters";
+    }
+
+    if (formData.reason && formData.reason.length > 200) {
+      newErrors.reason = "Reason cannot exceed 200 characters";
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  // ✅ Add / Update - Only for Counsellors
+  // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!validateForm()) return;
+    setFormSubmitted(true);
 
-    if (editingRow) {
-      await dispatch(updateLiveClass({ id: editingRow._id, data: formData }));
-    } else {
-      await dispatch(addLiveClass(formData));
+    if (!validateForm()) {
+      return;
     }
 
-    setIsFormOpen(false);
-    setEditingRow(null);
-    setFormData({
-      name: "",
-      date: "",
-      timing: "",
-      email: "",
-      mobile: "",
-      trainer: "",
-      counselor: "",
-      counselorRemark: "",
-      trainerReply: "",
-      addRemark: "",
-      status: "",
-      reason: "",
-    });
-    setErrors({});
-    dispatch(fetchLiveClasses());
+    try {
+      // Convert date and time to proper format before sending to backend
+      const submissionData = {
+        ...formData,
+        date: formData.date ? new Date(formData.date).toISOString() : "",
+        timing: formData.timing ? parseTimeInput(formData.timing) : ""
+      };
+
+      if (editingRow) {
+        await dispatch(updateLiveClass({ id: editingRow._id, data: submissionData }));
+      } else {
+        await dispatch(addLiveClass(submissionData));
+      }
+
+      setIsFormOpen(false);
+      setEditingRow(null);
+      setFormSubmitted(false);
+      setFormData({
+        name: "",
+        date: "",
+        timing: "",
+        email: "",
+        mobile: "",
+        trainer: "",
+        counselor: "",
+        counselorRemark: "",
+        trainerReply: "",
+        addRemark: "",
+        status: "",
+        reason: "",
+      });
+      setErrors({});
+      dispatch(fetchLiveClasses());
+    } catch (error) {
+      console.error("Error submitting form:", error);
+    }
   };
 
-  // ✅ Delete - Only for Counsellors
+  // Handle delete
   const handleDelete = async (id) => {
     if (window.confirm("Are you sure you want to delete this live class?")) {
       await dispatch(deleteLiveClass(id));
@@ -166,7 +392,7 @@ const LiveClassDemo = () => {
     }
   };
 
-  // ✅ PDF Export - Available for both roles
+  // PDF Export
   const handlePDFExport = () => {
     const doc = new jsPDF();
     doc.text("Live Classes Report", 14, 15);
@@ -184,7 +410,9 @@ const LiveClassDemo = () => {
           .join("");
         switch (col) {
           case "Date":
-            return r.date ? new Date(r.date).toLocaleDateString("en-GB") : "";
+            return formatDisplayDate(r.date);
+          case "Timing":
+            return formatDisplayTime(r.timing);
           default:
             return r[key] || "";
         }
@@ -199,17 +427,23 @@ const LiveClassDemo = () => {
     doc.save("LiveClasses.pdf");
   };
 
-  const formatDate = (d) => (!d ? "" : new Date(d).toLocaleDateString("en-GB"));
+  // Helper functions
+  const formatDate = (d) => formatDisplayDate(d);
+  const formatTime = (t) => formatDisplayTime(t);
+  
   const toggleColumn = (col) =>
     setVisibleColumns((prev) =>
       prev.includes(col) ? prev.filter((c) => c !== col) : [...prev, col]
     );
+  
   const filteredColumns = defaultColumns.filter((c) =>
     c.toLowerCase().includes(columnSearch.toLowerCase())
   );
 
+  // Open create form
   const openCreateForm = () => {
     setEditingRow(null);
+    setFormSubmitted(false);
     setFormData({
       name: "",
       date: "",
@@ -228,8 +462,54 @@ const LiveClassDemo = () => {
     setIsFormOpen(true);
   };
 
+  // Handle input change with validation
+  const handleInputChange = (field, value) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+
+    // Clear error when user starts typing
+    if (formSubmitted && errors[field]) {
+      setErrors(prev => ({
+        ...prev,
+        [field]: ""
+      }));
+    }
+  };
+
+  // Handle date input change
+  const handleDateChange = (value) => {
+    setFormData(prev => ({
+      ...prev,
+      date: value
+    }));
+
+    if (formSubmitted && errors.date) {
+      setErrors(prev => ({
+        ...prev,
+        date: ""
+      }));
+    }
+  };
+
+  // Handle time input change
+  const handleTimeChange = (value) => {
+    setFormData(prev => ({
+      ...prev,
+      timing: value
+    }));
+
+    if (formSubmitted && errors.timing) {
+      setErrors(prev => ({
+        ...prev,
+        timing: ""
+      }));
+    }
+  };
+
+  // Filter functions
   const handleFilterApply = () => {
-    // Validation for date range
     if (filterData.dateFrom && filterData.dateTo && new Date(filterData.dateFrom) > new Date(filterData.dateTo)) {
       setFilterErrors({ dateRange: "From date cannot be after To date" });
       return;
@@ -249,9 +529,14 @@ const LiveClassDemo = () => {
     setIsFilterOpen(false);
   };
 
+  // Check if field should show error
+  const shouldShowError = (fieldName) => {
+    return formSubmitted && errors[fieldName];
+  };
+
   return (
     <div className="min-h-screen bg-white">
-      {/* ✅ Top Bar with Role Badge */}
+      {/* Top Bar with Role Badge */}
       <div className="flex justify-between items-center bg-gray-100 px-6 py-3 border-b">
         <button
           onClick={() => navigate(-1)}
@@ -261,7 +546,6 @@ const LiveClassDemo = () => {
         </button>
         
         <div className="flex items-center gap-4">
-          {/* Role Badge */}
           <span className={`px-3 py-1 rounded-full text-sm font-medium ${
             isAdmin
               ? 'bg-purple-100 text-purple-800 border border-purple-300'
@@ -270,7 +554,6 @@ const LiveClassDemo = () => {
             {isAdmin ? '👨‍💻 Admin View' : '💼 Counsellor'}
           </span>
 
-          {/* Filter Button - Available for both roles */}
           <button
             onClick={() => setIsFilterOpen(!isFilterOpen)}
             className="flex items-center gap-2 bg-gray-200 text-gray-700 px-3 py-2 rounded-md hover:bg-gray-300 transition"
@@ -279,7 +562,6 @@ const LiveClassDemo = () => {
             <FiFilter />
           </button>
 
-          {/* Export PDF Button - Available for both roles */}
           <button
             onClick={handlePDFExport}
             className="flex items-center gap-2 bg-gray-200 text-gray-700 px-3 py-2 rounded-md hover:bg-gray-300 transition"
@@ -290,14 +572,13 @@ const LiveClassDemo = () => {
         </div>
       </div>
 
-      {/* ✅ Title Section */}
+      {/* Title Section */}
       <div className="mx-6 mt-6 bg-gray-50 p-5 rounded-lg shadow-sm border relative">
         <div className="flex justify-between items-center mb-3">
           <h2 className="text-xl font-semibold text-gray-800">
             Live Classes {isAdmin && <span className="text-sm text-gray-600 ml-2">(View Only)</span>}
           </h2>
           
-          {/* Add Button - Only for Counsellors */}
           {isCounsellor && (
             <button
               onClick={openCreateForm}
@@ -393,7 +674,10 @@ const LiveClassDemo = () => {
                 />
               </div>
               <button
-                onClick={() => dispatch(fetchLiveClasses())}
+                onClick={() => {
+                  dispatch(fetchLiveClasses());
+                  dispatch(getTrainers());
+                }}
                 className="p-2 border border-gray-300 rounded-md hover:bg-gray-200"
               >
                 <FiRefreshCw />
@@ -403,7 +687,7 @@ const LiveClassDemo = () => {
         </div>
       </div>
 
-      {/* ✅ Table */}
+      {/* Table */}
       <div className="px-6 py-6">
         <div className="bg-white rounded-xl shadow border border-gray-200 overflow-x-auto">
           <table className="w-full text-sm text-left border-collapse">
@@ -418,11 +702,9 @@ const LiveClassDemo = () => {
                       </th>
                     )
                 )}
-                {/* Show Actions column only for Counsellors */}
                 {isCounsellor && (
                   <th className="px-4 py-3 font-medium">Actions</th>
                 )}
-                {/* Show View column for Admin */}
                 {isAdmin && (
                   <th className="px-4 py-3 font-medium">View</th>
                 )}
@@ -435,7 +717,7 @@ const LiveClassDemo = () => {
                     <td className="px-4 py-2 border-r">{idx + 1}</td>
                     {visibleColumns.includes("Name") && <td className="px-4 py-2 border-r">{row.name}</td>}
                     {visibleColumns.includes("Date") && <td className="px-4 py-2 border-r">{formatDate(row.date)}</td>}
-                    {visibleColumns.includes("Timing") && <td className="px-4 py-2 border-r">{row.timing}</td>}
+                    {visibleColumns.includes("Timing") && <td className="px-4 py-2 border-r">{formatTime(row.timing)}</td>}
                     {visibleColumns.includes("Email") && <td className="px-4 py-2 border-r">{row.email}</td>}
                     {visibleColumns.includes("Mobile") && <td className="px-4 py-2 border-r">{row.mobile}</td>}
                     {visibleColumns.includes("Trainer") && <td className="px-4 py-2 border-r">{row.trainer}</td>}
@@ -446,7 +728,6 @@ const LiveClassDemo = () => {
                     {visibleColumns.includes("Status") && <td className="px-4 py-2 border-r">{row.status}</td>}
                     {visibleColumns.includes("Reason") && <td className="px-4 py-2 border-r">{row.reason}</td>}
                     
-                    {/* Actions - Only for Counsellors */}
                     {isCounsellor && (
                       <td className="px-4 py-2 flex gap-2">
                         <button
@@ -454,8 +735,10 @@ const LiveClassDemo = () => {
                             setEditingRow(row);
                             setFormData({
                               ...row,
-                              date: row.date ? row.date.split("T")[0] : "",
+                              date: row.date ? new Date(row.date).toISOString().split('T')[0] : "",
+                              timing: row.timing ? formatDisplayTime(row.timing) : ""
                             });
+                            setFormSubmitted(false);
                             setIsFormOpen(true);
                           }}
                           className="text-blue-600 hover:text-blue-800"
@@ -473,7 +756,6 @@ const LiveClassDemo = () => {
                       </td>
                     )}
                     
-                    {/* View-only indicator for Admin */}
                     {isAdmin && (
                       <td className="px-4 py-2">
                         <span className="text-gray-400 flex justify-center" title="View Only">
@@ -498,7 +780,7 @@ const LiveClassDemo = () => {
         </div>
       </div>
 
-      {/* ✅ Filter Modal - Available for both roles */}
+      {/* Filter Modal */}
       {isFilterOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50">
           <div className="bg-white rounded-lg shadow-lg w-[500px] p-6 relative">
@@ -588,12 +870,16 @@ const LiveClassDemo = () => {
         </div>
       )}
 
-      {/* ✅ Modal Form - ONLY FOR COUNSELLORS */}
+      {/* Form Modal - ONLY FOR COUNSELLORS */}
       {isFormOpen && isCounsellor && (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50">
           <div className="bg-white rounded-lg shadow-lg w-[800px] max-h-[90vh] overflow-y-auto p-6 relative">
             <button
-              onClick={() => setIsFormOpen(false)}
+              onClick={() => {
+                setIsFormOpen(false);
+                setFormSubmitted(false);
+                setErrors({});
+              }}
               className="absolute top-3 right-3 text-gray-500 hover:text-gray-700"
             >
               <FiX size={20} />
@@ -604,66 +890,366 @@ const LiveClassDemo = () => {
             </h3>
 
             <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-4">
-              {[
-                { label: "Name", name: "name", type: "text" },
-                { label: "Date", name: "date", type: "date" },
-                { label: "Timing", name: "timing", type: "time" },
-                { label: "Email", name: "email", type: "email" },
-                { label: "Mobile", name: "mobile", type: "text" },
-                { label: "Trainer", name: "trainer", type: "text" },
-                { label: "Counselor", name: "counselor", type: "text" },
-                { label: "Counselor Remark", name: "counselorRemark", type: "text" },
-                { label: "Trainer Reply", name: "trainerReply", type: "text" },
-                { label: "Add Remark", name: "addRemark", type: "text" },
-                { label: "Status", name: "status", type: "select" },
-                { label: "Reason", name: "reason", type: "text" },
-              ].map((field) => (
-                <div key={field.name}>
-                  <label className="block text-sm font-medium mb-1">{field.label}</label>
-                  {field.type === "select" ? (
-                    <select
-                      name={field.name}
-                      value={formData[field.name]}
-                      onChange={(e) =>
-                        setFormData({ ...formData, [field.name]: e.target.value })
-                      }
-                      className="w-full border rounded px-3 py-2"
-                    >
-                      <option value="">Select</option>
-                      <option value="Scheduled">Scheduled</option>
-                      <option value="Completed">Completed</option>
-                      <option value="Cancelled">Cancelled</option>
-                    </select>
-                  ) : (
-                    <input
-                      type={field.type}
-                      name={field.name}
-                      value={formData[field.name]}
-                      onChange={(e) =>
-                        setFormData({ ...formData, [field.name]: e.target.value })
-                      }
-                      className="w-full border rounded px-3 py-2"
-                    />
-                  )}
-                  {errors[field.name] && (
-                    <p className="text-red-500 text-xs mt-1">{errors[field.name]}</p>
-                  )}
-                </div>
-              ))}
+              {/* Name */}
+              <div className="col-span-1">
+                <label className="block text-sm font-medium mb-1">
+                  Name <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => handleInputChange("name", e.target.value)}
+                  className={`w-full border rounded px-3 py-2 ${
+                    shouldShowError("name") ? "border-red-500" : "border-gray-300"
+                  } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                  placeholder="Enter full name"
+                />
+                {shouldShowError("name") && (
+                  <p className="text-red-500 text-xs mt-1">{errors.name}</p>
+                )}
+              </div>
 
-              <div className="col-span-2 flex justify-end mt-4">
+              {/* Date */}
+              <div className="col-span-1">
+                <label className="block text-sm font-medium mb-1">
+                  Date <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="date"
+                  value={formData.date}
+                  onChange={(e) => handleDateChange(e.target.value)}
+                  className={`w-full border rounded px-3 py-2 ${
+                    shouldShowError("date") ? "border-red-500" : "border-gray-300"
+                  } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                />
+                {shouldShowError("date") && (
+                  <p className="text-red-500 text-xs mt-1">{errors.date}</p>
+                )}
+                {formData.date && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    Display: {formatDisplayDate(formData.date)}
+                  </p>
+                )}
+              </div>
+
+              {/* Timing */}
+              <div className="col-span-1">
+                <label className="block text-sm font-medium mb-1">
+                  Timing <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={formData.timing}
+                    onChange={(e) => handleTimeChange(e.target.value)}
+                    className={`w-full border rounded px-3 py-2 pr-10 ${
+                      shouldShowError("timing") ? "border-red-500" : "border-gray-300"
+                    } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                    placeholder="Select time"
+                    readOnly
+                    onClick={openTimePicker}
+                  />
+                  <button
+                    type="button"
+                    onClick={openTimePicker}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    <FiClock />
+                  </button>
+                </div>
+                {shouldShowError("timing") && (
+                  <p className="text-red-500 text-xs mt-1">{errors.timing}</p>
+                )}
+
+                {/* Time Picker Dropdown */}
+                {isTimePickerOpen && (
+                  <div
+                    ref={timePickerRef}
+                    className="absolute z-50 mt-1 w-80 bg-white border border-gray-300 rounded-lg shadow-lg"
+                  >
+                    <div className="p-4">
+                      {/* Quick Time Selection */}
+                      <div className="mb-4">
+                        <h4 className="text-sm font-medium mb-2 text-gray-700">Quick Select</h4>
+                        <div className="grid grid-cols-3 gap-2 max-h-32 overflow-y-auto">
+                          {quickTimes.map((time, index) => (
+                            <button
+                              key={index}
+                              type="button"
+                              onClick={() => selectTime(time.hour, time.minute, time.period)}
+                              className="text-xs py-2 px-1 border border-gray-300 rounded hover:bg-blue-50 hover:border-blue-300 transition"
+                            >
+                              {time.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Custom Time Selection */}
+                      <div className="grid grid-cols-3 gap-3">
+                        {/* Hours */}
+                        <div>
+                          <label className="block text-xs font-medium mb-1 text-gray-700">Hour</label>
+                          <div className="border rounded-md max-h-32 overflow-y-auto">
+                            {hours.map((hour) => (
+                              <button
+                                key={hour}
+                                type="button"
+                                onClick={() => setTimePicker(prev => ({ ...prev, hour }))}
+                                className={`w-full py-1 text-xs border-b border-gray-100 hover:bg-gray-50 ${
+                                  timePicker.hour === hour ? 'bg-blue-100 text-blue-700' : ''
+                                }`}
+                              >
+                                {hour}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Minutes */}
+                        <div>
+                          <label className="block text-xs font-medium mb-1 text-gray-700">Minute</label>
+                          <div className="border rounded-md max-h-32 overflow-y-auto">
+                            {minutes.map((minute) => (
+                              <button
+                                key={minute}
+                                type="button"
+                                onClick={() => setTimePicker(prev => ({ ...prev, minute }))}
+                                className={`w-full py-1 text-xs border-b border-gray-100 hover:bg-gray-50 ${
+                                  timePicker.minute === minute ? 'bg-blue-100 text-blue-700' : ''
+                                }`}
+                              >
+                                {minute.toString().padStart(2, '0')}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* AM/PM */}
+                        <div>
+                          <label className="block text-xs font-medium mb-1 text-gray-700">Period</label>
+                          <div className="border rounded-md">
+                            {periods.map((period) => (
+                              <button
+                                key={period}
+                                type="button"
+                                onClick={() => setTimePicker(prev => ({ ...prev, period }))}
+                                className={`w-full py-2 text-xs border-b border-gray-100 hover:bg-gray-50 ${
+                                  timePicker.period === period ? 'bg-blue-100 text-blue-700' : ''
+                                }`}
+                              >
+                                {period}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Selected Time Display and Apply Button */}
+                      <div className="mt-4 pt-3 border-t border-gray-200">
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <span className="text-sm font-medium text-gray-700">
+                              Selected: {timePicker.hour}:{timePicker.minute.toString().padStart(2, '0')} {timePicker.period}
+                            </span>
+                          </div>
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setIsTimePickerOpen(false)}
+                              className="px-3 py-1 text-xs border border-gray-300 rounded hover:bg-gray-50"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => selectTime(timePicker.hour, timePicker.minute, timePicker.period)}
+                              className="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
+                            >
+                              Apply
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Trainer */}
+              <div className="col-span-1">
+                <label className="block text-sm font-medium mb-1">
+                  Trainer <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={formData.trainer}
+                  onChange={(e) => handleInputChange("trainer", e.target.value)}
+                  className={`w-full border rounded px-3 py-2 ${
+                    shouldShowError("trainer") ? "border-red-500" : "border-gray-300"
+                  } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                >
+                  <option value="">Select Trainer</option>
+                  {activeTrainers.length > 0 ? (
+                    activeTrainers.map((trainer) => (
+                      <option key={trainer._id} value={trainer.name}>
+                        {trainer.name} {trainer.specialization && `- ${trainer.specialization}`}
+                      </option>
+                    ))
+                  ) : (
+                    <option value="" disabled>No trainers available</option>
+                  )}
+                </select>
+                {shouldShowError("trainer") && (
+                  <p className="text-red-500 text-xs mt-1">{errors.trainer}</p>
+                )}
+              </div>
+
+              {/* Email */}
+              <div className="col-span-1">
+                <label className="block text-sm font-medium mb-1">Email</label>
+                <input
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => handleInputChange("email", e.target.value)}
+                  className={`w-full border rounded px-3 py-2 ${
+                    shouldShowError("email") ? "border-red-500" : "border-gray-300"
+                  } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                  placeholder="example@email.com"
+                />
+                {shouldShowError("email") && (
+                  <p className="text-red-500 text-xs mt-1">{errors.email}</p>
+                )}
+              </div>
+
+              {/* Mobile */}
+              <div className="col-span-1">
+                <label className="block text-sm font-medium mb-1">Mobile</label>
+                <input
+                  type="text"
+                  value={formData.mobile}
+                  onChange={(e) => handleInputChange("mobile", e.target.value)}
+                  className={`w-full border rounded px-3 py-2 ${
+                    shouldShowError("mobile") ? "border-red-500" : "border-gray-300"
+                  } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                  placeholder="10-digit mobile number"
+                  maxLength="10"
+                />
+                {shouldShowError("mobile") && (
+                  <p className="text-red-500 text-xs mt-1">{errors.mobile}</p>
+                )}
+              </div>
+
+              {/* Counselor */}
+              <div className="col-span-1">
+                <label className="block text-sm font-medium mb-1">Counselor</label>
+                <input
+                  type="text"
+                  value={formData.counselor}
+                  onChange={(e) => handleInputChange("counselor", e.target.value)}
+                  className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Counselor name"
+                />
+              </div>
+
+              {/* Status */}
+              <div className="col-span-1">
+                <label className="block text-sm font-medium mb-1">Status</label>
+                <select
+                  value={formData.status}
+                  onChange={(e) => handleInputChange("status", e.target.value)}
+                  className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="">Select Status</option>
+                  <option value="Scheduled">Scheduled</option>
+                  <option value="Completed">Completed</option>
+                  <option value="Cancelled">Cancelled</option>
+                </select>
+              </div>
+
+              {/* Counselor Remark */}
+              <div className="col-span-2">
+                <label className="block text-sm font-medium mb-1">Counselor Remark</label>
+                <textarea
+                  value={formData.counselorRemark}
+                  onChange={(e) => handleInputChange("counselorRemark", e.target.value)}
+                  className={`w-full border rounded px-3 py-2 ${
+                    shouldShowError("counselorRemark") ? "border-red-500" : "border-gray-300"
+                  } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                  placeholder="Enter counselor remarks (max 200 characters)"
+                  rows="2"
+                  maxLength="200"
+                />
+                {shouldShowError("counselorRemark") && (
+                  <p className="text-red-500 text-xs mt-1">{errors.counselorRemark}</p>
+                )}
+                <div className="text-xs text-gray-500 text-right mt-1">
+                  {formData.counselorRemark.length}/200
+                </div>
+              </div>
+
+              {/* Trainer Reply */}
+              <div className="col-span-1">
+                <label className="block text-sm font-medium mb-1">Trainer Reply</label>
+                <input
+                  type="text"
+                  value={formData.trainerReply}
+                  onChange={(e) => handleInputChange("trainerReply", e.target.value)}
+                  className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Trainer response"
+                />
+              </div>
+
+              {/* Add Remark */}
+              <div className="col-span-1">
+                <label className="block text-sm font-medium mb-1">Add Remark</label>
+                <input
+                  type="text"
+                  value={formData.addRemark}
+                  onChange={(e) => handleInputChange("addRemark", e.target.value)}
+                  className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Additional remarks"
+                />
+              </div>
+
+              {/* Reason */}
+              <div className="col-span-2">
+                <label className="block text-sm font-medium mb-1">Reason</label>
+                <textarea
+                  value={formData.reason}
+                  onChange={(e) => handleInputChange("reason", e.target.value)}
+                  className={`w-full border rounded px-3 py-2 ${
+                    shouldShowError("reason") ? "border-red-500" : "border-gray-300"
+                  } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                  placeholder="Enter reason (max 200 characters)"
+                  rows="2"
+                  maxLength="200"
+                />
+                {shouldShowError("reason") && (
+                  <p className="text-red-500 text-xs mt-1">{errors.reason}</p>
+                )}
+                <div className="text-xs text-gray-500 text-right mt-1">
+                  {formData.reason.length}/200
+                </div>
+              </div>
+
+              {/* Form Actions */}
+              <div className="col-span-2 flex justify-end mt-6 pt-4 border-t">
                 <button
                   type="button"
-                  onClick={() => setIsFormOpen(false)}
-                  className="px-4 py-2 border rounded-md mr-3"
+                  onClick={() => {
+                    setIsFormOpen(false);
+                    setFormSubmitted(false);
+                    setErrors({});
+                  }}
+                  className="px-6 py-2 border border-gray-300 rounded-md hover:bg-gray-50 transition mr-3"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
+                  className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition font-medium"
                 >
-                  {editingRow ? "Update" : "Submit"}
+                  {editingRow ? "Update Live Class" : "Create Live Class"}
                 </button>
               </div>
             </form>

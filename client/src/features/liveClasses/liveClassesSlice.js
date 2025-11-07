@@ -1,29 +1,29 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import axios from "axios";
+import axiosInstance from "../../utils/axios";
 
-const API_URL = "http://localhost:5000/api/liveclasses";
+const API_URL = "/liveclasses";
 
 // Fetch all
 export const fetchLiveClasses = createAsyncThunk("liveClasses/fetchAll", async () => {
-  const res = await axios.get(API_URL);
+  const res = await axiosInstance.get(API_URL);
   return res.data;
 });
 
 // Add
 export const addLiveClass = createAsyncThunk("liveClasses/add", async (data) => {
-  const res = await axios.post(API_URL, data);
+  const res = await axiosInstance.post(API_URL, data);
   return res.data;
 });
 
 // Update
 export const updateLiveClass = createAsyncThunk("liveClasses/update", async ({ id, data }) => {
-  const res = await axios.put(`${API_URL}/${id}`, data);
+  const res = await axiosInstance.put(`${API_URL}/${id}`, data);
   return res.data;
 });
 
 // Delete
 export const deleteLiveClass = createAsyncThunk("liveClasses/delete", async (id) => {
-  await axios.delete(`${API_URL}/${id}`);
+  await axiosInstance.delete(`${API_URL}/${id}`);
   return id;
 });
 

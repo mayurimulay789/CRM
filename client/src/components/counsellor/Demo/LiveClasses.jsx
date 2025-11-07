@@ -361,7 +361,7 @@ const LiveClasses = () => {
                     >
                       <option value="">Select</option>
                       <option value="Scheduled">Scheduled</option>
-                      <option value="Completed">Completed</option>
+                      <option value="Closed">Closed</option>
                       <option value="Cancelled">Cancelled</option>
                     </select>
                   ) : (

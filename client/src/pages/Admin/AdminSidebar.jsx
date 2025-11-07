@@ -7,6 +7,7 @@ const AdminSidebar = ({ activeSection, setActiveSection }) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { user } = useSelector(state => state.auth);
+
   const [isBatchesOpen, setIsBatchesOpen] = useState(false);
   const [isDemoOpen, setIsDemoOpen] = useState(false);
   const [isAdmissionOpen, setIsAdmissionOpen] = useState(false);
@@ -117,18 +118,38 @@ const AdminSidebar = ({ activeSection, setActiveSection }) => {
             )}
           </div>
 
+          {/* Batches */}
+          <button
+            onClick={() => setActiveSection('batches')}
+            className={`w-full text-left px-5 py-4 rounded-2xl transition-all duration-300 flex items-center space-x-4 group ${
+              activeSection === 'batches'
+                ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-200'
+                : 'bg-white text-gray-700 hover:bg-blue-50 hover:shadow-md border border-indigo-100'
+            }`}
+          >
+            <div className={`text-xl ${activeSection === 'batches' ? 'scale-110' : 'group-hover:scale-110'} transition-transform`}>
+              📚
+            </div>
+            <span className="font-semibold">Batches</span>
+          </button>
+
+          {/* Trainer */}
+          <button
+            onClick={() => setActiveSection('trainer-management')}
+            className={`w-full text-left px-5 py-4 rounded-2xl transition-all duration-300 flex items-center space-x-4 group ${
+              activeSection === 'trainer-management'
+                ? 'bg-gradient-to-r from-green-500 to-green-600 text-white shadow-lg shadow-green-200'
+                : 'bg-white text-gray-700 hover:bg-green-50 hover:shadow-md border border-indigo-100'
+            }`}
+          >
+            <div className={`text-xl ${activeSection === 'trainer-management' ? 'scale-110' : 'group-hover:scale-110'} transition-transform`}>
+              👨‍🏫
+            </div>
+            <span className="font-semibold">Trainer</span>
+          </button>
+
           {/* Expandable Sections */}
           {[
-            {
-              title: "📚 Batches",
-              isOpen: isBatchesOpen,
-              setIsOpen: setIsBatchesOpen,
-              items: [
-                { key: 'closed-batch', label: 'Closed Batch', color: 'gray' },
-                { key: 'running-batch', label: 'Running Batch', color: 'green' },
-                { key: 'upcoming-batch', label: 'Upcoming Batch', color: 'blue' }
-              ]
-            },
             {
               title: "🎯 Demo",
               isOpen: isDemoOpen,
