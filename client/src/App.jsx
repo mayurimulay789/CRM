@@ -21,12 +21,8 @@ import CounsellorDashboardPage from "./pages/CounsellorDashboardPage.jsx";
 import AddBatchForm from "./components/AddBatchForm.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 
-// Demo Management Pages
-import DemoPage from "./components/Demo/DemoPage";
-import OnlineDemo from "./components/counsellor/Demo/OnlineDemo.jsx";
-import OfflineDemo from "./components/counsellor/Demo/OfflineDemo.jsx";
-import OneToOneDemo from "./components/counsellor/Demo/OneToOneDemo.jsx";
-import LiveClasses from "./components/counsellor/Demo/LiveClasses.jsx";
+
+
 
 // --------------------
 // AppContent Component
@@ -86,11 +82,7 @@ function AppContent() {
           />
 
           {/* 🎓 Demo Management Routes */}
-          <Route path="/demo" element={<DemoPage />} />
-          <Route path="/demo/online" element={<OnlineDemo />} />
-          <Route path="/demo/offline" element={<OfflineDemo />} />
-          <Route path="/demo/one-to-one" element={<OneToOneDemo />} />
-          <Route path="/demo/live-classes" element={<LiveClasses />} />
+          
         </Routes>
       </div>
       {/* <Footer /> */}

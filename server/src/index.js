@@ -4,10 +4,10 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 
 // Import routes
-const authRoutes = require("../routes/auth");
-const admissionRoutes = require('../routes/admissionRoutes');
-const enrolledStudentRoutes = require('../routes/enrolledStudentRoutes');
-const paymentRoutes = require('../routes/paymentRoutes');
+// const authRoutes = require("../routes/auth");
+// const admissionRoutes = require('../routes/admissionRoutes');
+// const enrolledStudentRoutes = require('../routes/enrolledStudentRoutes');
+// const paymentRoutes = require('../routes/paymentRoutes');
 
 
 dotenv.config({path: '../.env'});
@@ -39,10 +39,12 @@ const liveClassRoutes = require("../routes/liveClassRoutes");
 // ✅ Import additional routes (these were missing)
 const authRoutes = require("../routes/auth");
 const admissionRoutes = require("../routes/admissionRoutes");
+const courseRoutes = require("../routes/courseRoutes");
 const enrolledStudentRoutes = require("../routes/enrolledStudentRoutes");
 const paymentRoutes = require("../routes/paymentRoutes");
 const batchRoutes = require("../routes/batchRoutes");
 const trainerRoutes = require("../routes/trainerRoutes");
+const studentRoutes = require("../routes/studentRoutes");
 
 // ✅ Use Routes
 app.use("/api/onlineDemos", onlineDemoRoutes);
@@ -51,8 +53,12 @@ app.use("/api/oneToOneDemos", oneToOneRoutes);
 app.use("/api/liveclasses", liveClassRoutes);
 app.use("/api/auth", authRoutes);
 app.use('/api/admissions', admissionRoutes);
+app.use('/api/courses', courseRoutes);
 app.use('/api/enrolled-students', enrolledStudentRoutes);
 app.use('/api/payments', paymentRoutes);
+app.use('/api/students', studentRoutes);
+app.use('/api/trainers', trainerRoutes);
+app.use('/api/batches', batchRoutes);
 
 // Start server
 app.listen(PORT, () => {
