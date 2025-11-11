@@ -38,6 +38,7 @@
 const express = require("express");
 const router = express.Router();
 const { protect } = require("../middleware/auth");
+
 const {
   submitGrievance,
   getAllGrievances,
@@ -47,6 +48,7 @@ const {
   rejectGrievance,
   updateGrievance,
   deleteGrievance,
+    searchStudentByName,
 } = require("../controllers/studentGrievanceController");
 
 // Counsellor submits complaint
@@ -68,5 +70,7 @@ router.put("/:id/reject", protect, rejectGrievance);
 // Counsellor update/delete before admin action
 router.put("/:id", protect, updateGrievance);
 router.delete("/:id", protect, deleteGrievance);
+// ✅ New route for searching students from admissions
+router.get("/search-student", protect, searchStudentByName);
 
 module.exports = router;

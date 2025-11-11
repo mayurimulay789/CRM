@@ -43,6 +43,20 @@ const Navbar = () => {
             {isAuthenticated ? (
               // User is logged in - Show Dashboard and Logout
               <>
+
+
+
+                {/* <div className="flex items-center space-x-2">
+                  <span className="text-gray-700 text-sm">
+                    Welcome, {user?.FullName}
+                  </span>
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 capitalize">
+                    {user?.role}
+                  </span>
+                </div> */}
+
+
+
                 <button
                   onClick={handleDashboardNavigation}
                   className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-md font-medium transition duration-300 transform hover:scale-105"

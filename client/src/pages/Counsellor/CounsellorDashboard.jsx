@@ -5,6 +5,10 @@ import Search from '../../components/counsellor/Search/Search';
 import Overview from '../../components/counsellor/Overview/Overview';
 import Dashboard from '../../components/counsellor/Dashboard/Dashboard';
 import MyWorks from '../../components/counsellor/MyWorks/MyWorks';
+
+
+import StudentManagement from '../../components/counsellor/Student/StudentManagement';
+
 import ClosedBatch from '../../components/counsellor/Batches/ClosedBatch';
 import RunningBatch from '../../components/counsellor/Batches/RunningBatch';
 import UpcomingBatch from '../../components/counsellor/Batches/UpcomingBatch';
@@ -13,6 +17,9 @@ import OfflineDemo from '../../components/counsellor/Demo/OfflineDemo';
 import OneToOneDemo from '../../components/counsellor/Demo/OneToOneDemo';
 import LiveClassDemo from '../../components/counsellor/Demo/LiveClassDemo';
 import AdmissionForm from '../../components/counsellor/Admission/AdmissionForm';
+
+import AdmissionsManagement from '../../components/counsellor/Admission/AdmissionsManagement';
+
 import EnrolledStudent from '../../components/counsellor/Admission/EnrolledStudent';
 import PaymentInvoiceSheet from '../../components/counsellor/Admission/PaymentInvoiceSheet';
 import StudentGrievance from '../../components/counsellor/Complaint/StudentGrievance';
@@ -35,6 +42,12 @@ const CounsellorDashboard = ({ activeSection }) => {
       
       case 'dashboard':
         return <Dashboard />;
+
+
+
+      case 'student-management':
+        return <StudentManagement />;
+
       
       case 'my-works':
         return <MyWorks />;
@@ -65,6 +78,10 @@ const CounsellorDashboard = ({ activeSection }) => {
       // Admission
       case 'admission-form':
         return <AdmissionForm />;
+
+      case 'admission-management':
+        return <AdmissionsManagement />;
+
       
       case 'enrolled-student':
         return <EnrolledStudent />;
@@ -107,8 +124,13 @@ const CounsellorDashboard = ({ activeSection }) => {
   };
 
   return (
+
     <div className="flex-1 bg-gray-50 min-h-screen">
+
+    <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+
       {renderContent()}
+    </div>
     </div>
   );
 };

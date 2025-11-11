@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   getAllGrievances,
   approveGrievance,
@@ -16,60 +16,83 @@ const CampusGrievanceAdmin = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [showFilterMenu, setShowFilterMenu] = useState(false);
+
+  const filterButtonRef = useRef(null);
+  const filterMenuRef = useRef(null);
+  const modalRef = useRef(null);
 
   useEffect(() => {
     fetchGrievances();
   }, []);
 
+  useEffect(() => {
+    if (success) {
+      setShowModal(false);
+      setSelectedGrievance(null);
+      setAdminResponse('');
+      setTimeout(() => setSuccess(''), 3000);
+    }
+  }, [success]);
+
+  // Close filter dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (
+        filterMenuRef.current &&
+        !filterMenuRef.current.contains(e.target) &&
+        !filterButtonRef.current.contains(e.target)
+      ) {
+        setShowFilterMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Close modal on outside click
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (modalRef.current && !modalRef.current.contains(e.target)) {
+        setShowModal(false);
+      }
+    };
+    if (showModal) document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showModal]);
+
   const fetchGrievances = async () => {
     try {
       const data = await getAllGrievances();
       setGrievances(data);
-    } catch (err) {
+    } catch {
       setError('Failed to fetch grievances');
     }
   };
 
-  const handleApprove = async (id) => {
-    setLoading(true);
-    try {
-      await approveGrievance(id, { adminResponse: suggestions[id] || '' });
-      setSuccess('Grievance approved successfully!');
-      setSuggestions({ ...suggestions, [id]: '' });
-      fetchGrievances();
-      setTimeout(() => setSuccess(''), 3000);
-    } catch (err) {
-      setError('Failed to approve grievance');
-    } finally {
-      setLoading(false);
-    }
+  const handleStatusUpdate = (grievance, status) => {
+    setSelectedGrievance(grievance);
+    setSelectedStatus(status);
+    setAdminResponse(grievance.adminResponse || '');
+    setShowModal(true);
   };
 
-  const handleReject = async (id) => {
+  const handleConfirmStatusUpdate = async () => {
+    if (!selectedGrievance) return;
     setLoading(true);
     try {
-      await rejectGrievance(id, { adminResponse: suggestions[id] || '' });
-      setSuccess('Grievance rejected successfully!');
-      setSuggestions({ ...suggestions, [id]: '' });
-      fetchGrievances();
-      setTimeout(() => setSuccess(''), 3000);
-    } catch (err) {
-      setError('Failed to reject grievance');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this grievance?')) {
-      try {
-        await deleteGrievance(id);
-        setSuccess('Grievance deleted successfully!');
-        fetchGrievances();
-        setTimeout(() => setSuccess(''), 3000);
-      } catch (err) {
-        setError('Failed to delete grievance');
+      if (selectedStatus === 'approved') {
+        await approveGrievance(selectedGrievance._id, { adminResponse });
+        setSuccess('Grievance approved successfully!');
+      } else if (selectedStatus === 'rejected') {
+        await rejectGrievance(selectedGrievance._id, { adminResponse });
+        setSuccess('Grievance rejected successfully!');
       }
+      fetchGrievances();
+    } catch {
+      setError(`Failed to ${selectedStatus} grievance`);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -77,7 +100,7 @@ const CampusGrievanceAdmin = () => {
     const matchesSearch =
       (g.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
       (g.complaint?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-      (g.grievanceType?.toLowerCase() || '').includes(searchTerm.toLowerCase());
+      (g.subject?.toLowerCase() || '').includes(searchTerm.toLowerCase());
     const matchesFilter = filterStatus === 'all' || g.status === filterStatus;
     return matchesSearch && matchesFilter;
   });
@@ -96,162 +119,249 @@ const CampusGrievanceAdmin = () => {
   };
 
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold text-gray-800 mb-6">Campus Grievance Management</h1>
+    <div className="p-4 md:p-6">
+      <h1 className="text-xl md:text-2xl font-bold text-gray-800 mb-6 text-center md:text-left">
+        Campus Grievance Management
+      </h1>
 
       {success && (
-        <div className="mb-4 p-4 bg-green-100 border border-green-400 text-green-700 rounded-lg">
+        <div className="mb-4 p-4 bg-green-100 border border-green-400 text-green-700 rounded-lg text-center">
           {success}
         </div>
       )}
-
       {error && (
-        <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
-          {error}
-          <button
-            onClick={() => setError('')}
-            className="ml-2 text-red-500 hover:text-red-700"
-          >
+        <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg flex justify-between">
+          <span>{error}</span>
+          <button onClick={() => setError('')} className="text-red-500 hover:text-red-700">
             ×
           </button>
         </div>
       )}
 
-      {/* Filters and Search */}
-      <div className="bg-white rounded-lg shadow p-6 mb-6">
-        <div className="flex flex-col md:flex-row gap-4 mb-4">
-          <div className="flex-1">
-            <input
-              type="text"
-              placeholder="Search by name, complaint, or type..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-          <div>
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="all">All Status</option>
-              <option value="submittedToAdmin">Submitted</option>
-              <option value="approved">Approved</option>
-              <option value="rejected">Rejected</option>
-            </select>
-          </div>
-        </div>
+      {/* Filter button */}
+      <div className="mb-6 relative flex items-center">
+        <button
+          ref={filterButtonRef}
+          onClick={(e) => {
+            e.stopPropagation();
+            setShowFilterMenu(!showFilterMenu);
+          }}
+          className="flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-50"
+        >
+          <span>🔍</span>
+          <span>Filter</span>
+          <span>▼</span>
+        </button>
 
-        {/* Grievances Table */}
-        <div className="overflow-x-auto">
-          <table className="min-w-full table-auto">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Student Details
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Type
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Description
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Submitted
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filteredGrievances.length === 0 ? (
-                <tr>
-                  <td colSpan="6" className="px-4 py-8 text-center text-gray-500">
-                    No grievances found
-                  </td>
-                </tr>
-              ) : (
-                filteredGrievances.map((grievance) => (
-                  <tr key={grievance._id} className="hover:bg-gray-50">
-                    <td className="px-4 py-4 whitespace-nowrap">
-                      <div>
-                        <div className="text-sm font-medium text-gray-900">
-                          {grievance.name}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-4 whitespace-nowrap">
-                      <span className="text-sm text-gray-900">{grievance.grievanceType}</span>
-                    </td>
-                    <td className="px-4 py-4">
-                      <div className="text-sm text-gray-900 max-w-xs truncate">
-                        {grievance.complaint}
-                      </div>
-                    </td>
-                    <td className="px-4 py-4 whitespace-nowrap">
-                      <span
-                        className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
-                          grievance.status
-                        )}`}
-                      >
-                        {grievance.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date(grievance.createdAt).toLocaleDateString()}
-                    </td>
-                    <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
-                      {grievance.status === 'submittedToAdmin' && (
-                        <div className="flex flex-col space-y-2">
-                          <input
-                            type="text"
-                            placeholder="Suggestion (optional)"
-                            value={suggestions[grievance._id] || ''}
-                            onChange={(e) => setSuggestions({ ...suggestions, [grievance._id]: e.target.value })}
-                            className="px-2 py-1 border border-gray-300 rounded text-xs"
-                          />
-                          <div className="flex space-x-2">
-                            <button
-                              onClick={() => handleApprove(grievance._id)}
-                              disabled={loading}
-                              className="text-green-600 hover:text-green-900 bg-green-100 px-2 py-1 rounded disabled:opacity-50"
-                            >
-                              Approve
-                            </button>
-                            <button
-                              onClick={() => handleReject(grievance._id)}
-                              disabled={loading}
-                              className="text-red-600 hover:text-red-900 bg-red-100 px-2 py-1 rounded disabled:opacity-50"
-                            >
-                              Reject
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                      {grievance.status !== 'submittedToAdmin' && (
-                        <span className="text-gray-500">Processed</span>
-                      )}
-                      <button
-                        onClick={() => handleDelete(grievance._id)}
-                        className="ml-2 text-gray-600 hover:text-gray-900 bg-gray-100 px-2 py-1 rounded"
-                      >
-                        Delete
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+        {showFilterMenu && (
+          <div
+            ref={filterMenuRef}
+            className="absolute left-0 mt-12 w-64 bg-white border border-gray-200 rounded-lg shadow-lg z-50"
+          >
+            <div className="p-4">
+              <h3 className="font-semibold text-gray-800 mb-3">Filter by Status</h3>
+              <div className="space-y-2">
+                {['all', 'submittedToAdmin', 'approved', 'rejected'].map((status) => (
+                  <label key={status} className="flex items-center space-x-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="status"
+                      value={status}
+                      checked={filterStatus === status}
+                      onChange={(e) => setFilterStatus(e.target.value)}
+                      className="text-blue-500 focus:ring-blue-500"
+                    />
+                    <span className="capitalize">
+                      {status === 'all' ? 'All Status' : status.replace(/([A-Z])/g, ' $1')}
+                    </span>
+                  </label>
+                ))}
+              </div>
+
+              <div className="mt-4 pt-3 border-t border-gray-200">
+                <h3 className="font-semibold text-gray-800 mb-3">Search</h3>
+                <input
+                  type="text"
+                  placeholder="Search grievances..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+
+              <div className="mt-4 flex justify-between">
+                <button
+                  onClick={() => {
+                    setFilterStatus('all');
+                    setSearchTerm('');
+                  }}
+                  className="px-3 py-1 text-sm text-gray-600 hover:text-gray-800"
+                >
+                  Reset
+                </button>
+                <button
+                  onClick={() => setShowFilterMenu(false)}
+                  className="px-4 py-2 bg-blue-500 text-white text-sm rounded-lg hover:bg-blue-600"
+                >
+                  Apply
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
+      {/* Desktop Table */}
+      <div className="hidden md:block overflow-x-auto bg-white rounded-lg shadow p-4">
+        <table className="min-w-full table-auto">
+          <thead className="bg-gray-50">
+            <tr>
+              {['Submitter', 'Subject', 'Description', 'Status', 'Submitted', 'Actions'].map(
+                (head) => (
+                  <th
+                    key={head}
+                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"
+                  >
+                    {head}
+                  </th>
+                )
+              )}
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {filteredGrievances.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="px-4 py-8 text-center text-gray-500">
+                  No grievances found
+                </td>
+              </tr>
+            ) : (
+              filteredGrievances.map((g) => (
+                <tr key={g._id} className="hover:bg-gray-50">
+                  <td className="px-4 py-4">{g.name}</td>
+                  <td className="px-4 py-4 text-sm text-gray-600 truncate">{g.subject}</td>
+                  <td className="px-4 py-4 text-sm text-gray-600 truncate">{g.complaint}</td>
+                  <td className="px-4 py-4">
+                    <span
+                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
+                        g.status
+                      )}`}
+                    >
+                      {g.status}
+                    </span>
+                  </td>
+                  <td className="px-4 py-4 text-sm text-gray-500">
+                    {new Date(g.createdAt).toLocaleDateString()}
+                  </td>
+                  <td className="px-4 py-4 text-sm font-medium">
+                    {g.status === 'submittedToAdmin' ? (
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={() => handleStatusUpdate(g, 'approved')}
+                          className="text-green-600 hover:text-green-900 bg-green-100 px-2 py-1 rounded"
+                        >
+                          Approve
+                        </button>
+                        <button
+                          onClick={() => handleStatusUpdate(g, 'rejected')}
+                          className="text-red-600 hover:text-red-900 bg-red-100 px-2 py-1 rounded"
+                        >
+                          Reject
+                        </button>
+                      </div>
+                    ) : (
+                      <span className="text-gray-500">Processed</span>
+                    )}
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
 
+      {/* Mobile Cards */}
+      <div className="md:hidden space-y-4">
+        {filteredGrievances.length === 0 ? (
+          <p className="text-center text-gray-500 py-4">No grievances found</p>
+        ) : (
+          filteredGrievances.map((g) => (
+            <div key={g._id} className="border rounded-lg p-4 shadow-sm">
+              <p className="font-semibold text-gray-800">{g.name}</p>
+              <p className="text-sm text-gray-600 mt-1">{g.subject}</p>
+              <p className="text-sm text-gray-600 mt-1 truncate">{g.complaint}</p>
+              <p className="mt-2 text-xs text-gray-500">
+                Submitted: {new Date(g.createdAt).toLocaleDateString()}
+              </p>
+              <span
+                className={`inline-block mt-2 px-2 py-1 text-xs rounded-full ${getStatusColor(
+                  g.status
+                )}`}
+              >
+                {g.status}
+              </span>
+              <div className="mt-3">
+                {g.status === 'submittedToAdmin' ? (
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={() => handleStatusUpdate(g, 'approved')}
+                      className="text-green-600 hover:text-green-900 bg-green-100 px-3 py-1 rounded text-sm"
+                    >
+                      Approve
+                    </button>
+                    <button
+                      onClick={() => handleStatusUpdate(g, 'rejected')}
+                      className="text-red-600 hover:text-red-900 bg-red-100 px-3 py-1 rounded text-sm"
+                    >
+                      Reject
+                    </button>
+                  </div>
+                ) : (
+                  <span className="text-gray-500 text-sm">Processed</span>
+                )}
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Modal */}
+      {showModal && selectedGrievance && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div ref={modalRef} className="bg-white w-full max-w-md p-5 rounded-lg shadow-lg">
+            <h3 className="text-lg font-medium mb-4 text-center">
+              {selectedStatus === 'approved' ? 'Approve' : 'Reject'} Grievance
+            </h3>
+            <textarea
+              rows={4}
+              placeholder="Optional admin response"
+              value={adminResponse}
+              onChange={(e) => setAdminResponse(e.target.value)}
+              className="w-full border px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4"
+            />
+            <div className="flex justify-end gap-3">
+              <button onClick={() => setShowModal(false)} className="px-4 py-2 border rounded-lg">
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmStatusUpdate}
+                disabled={loading}
+                className={`px-4 py-2 text-white rounded-lg ${
+                  selectedStatus === 'approved'
+                    ? 'bg-green-600 hover:bg-green-700'
+                    : 'bg-red-600 hover:bg-red-700'
+                } disabled:opacity-50`}
+              >
+                {loading
+                  ? 'Processing...'
+                  : selectedStatus === 'approved'
+                  ? 'Approve'
+                  : 'Reject'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

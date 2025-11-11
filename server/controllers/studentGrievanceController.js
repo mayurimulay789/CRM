@@ -113,6 +113,7 @@
 
 
 const StudentGrievance = require("../models/StudentGrievance");
+const Admission = require("../models/Admission");
 const sendMail = require("../utils/email");
 
 // Student submits complaint (via counsellor)
@@ -273,6 +274,43 @@ exports.deleteGrievance = async (req, res) => {
     await grievance.deleteOne();
     res.status(200).json({ message: "Complaint deleted" });
   } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+// ✅ Search students whose admission is approved by student name
+exports.searchStudentByName = async (req, res) => {
+  try {
+    const { name } = req.query;
+    if (!name) return res.status(400).json({ message: "Name query is required" });
+
+    // Find admissions that are approved and match the student's name
+    const admissions = await Admission.find({ status: "approved" })
+      .populate({
+        path: "student",
+        match: { name: { $regex: name, $options: "i" } }, // case-insensitive search
+        select: "name email phone studentId",
+      })
+      .populate("course", "name");
+
+    // Filter out admissions without matched student
+    const filteredAdmissions = admissions.filter(a => a.student);
+
+    // Map to clean response
+    const students = filteredAdmissions.map(a => ({
+      admissionId: a._id,
+      admissionNo: a.admissionNo,
+      studentId: a.student._id,
+      studentName: a.student.name,
+      email: a.student.email,
+      phone: a.student.phone,
+      course: a.course?.name || "",
+      counsellor: a.counsellor,
+      trainingBranch: a.trainingBranch,
+    }));
+
+    res.status(200).json(students);
+  } catch (error) {
+    console.error("Search student error:", error);
     res.status(500).json({ message: error.message });
   }
 };

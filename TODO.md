@@ -1,5 +1,6 @@
-- [x] Add try-catch error handling in handleSubmit for update/create operations
-- [x] Remove the "Type" column from the table headers
-- [x] Remove the "Type" column from the table rows
-- [x] Update search placeholder to remove "type"
-- [x] Remove grievanceType from search logic
+# Fix 500 Error in Rejecting Campus Grievances
+
+## Steps to Complete
+- [x] Add ID validation in `rejectGrievance` function in `server/controllers/campusGrievanceController.js`
+- [x] Add console logging for debugging, similar to `approveGrievance`
+- [x] Test the reject functionality by running the server and attempting to reject a grievance

@@ -1,22 +1,23 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
+const { protect, admin } = require("../middleware/auth");
 const {
   createGrievance,
   getAllGrievances,
   approveGrievance,
   rejectGrievance,
   deleteGrievance,
-  updateGrievance, // ✅ import update function
-} = require('../controllers/campusGrievanceController');
+  updateGrievance,
+} = require("../controllers/campusGrievanceController");
 
 // Routes for both Admin & Counsellor
-router.post('/', createGrievance);        // Counsellor adds
-router.get('/', getAllGrievances);        // Both view
-router.put('/:id', updateGrievance);      // ✅ Counsellor/Admin can edit grievance
+router.post("/", protect, createGrievance);
+router.get("/", protect, getAllGrievances);
+router.put("/:id", protect, updateGrievance);
 
-// Admin routes
-router.put('/:id/approve', approveGrievance);
-router.put('/:id/reject', rejectGrievance);
-router.delete('/:id', deleteGrievance);
+// Admin-only routes
+router.put("/:id/approve", protect, admin, approveGrievance);
+router.put("/:id/reject", protect, admin, rejectGrievance);
+router.delete("/:id", protect, deleteGrievance);
 
 module.exports = router;

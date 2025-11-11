@@ -23,7 +23,7 @@ const mongoose = require('mongoose');
 const studentGrievanceSchema = new mongoose.Schema({
   studentName: { type: String, required: true },
   studentEmail: { type: String, required: true },
-  title: { type: String, default: '' },
+  // title: { type: String, default: '' },
   complaint: { type: String, required: true },
   status: {
     type: String,

@@ -1,7 +1,8 @@
 import React, { useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { Provider, useDispatch, useSelector } from "react-redux";
-import { store } from "./app/store";
+import { Toaster } from 'react-hot-toast';
+import { store } from "./store/store";
 import { getCurrentUser } from "./store/slices/authSlice";
 
 
@@ -20,12 +21,7 @@ import CounsellorDashboardPage from "./pages/CounsellorDashboardPage.jsx";
 import AddBatchForm from "./components/AddBatchForm.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 
-// Demo Management Pages
-import DemoPage from "./components/Demo/DemoPage";
-import OnlineDemo from "./components/counsellor/Demo/OnlineDemo.jsx";
-import OfflineDemo from "./components/Demo/OfflineDemo";
-import OneToOneDemo from "./components/Demo/OneToOneDemo";
-import LiveClasses from "./components/Demo/LiveClasses";
+
 
 // --------------------
 // AppContent Component
@@ -84,15 +80,33 @@ function AppContent() {
             }
           />
 
-          {/* 🎓 Demo Management Routes */}
-          <Route path="/demo" element={<DemoPage />} />
-          <Route path="/demo/online" element={<OnlineDemo />} />
-          <Route path="/demo/offline" element={<OfflineDemo />} />
-          <Route path="/demo/one-to-one" element={<OneToOneDemo />} />
-          <Route path="/demo/live-classes" element={<LiveClasses />} />
+    
         </Routes>
       </div>
       {/* <Footer /> */}
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          success: {
+            style: {
+              background: 'green',
+              color: 'white',
+            },
+          },
+          error: {
+            style: {
+              background: 'red',
+              color: 'white',
+            },
+          },
+          warning: {
+            style: {
+              background: 'orange',
+              color: 'white',
+            },
+          },
+        }}
+      />
     </Router>
   );
 }
