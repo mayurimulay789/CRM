@@ -3,11 +3,10 @@ const User = require('../models/User');
 
 const protect = async (req, res, next) => {
   let token;
-<<<<<<< HEAD
-=======
+
   console.log('Protect middleware invoked');
   console.log('Authorization Header:', req.headers.authorization);
->>>>>>> 796f7396510349a3599e146e7987a6e0c9dcc0ef
+
 
   if (
     req.headers.authorization &&
@@ -22,10 +21,8 @@ const protect = async (req, res, next) => {
 
       // Get user from the token
       req.user = await User.findById(decoded.id).select('-password');
-<<<<<<< HEAD
-=======
+
       console.log('User authenticated scuessfully:', req.user);
->>>>>>> 796f7396510349a3599e146e7987a6e0c9dcc0ef
 
       next();
     } catch (error) {

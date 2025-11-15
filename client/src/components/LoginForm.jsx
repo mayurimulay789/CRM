@@ -1,21 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-<<<<<<< HEAD
 import toast from 'react-hot-toast';
 import { loginUser, clearError, clearSuccess } from '../store/slices/authSlice';
 import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
-=======
-import { loginUser, clearError, clearSuccess } from '../store/slices/authSlice';
-import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline'; 
->>>>>>> 796f7396510349a3599e146e7987a6e0c9dcc0ef
 
 const LoginForm = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  
+
   const { loading, error, success, isAuthenticated } = useSelector((state) => state.auth);
-  
+
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [localMessage, setLocalMessage] = useState('');
@@ -40,10 +35,10 @@ const LoginForm = () => {
 
   const onSubmit = async (e) => {
     e.preventDefault();
-    
+
     setLocalMessage('');
     dispatch(clearError());
-    
+
     if (!validateEmail(email)) {
       setLocalMessage('Please enter a valid email');
       return;
@@ -54,10 +49,7 @@ const LoginForm = () => {
     }
 
     dispatch(loginUser(formData));
-<<<<<<< HEAD
     toast.success('Login successful!');
-=======
->>>>>>> 796f7396510349a3599e146e7987a6e0c9dcc0ef
   };
 
   const displayMessage = localMessage || error || success;
@@ -120,8 +112,8 @@ const LoginForm = () => {
                 className="absolute right-3 top-2/3 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 disabled={loading}
               >
-                {showPassword ? 
-                  <EyeSlashIcon className="h-5 w-5" /> : 
+                {showPassword ?
+                  <EyeSlashIcon className="h-5 w-5" /> :
                   <EyeIcon className="h-5 w-5" />
                 }
               </button>

@@ -33,6 +33,10 @@ const KanbanColumn = ({ id, title, items, onEditBatch, onDeleteBatch }) => {
         return 'bg-gradient-to-br from-green-50 to-emerald-50 border-green-200';
       case 'closed':
         return 'bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200';
+      case 'completed':
+        return 'bg-gradient-to-br from-purple-50 to-indigo-50 border-purple-200';
+      case 'cancelled':
+        return 'bg-gradient-to-br from-red-50 to-pink-50 border-red-200';
       default:
         return 'bg-gray-100 border-gray-200';
     }
@@ -46,6 +50,10 @@ const KanbanColumn = ({ id, title, items, onEditBatch, onDeleteBatch }) => {
         return 'text-green-800';
       case 'closed':
         return 'text-blue-800';
+      case 'completed':
+        return 'text-purple-800';
+      case 'cancelled':
+        return 'text-red-800';
       default:
         return 'text-gray-800';
     }
@@ -106,6 +114,10 @@ const BatchCard = ({ batch, onEditBatch, onDeleteBatch }) => {
         return 'bg-gradient-to-r from-green-400 to-emerald-400 text-white';
       case 'Closed':
         return 'bg-gradient-to-r from-blue-400 to-indigo-400 text-white';
+      case 'Completed':
+        return 'bg-gradient-to-r from-purple-400 to-indigo-400 text-white';
+      case 'Cancelled':
+        return 'bg-gradient-to-r from-red-400 to-pink-400 text-white';
       default:
         return 'bg-gray-400 text-white';
     }
@@ -134,18 +146,20 @@ const BatchCard = ({ batch, onEditBatch, onDeleteBatch }) => {
             📝
           </button>
         )}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            if (window.confirm(`Are you sure you want to delete the batch "${batch.name}"?`)) {
-              onDeleteBatch(batch._id);
-            }
-          }}
-          className="text-red-500 hover:text-red-700 text-lg"
-          title="Delete Batch"
-        >
-          🗑️
-        </button>
+        {batch.status !== 'Running' && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              if (window.confirm(`Are you sure you want to delete the batch "${batch.name}"?`)) {
+                onDeleteBatch(batch._id);
+              }
+            }}
+            className="text-red-500 hover:text-red-700 text-lg"
+            title="Delete Batch"
+          >
+            🗑️
+          </button>
+        )}
       </div>
       <div className={`absolute top-3 right-3 px-3 py-1 rounded-full text-xs font-semibold shadow-sm ${getStatusColor(batch.status)}`}>
         {batch.status}
@@ -182,11 +196,12 @@ const KanbanBoard = ({ onEditBatch }) => {
   );
 
   const columns = useMemo(() => {
-    return {
-      upcoming: batches.filter(batch => batch.status === 'Upcoming'),
-      running: batches.filter(batch => batch.status === 'Running'),
-      closed: batches.filter(batch => batch.status === 'Closed'),
-    };
+    const statusOrder = ['upcoming', 'running', 'closed'];
+    const columnsObj = {};
+    statusOrder.forEach(status => {
+      columnsObj[status] = batches.filter(batch => batch.status.toLowerCase() === status);
+    });
+    return columnsObj;
   }, [batches]);
 
   const handleDragStart = (event) => {
@@ -226,7 +241,7 @@ const KanbanBoard = ({ onEditBatch }) => {
     }
 
     // Determine destination column
-    const columnIds = ['upcoming', 'running', 'closed'];
+    const columnIds = Object.keys(columns);
     let destColumn = null;
 
     // Check if dropped on a batch (sort within column) or a column container (move between columns)
@@ -300,28 +315,26 @@ const KanbanBoard = ({ onEditBatch }) => {
     >
       <div className="bg-gradient-to-br from-slate-50 to-gray-100 min-h-screen p-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {/* Using the new Droppable component for each column */}
-          <DroppableKanbanColumn
-            id="upcoming"
-            title="📅 Upcoming"
-            items={columns.upcoming}
-            onEditBatch={onEditBatch}
-            onDeleteBatch={handleDeleteBatch}
-          />
-          <DroppableKanbanColumn
-            id="running"
-            title="🚀 Running"
-            items={columns.running}
-            onEditBatch={onEditBatch}
-            onDeleteBatch={handleDeleteBatch}
-          />
-          <DroppableKanbanColumn
-            id="closed"
-            title="✅ Closed"
-            items={columns.closed}
-            onEditBatch={onEditBatch}
-            onDeleteBatch={handleDeleteBatch}
-          />
+          {/* Render columns in fixed order: upcoming, running, closed */}
+          {['upcoming', 'running', 'closed'].map((statusKey) => {
+            const statusTitle = statusKey.charAt(0).toUpperCase() + statusKey.slice(1);
+            const emojiMap = {
+              upcoming: '📅',
+              running: '🚀',
+              closed: '✅',
+            };
+            const title = `${emojiMap[statusKey]} ${statusTitle}`;
+            return (
+              <DroppableKanbanColumn
+                key={statusKey}
+                id={statusKey}
+                title={title}
+                items={columns[statusKey]}
+                onEditBatch={onEditBatch}
+                onDeleteBatch={handleDeleteBatch}
+              />
+            );
+          })}
         </div>
       </div>
       <DragOverlay>

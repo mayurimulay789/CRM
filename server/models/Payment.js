@@ -61,9 +61,7 @@ const paymentSchema = new mongoose.Schema({
   timestamps: true
 });
 
-<<<<<<< HEAD
 module.exports = mongoose.model('Payment', paymentSchema);
-=======
 module.exports = mongoose.model('Payment', paymentSchema);
 
 
@@ -313,4 +311,3 @@ module.exports = mongoose.model('Payment', paymentSchema);
 // };
 
 // module.exports = mongoose.model('Payment', paymentSchema);
->>>>>>> 796f7396510349a3599e146e7987a6e0c9dcc0ef

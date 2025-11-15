@@ -7,11 +7,7 @@ const AdminSidebar = ({ activeSection, setActiveSection }) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { user } = useSelector(state => state.auth);
-<<<<<<< HEAD
-
-=======
   const [isBatchesOpen, setIsBatchesOpen] = useState(false);
->>>>>>> 796f7396510349a3599e146e7987a6e0c9dcc0ef
   const [isDemoOpen, setIsDemoOpen] = useState(false);
   const [isAdmissionOpen, setIsAdmissionOpen] = useState(false);
   const [isComplaintOpen, setIsComplaintOpen] = useState(false);
@@ -23,8 +19,6 @@ const AdminSidebar = ({ activeSection, setActiveSection }) => {
     navigate('/');
   };
 
-<<<<<<< HEAD
-=======
   // Color mapping for consistent styling
   const colorClasses = {
     gray: { bg: 'bg-gray-100', text: 'text-gray-700', border: 'border-gray-200', dot: 'bg-gray-400' },
@@ -84,7 +78,6 @@ const AdminSidebar = ({ activeSection, setActiveSection }) => {
     }
   ];
 
->>>>>>> 796f7396510349a3599e146e7987a6e0c9dcc0ef
   return (
     <div className="w-80 bg-gradient-to-b from-white to-indigo-50 shadow-2xl min-h-screen flex flex-col border-r border-indigo-100">
       {/* Premium Admin Header */}
@@ -140,9 +133,7 @@ const AdminSidebar = ({ activeSection, setActiveSection }) => {
             <span className="font-semibold">Admin Dashboard</span>
           </button>
 
-<<<<<<< HEAD
-=======
-            {/* Course Management */}
+          {/* Course Management */}
           <button
             onClick={() => setActiveSection('course-management')}
             className={`w-full text-left px-5 py-4 rounded-2xl transition-all duration-300 flex items-center space-x-4 group ${
@@ -157,7 +148,6 @@ const AdminSidebar = ({ activeSection, setActiveSection }) => {
             <span className="font-semibold">Course Management</span>
           </button>
 
->>>>>>> 796f7396510349a3599e146e7987a6e0c9dcc0ef
           {/* User Management */}
           <div className="bg-white rounded-2xl border border-indigo-100 overflow-hidden">
             <button
@@ -201,7 +191,6 @@ const AdminSidebar = ({ activeSection, setActiveSection }) => {
             )}
           </div>
 
-<<<<<<< HEAD
           {/* Batches */}
           <button
             onClick={() => setActiveSection('batches')}
@@ -216,6 +205,46 @@ const AdminSidebar = ({ activeSection, setActiveSection }) => {
             </div>
             <span className="font-semibold">Batches</span>
           </button>
+
+          {/* Expandable Sections */}
+          {expandableSections.slice(1).map((section) => (
+            <div key={section.title} className="bg-white rounded-2xl border border-indigo-100 overflow-hidden">
+              <button
+                onClick={() => section.setIsOpen(!section.isOpen)}
+                className="w-full text-left px-5 py-4 transition-all duration-300 flex items-center justify-between group hover:bg-indigo-50"
+              >
+                <div className="flex items-center space-x-4">
+                  <span className="text-xl">{section.title.split(' ')[0]}</span>
+                  <span className="font-semibold text-gray-700">{section.title.split(' ').slice(1).join(' ')}</span>
+                </div>
+                <div className={`transform transition-transform duration-300 ${section.isOpen ? 'rotate-180' : ''}`}>
+                  <span className="text-gray-400">▼</span>
+                </div>
+              </button>
+
+              {section.isOpen && (
+                <div className="px-3 pb-3 space-y-2">
+                  {section.items.map((item) => {
+                    const colorClass = colorClasses[item.color];
+                    return (
+                      <button
+                        key={item.key}
+                        onClick={() => setActiveSection(item.key)}
+                        className={`w-full text-left px-4 py-3 rounded-xl transition-all duration-300 flex items-center space-x-3 group ${
+                          activeSection === item.key
+                            ? `${colorClass.bg} ${colorClass.text} ${colorClass.border} shadow-sm`
+                            : 'text-gray-600 hover:bg-gray-50 hover:shadow-sm'
+                        }`}
+                      >
+                        <div className={`w-2 h-2 rounded-full ${colorClass.dot}`}></div>
+                        <span className="text-sm font-medium">{item.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          ))}
 
           {/* Trainer */}
           <button
@@ -232,105 +261,7 @@ const AdminSidebar = ({ activeSection, setActiveSection }) => {
             <span className="font-semibold">Trainer</span>
           </button>
 
-          {/* Expandable Sections */}
-          {[
-            {
-              title: "🎯 Demo",
-              isOpen: isDemoOpen,
-              setIsOpen: setIsDemoOpen,
-              items: [
-                { key: 'online-demo', label: 'Online', color: 'purple' },
-                { key: 'offline-demo', label: 'Offline', color: 'orange' },
-                { key: 'one-to-one-demo', label: '1-2-1', color: 'pink' },
-                { key: 'live-class-demo', label: 'Live Class', color: 'red' }
-              ]
-            },
-            {
-              title: "🎓 Admission",
-              isOpen: isAdmissionOpen,
-              setIsOpen: setIsAdmissionOpen,
-              items: [
-                { key: 'admission-form', label: 'Admission Form', color: 'indigo' },
-                { key: 'enrolled-student', label: 'Enrolled Student', color: 'teal' },
-                { key: 'payment-invoice-sheet', label: 'Payment Invoice', color: 'amber' }
-              ]
-            },
-            {
-              title: "📋 Complaint",
-              isOpen: isComplaintOpen,
-              setIsOpen: setIsComplaintOpen,
-              items: [
-                { key: 'student-grievance', label: 'Student Grievance', color: 'rose' },
-                { key: 'campus-grievance', label: 'Campus Grievance', color: 'cyan' }
-              ]
-            }
-          ].map((section) => (
-=======
-          {/* Expandable Sections */}
-          {expandableSections.map((section) => (
->>>>>>> 796f7396510349a3599e146e7987a6e0c9dcc0ef
-            <div key={section.title} className="bg-white rounded-2xl border border-indigo-100 overflow-hidden">
-              <button
-                onClick={() => section.setIsOpen(!section.isOpen)}
-                className="w-full text-left px-5 py-4 transition-all duration-300 flex items-center justify-between group hover:bg-indigo-50"
-              >
-                <div className="flex items-center space-x-4">
-                  <span className="text-xl">{section.title.split(' ')[0]}</span>
-                  <span className="font-semibold text-gray-700">{section.title.split(' ').slice(1).join(' ')}</span>
-                </div>
-                <div className={`transform transition-transform duration-300 ${section.isOpen ? 'rotate-180' : ''}`}>
-                  <span className="text-gray-400">▼</span>
-                </div>
-              </button>
-              
-              {section.isOpen && (
-                <div className="px-3 pb-3 space-y-2">
-<<<<<<< HEAD
-                  {section.items.map((item) => (
-                    <button
-                      key={item.key}
-                      onClick={() => setActiveSection(item.key)}
-                      className={`w-full text-left px-4 py-3 rounded-xl transition-all duration-300 flex items-center space-x-3 group ${
-                        activeSection === item.key 
-                          ? `bg-${item.color}-100 text-${item.color}-700 border border-${item.color}-200 shadow-sm` 
-                          : 'text-gray-600 hover:bg-gray-50 hover:shadow-sm'
-                      }`}
-                    >
-                      <div className={`w-2 h-2 rounded-full bg-${item.color}-400`}></div>
-                      <span className="text-sm font-medium">{item.label}</span>
-                    </button>
-                  ))}
-=======
-                  {section.items.map((item) => {
-                    const colorClass = colorClasses[item.color];
-                    return (
-                      <button
-                        key={item.key}
-                        onClick={() => setActiveSection(item.key)}
-                        className={`w-full text-left px-4 py-3 rounded-xl transition-all duration-300 flex items-center space-x-3 group ${
-                          activeSection === item.key 
-                            ? `${colorClass.bg} ${colorClass.text} ${colorClass.border} shadow-sm` 
-                            : 'text-gray-600 hover:bg-gray-50 hover:shadow-sm'
-                        }`}
-                      >
-                        <div className={`w-2 h-2 rounded-full ${colorClass.dot}`}></div>
-                        <span className="text-sm font-medium">{item.label}</span>
-                      </button>
-                    );
-                  })}
->>>>>>> 796f7396510349a3599e146e7987a6e0c9dcc0ef
-                </div>
-              )}
-            </div>
-          ))}
-
-<<<<<<< HEAD
-          {/* MIS */}
-=======
-        
-
           {/* MIS Reports */}
->>>>>>> 796f7396510349a3599e146e7987a6e0c9dcc0ef
           <button
             onClick={() => setActiveSection('mis')}
             className={`w-full text-left px-5 py-4 rounded-2xl transition-all duration-300 flex items-center space-x-4 group ${
@@ -387,13 +318,24 @@ const AdminSidebar = ({ activeSection, setActiveSection }) => {
                 <button
                   onClick={() => setActiveSection('financial-reports')}
                   className={`w-full text-left px-4 py-3 rounded-xl transition-all duration-300 flex items-center space-x-3 group ${
-                    activeSection === 'financial-reports' 
-                      ? 'bg-amber-100 text-amber-700 border border-amber-200 shadow-sm' 
+                    activeSection === 'financial-reports'
+                      ? 'bg-amber-100 text-amber-700 border border-amber-200 shadow-sm'
                       : 'text-gray-600 hover:bg-gray-50 hover:shadow-sm'
                   }`}
                 >
                   <div className="w-2 h-2 rounded-full bg-amber-400"></div>
                   <span className="text-sm font-medium">Financial Reports</span>
+                </button>
+                <button
+                  onClick={() => setActiveSection('batch-reports')}
+                  className={`w-full text-left px-4 py-3 rounded-xl transition-all duration-300 flex items-center space-x-3 group ${
+                    activeSection === 'batch-reports'
+                      ? 'bg-purple-100 text-purple-700 border border-purple-200 shadow-sm'
+                      : 'text-gray-600 hover:bg-gray-50 hover:shadow-sm'
+                  }`}
+                >
+                  <div className="w-2 h-2 rounded-full bg-purple-400"></div>
+                  <span className="text-sm font-medium">Batch Reports</span>
                 </button>
               </div>
             )}

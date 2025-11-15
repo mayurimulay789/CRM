@@ -74,8 +74,7 @@ const CounsellorSidebar = ({ activeSection, setActiveSection }) => {
             <span className="font-semibold">Dashboard</span>
           </button>
 
-<<<<<<< HEAD
-=======
+
           {/* Student Management */}
           <button
             onClick={() => setActiveSection('student-management')}
@@ -91,7 +90,6 @@ const CounsellorSidebar = ({ activeSection, setActiveSection }) => {
             <span className="font-semibold">Student Management</span>
           </button>
 
->>>>>>> 796f7396510349a3599e146e7987a6e0c9dcc0ef
           {/* My Works */}
           <button
             onClick={() => setActiveSection('my-works')}
@@ -135,11 +133,8 @@ const CounsellorSidebar = ({ activeSection, setActiveSection }) => {
               isOpen: isAdmissionOpen,
               setIsOpen: setIsAdmissionOpen,
               items: [
-<<<<<<< HEAD
                 { key: 'admission-form', label: 'Admission Form', color: 'indigo' },
-=======
                 { key: 'admission-management', label: 'Admission Status', color: 'indigo' },
->>>>>>> 796f7396510349a3599e146e7987a6e0c9dcc0ef
                 { key: 'enrolled-student', label: 'Enrolled Student', color: 'teal' },
                 { key: 'payment-invoice-sheet', label: 'Payment Invoice', color: 'amber' }
               ]

@@ -3,18 +3,21 @@ import { useDispatch, useSelector } from 'react-redux';
 import toast from 'react-hot-toast';
 import { createBatch, updateBatch, clearError, clearSuccess, setError } from '../store/slices/batchSlice';
 import { getTrainers } from '../store/slices/trainerSlice';
+import { fetchCourses } from '../store/slices/courseSlice';
 
 const AddBatchForm = ({ onBack, isEdit = false, batchData = null, onEditSubmit = null }) => {
   const dispatch = useDispatch();
   const { loading, error, success } = useSelector((state) => state.batch);
   const { trainers, loading: trainersLoading } = useSelector((state) => state.trainer);
+  const { courses, loading: coursesLoading } = useSelector((state) => state.courses);
 
   const [trainerSearch, setTrainerSearch] = useState('');
   const [showTrainerDropdown, setShowTrainerDropdown] = useState(false);
 
-  // Fetch trainers on component mount
+  // Fetch trainers and courses on component mount
   useEffect(() => {
     dispatch(getTrainers({ status: 'Active' }));
+    dispatch(fetchCourses());
   }, [dispatch]);
 
   // Filter trainers based on search
@@ -404,14 +407,24 @@ const AddBatchForm = ({ onBack, isEdit = false, batchData = null, onEditSubmit =
             <label htmlFor="course" className="block text-sm font-medium text-gray-700">
               Course
             </label>
-            <input
-              type="text"
+            <select
               id="course"
               name="course"
               value={formData.course}
               onChange={handleChange}
               className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-            />
+            >
+              <option value="">Select Course</option>
+              {coursesLoading ? (
+                <option disabled>Loading courses...</option>
+              ) : (
+                courses.map((course) => (
+                  <option key={course._id} value={course.name}>
+                    {course.name}
+                  </option>
+                ))
+              )}
+            </select>
           </div>
           <div className="mb-4">
             <label htmlFor="studentsActive" className="block text-sm font-medium text-gray-700">

@@ -40,7 +40,7 @@ const createBatch = async (req, res) => {
 // @access  Private (Admin/Counsellor)
 const getBatches = async (req, res) => {
   try {
-    const { status, page = 1, limit = 10 } = req.query;
+    const { status, page = 1, limit = 1000 } = req.query;
 
     const query = {};
     if (status) query.status = status;

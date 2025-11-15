@@ -4,36 +4,6 @@ const admissionSchema = new mongoose.Schema({
   admissionNo: {
     type: String,
     required: true,
-<<<<<<< HEAD
-    unique: true
-  },
-  admissionDate: {
-    type: Date,
-    required: true
-  },
-  name: {
-    type: String,
-    required: true
-  },
-  email: {
-    type: String,
-    required: true
-  },
-  alternateEmail: String,
-  phoneNo: {
-    type: String,
-    required: true
-  },
-  alternateNumber: String,
-  primaryEmail: String,
-  primaryNumber: String,
-  course: {
-    type: String,
-    required: true
-  },
-  courseFee: {
-    type: Number,
-=======
     unique: true,
     index: true
   },
@@ -50,28 +20,10 @@ const admissionSchema = new mongoose.Schema({
   course: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Course',
->>>>>>> 796f7396510349a3599e146e7987a6e0c9dcc0ef
     required: true
   },
   trainingBranch: {
     type: String,
-<<<<<<< HEAD
-    required: true
-  },
-  counsellor: {
-    type: String,
-    required: true
-  },
-  idProofPhoto: String,
-  studentPhoto: String,
-  studentSignature: String,
-  admissionFrontPage: String,
-  admissionBackPage: String,
-  paymentReceipt: String,
-  studentStatement: String,
-  termsCondition: Boolean,
-  confidentialForm: String,
-=======
     required: true,
     trim: true
   },
@@ -94,19 +46,12 @@ const admissionSchema = new mongoose.Schema({
       message: 'Terms and conditions must be accepted'
     }
   },
->>>>>>> 796f7396510349a3599e146e7987a6e0c9dcc0ef
   emailVerified: {
     type: Boolean,
     default: false
   },
   status: {
     type: String,
-<<<<<<< HEAD
-    enum: ['pending', 'approved', 'rejected', 'enrolled'],
-    default: 'pending'
-  },
-  operation: String
-=======
     enum: ['pending', 'approved', 'rejected', 'waiting_list'],
     default: 'pending'
   },
@@ -122,13 +67,10 @@ const admissionSchema = new mongoose.Schema({
     enum: ['website', 'walkin', 'referral', 'counsellor', 'social_media'],
     default: 'website'
   }
->>>>>>> 796f7396510349a3599e146e7987a6e0c9dcc0ef
 }, {
   timestamps: true
 });
 
-<<<<<<< HEAD
-=======
 // Indexes
 admissionSchema.index({ student: 1 });
 admissionSchema.index({ course: 1 });
@@ -175,5 +117,4 @@ admissionSchema.statics.getByStatus = function(status) {
     .sort({ admissionDate: -1 });
 };
 
->>>>>>> 796f7396510349a3599e146e7987a6e0c9dcc0ef
 module.exports = mongoose.model('Admission', admissionSchema);

@@ -1,51 +1,3 @@
-<<<<<<< HEAD
-const Admission = require('../models/Admission');
-const EnrolledStudent = require('../models/EnrolledStudent');
-
-// Create new admission
-exports.createAdmission = async (req, res) => {
-  try {
-    const admissionData = req.body;
-    
-    // Generate admission number
-    const lastAdmission = await Admission.findOne().sort({ admissionNo: -1 });
-    let admissionNo = 'DIDM001';
-    if (lastAdmission) {
-      const lastNumber = parseInt(lastAdmission.admissionNo.replace('DIDM', ''));
-      admissionNo = `DIDM${(lastNumber + 1).toString().padStart(3, '0')}`;
-    }
-    
-    admissionData.admissionNo = admissionNo;
-    admissionData.admissionDate = new Date();
-    
-    const admission = new Admission(admissionData);
-    await admission.save();
-    
-    res.status(201).json({
-      success: true,
-      data: admission
-    });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      error: error.message
-    });
-  }
-};
-
-// Get all admissions
-exports.getAdmissions = async (req, res) => {
-  try {
-    const admissions = await Admission.find().sort({ createdAt: -1 });
-    res.status(200).json({
-      success: true,
-      data: admissions
-    });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-=======
-
 const Admission = require('../models/Admission');
 const Student = require('../models/Student');
 const Course = require('../models/Course');
@@ -119,26 +71,11 @@ const getAllAdmissions = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error fetching admissions',
->>>>>>> 796f7396510349a3599e146e7987a6e0c9dcc0ef
       error: error.message
     });
   }
 };
 
-<<<<<<< HEAD
-// Get single admission
-exports.getAdmission = async (req, res) => {
-  try {
-    const admission = await Admission.findOne({ admissionNo: req.params.admissionNo });
-    
-    if (!admission) {
-      return res.status(404).json({
-        success: false,
-        error: 'Admission not found'
-      });
-    }
-    
-=======
 const getAdmissionById = async (req, res) => {
   try {
     const admission = await Admission.findById(req.params.id)
@@ -153,63 +90,19 @@ const getAdmissionById = async (req, res) => {
       });
     }
 
->>>>>>> 796f7396510349a3599e146e7987a6e0c9dcc0ef
     res.status(200).json({
       success: true,
       data: admission
     });
   } catch (error) {
-<<<<<<< HEAD
-    res.status(400).json({
-      success: false,
-=======
     res.status(500).json({
       success: false,
       message: 'Error fetching admission',
->>>>>>> 796f7396510349a3599e146e7987a6e0c9dcc0ef
       error: error.message
     });
   }
 };
 
-<<<<<<< HEAD
-
-// Update admission
-exports.updateAdmission = async (req, res) => {
-  try {
-    if(!req.body){
-      return res.status(400).json({
-        success: false,
-        error: 'No data provided for update'
-      });
-    }
-    
-    // i want remove admissionNo from req.body if exists to avoid updating it
-    if(req.body.admissionNo){
-      delete req.body.admissionNo;
-    }
-
-    const admission = await Admission.findOneAndUpdate(
-      { admissionNo: req.params.admissionNo },
-      req.body,
-      { new: true, runValidators: true }
-    );
-    
-    if (!admission) {
-      return res.status(404).json({
-        success: false,
-        error: 'Admission not found'
-      });
-    }
-    
-    res.status(200).json({
-      success: true,
-      data: admission
-    });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-=======
 const getAdmissionByAdmissionNo = async (req, res) => {
   try {
     const admission = await Admission.findOne({ admissionNo: req.params.admissionNo })
@@ -398,26 +291,11 @@ const createAdmission = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error creating admission',
->>>>>>> 796f7396510349a3599e146e7987a6e0c9dcc0ef
       error: error.message
     });
   }
 };
 
-<<<<<<< HEAD
-// Delete admission
-exports.deleteAdmission = async (req, res) => {
-  try {
-    const admission = await Admission.findOneAndDelete({ admissionNo: req.params.admissionNo });
-    
-    if (!admission) {
-      return res.status(404).json({
-        success: false,
-        error: 'Admission not found'
-      });
-    }
-    
-=======
 const updateAdmission = async (req, res) => {
   try {
     const {
@@ -568,53 +446,19 @@ const deleteAdmission = async (req, res) => {
 
     await Admission.findByIdAndDelete(req.params.id);
 
->>>>>>> 796f7396510349a3599e146e7987a6e0c9dcc0ef
     res.status(200).json({
       success: true,
       message: 'Admission deleted successfully'
     });
   } catch (error) {
-<<<<<<< HEAD
-    res.status(400).json({
-      success: false,
-=======
     res.status(500).json({
       success: false,
       message: 'Error deleting admission',
->>>>>>> 796f7396510349a3599e146e7987a6e0c9dcc0ef
       error: error.message
     });
   }
 };
 
-<<<<<<< HEAD
-// Verify email
-exports.verifyEmail = async (req, res) => {
-  try {
-    const admission = await Admission.findOneAndUpdate(
-      { admissionNo: req.params.admissionNo },
-      { emailVerified: true },
-      { new: true }
-    );
-    
-    if (!admission) {
-      return res.status(404).json({
-        success: false,
-        error: 'Admission not found'
-      });
-    }
-    
-    res.status(200).json({
-      success: true,
-      data: admission
-    });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      error: error.message
-    });
-  }
-=======
 const verifyAdmissionEmail = async (req, res) => {
   try {
     const admission = await Admission.findById(req.params.id);
@@ -749,5 +593,4 @@ module.exports = {
   deleteAdmission,
   verifyAdmissionEmail,
   getAdmissionStats
->>>>>>> 796f7396510349a3599e146e7987a6e0c9dcc0ef
 };

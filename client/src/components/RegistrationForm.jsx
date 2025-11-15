@@ -1,19 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-<<<<<<< HEAD
 import toast from 'react-hot-toast';
-=======
->>>>>>> 796f7396510349a3599e146e7987a6e0c9dcc0ef
 import { registerUser, clearError, clearSuccess } from '../store/slices/authSlice';
 
 const RegistrationForm = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  
+
   // ✅ Get auth state from Redux
   const { loading, error, success, isAuthenticated } = useSelector(state => state.auth);
-  
+
   const [formData, setFormData] = useState({
     FullName: '',
     email: '',
@@ -65,10 +62,7 @@ const RegistrationForm = () => {
 
     // ✅ Dispatch register action (Redux handles everything)
     dispatch(registerUser(formData));
-<<<<<<< HEAD
     toast.success('Registration successful! Please login.');
-=======
->>>>>>> 796f7396510349a3599e146e7987a6e0c9dcc0ef
   };
 
   // ✅ Determine which message to display
