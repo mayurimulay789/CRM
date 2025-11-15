@@ -272,6 +272,14 @@
 // };
 
 // export default ComplaintManagement;
+
+
+
+
+
+
+
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
@@ -385,9 +393,38 @@ const ComplaintManagement = () => {
 
   return (
     <div className="p-4 sm:p-6">
-      <h1 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4 sm:mb-6">
+     {/* Page Header */}
+<div className="mb-6 bg-gradient-to-r from-blue-600 via-cyan-500 to-green-500 rounded-xl shadow-md p-5 sm:p-6 text-white">
+  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <div>
+      <h1 className="text-2xl sm:text-3xl font-bold tracking-wide">
         Student Grievance Management
       </h1>
+      <p className="text-sm sm:text-base text-blue-100 mt-1">
+        Review, approve, or reject grievances submitted by students.
+      </p>
+    </div>
+
+    {/* Quick Status Summary */}
+    <div className="flex flex-wrap items-center gap-2">
+      <span className="inline-block bg-white text-blue-700 font-semibold px-3 py-1 rounded-full shadow-sm text-sm">
+        {grievances?.length || 0} Total
+      </span>
+      <span className="inline-block bg-green-100 text-green-700 font-semibold px-3 py-1 rounded-full shadow-sm text-sm">
+        {grievances.filter((g) => g.status === 'approved').length} Approved
+      </span>
+      <span className="inline-block bg-yellow-100 text-yellow-700 font-semibold px-3 py-1 rounded-full shadow-sm text-sm">
+        {
+          grievances.filter(
+            (g) =>
+              g.status === 'submittedToAdmin' || g.status === 'pending'
+          ).length
+        } Pending
+      </span>
+    </div>
+  </div>
+</div>
+
 
       {/* Alerts */}
       {success && (
@@ -505,7 +542,9 @@ const ComplaintManagement = () => {
                 </td>
               </tr>
             ) : (
-              filteredGrievances.map((g) => (
+              // filteredGrievances.map((g) => (
+                [...filteredGrievances].reverse().map((g) => (
+
                 <tr key={g._id} className="hover:bg-gray-50">
                   <td className="px-4 py-4">
                     <div className="text-sm font-medium">{g.studentName}</div>
@@ -557,7 +596,9 @@ const ComplaintManagement = () => {
         {filteredGrievances.length === 0 ? (
           <p className="text-center text-gray-500 py-4">No grievances found</p>
         ) : (
-          filteredGrievances.map((g) => (
+          // filteredGrievances.map((g) => (
+            [...filteredGrievances].reverse().map((g) => (
+
             <div
               key={g._id}
               className="border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition"

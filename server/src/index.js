@@ -4,7 +4,16 @@ const cors = require("cors");
 const dotenv = require("dotenv");
 const path = require("path");
 
-dotenv.config({ path: path.resolve(__dirname, "../.env") });
+// Force all variables into process.env
+dotenv.config({
+  path: path.resolve(__dirname, "../.env"), // adjust if your file is elsewhere
+  override: true,
+  processEnv: process.env, // 🔑 ensures EMAIL_USER and EMAIL_PASS are visible
+});
+console.log("✅ EMAIL_USER loaded:", !!process.env.EMAIL_USER);
+console.log("✅ EMAIL_PASS loaded:", !!process.env.EMAIL_PASS);
+// console.log("MONGO_URI:", process.env.MONGO_URI ? "******" : undefined);
+console.log("✅ BCC_EMAIL:", process.env.BCC_EMAIL);
 
 
 // Import routes
@@ -54,6 +63,7 @@ const enrolledStudentRoutes = require("../routes/enrolledStudentRoutes");
 const paymentRoutes = require("../routes/paymentRoutes");
 const studentGrievanceRoutes = require("../routes/studentGrievanceRoutes");
 const campusGrievanceRoutes = require("../routes/campusGrievanceRoutes");
+const { searchApprovedStudents } = require("../controllers/admissionController");
 
 // ✅ Use Routes
 app.use("/api/onlineDemos", onlineDemoRoutes);
@@ -66,6 +76,9 @@ app.use("/api/enrolled-students", enrolledStudentRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/student-grievances", studentGrievanceRoutes);
 app.use("/api/campus-grievances", campusGrievanceRoutes);
+
+// ✅ Direct route for search-approved-students (bypassing admission routes middleware)
+app.get("/api/search-approved-students", searchApprovedStudents);
 
 
 // ✅ Test route

@@ -120,9 +120,38 @@ const CampusGrievanceAdmin = () => {
 
   return (
     <div className="p-4 md:p-6">
-      <h1 className="text-xl md:text-2xl font-bold text-gray-800 mb-6 text-center md:text-left">
+    {/* Page Header */}
+<div className="mb-6 bg-gradient-to-r from-blue-600 via-cyan-500 to-green-500 rounded-xl shadow-md p-5 sm:p-6 text-white">
+  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <div>
+      <h1 className="text-2xl sm:text-3xl font-bold tracking-wide">
         Campus Grievance Management
       </h1>
+      <p className="text-sm sm:text-base text-blue-100 mt-1">
+        Review, approve, or reject grievances submitted by students.
+      </p>
+    </div>
+
+    {/* Quick Status Summary */}
+    <div className="flex flex-wrap items-center gap-2">
+      <span className="inline-block bg-white text-blue-700 font-semibold px-3 py-1 rounded-full shadow-sm text-sm">
+        {grievances?.length || 0} Total
+      </span>
+      <span className="inline-block bg-green-100 text-green-700 font-semibold px-3 py-1 rounded-full shadow-sm text-sm">
+        {grievances.filter((g) => g.status === 'approved').length} Approved
+      </span>
+      <span className="inline-block bg-yellow-100 text-yellow-700 font-semibold px-3 py-1 rounded-full shadow-sm text-sm">
+        {
+          grievances.filter(
+            (g) =>
+              g.status === 'submittedToAdmin' || g.status === 'pending'
+          ).length
+        } Pending
+      </span>
+    </div>
+  </div>
+</div>
+
 
       {success && (
         <div className="mb-4 p-4 bg-green-100 border border-green-400 text-green-700 rounded-lg text-center">

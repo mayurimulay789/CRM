@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const { protect } = require('../middleware/auth'); // optional auth middleware
 const {
   getAllStudents,
   getStudentById,
@@ -11,22 +12,28 @@ const {
   getStudentStats
 } = require('../controllers/studentController');
 
+// Get all students
+router.get('/', protect, getAllStudents);
 
+// Get student stats
+router.get('/stats/summary', protect, getStudentStats);
 
-router.get('/', getAllStudents);
+// Get student by ID
+router.get('/:id', protect, getStudentById);
 
-router.get('/stats/summary', getStudentStats);
+// Get student by studentId
+router.get('/studentId/:studentId', protect, getStudentByStudentId);
 
-router.get('/:id', getStudentById);
+// Create a student (with optional notification)
+router.post('/', protect, createStudent);
 
-router.get('/studentId/:studentId', getStudentByStudentId);
+// Update a student (with optional notification)
+router.put('/:id', protect, updateStudent);
 
-router.post('/', createStudent);
+// Delete a student
+router.delete('/:id', protect, deleteStudent);
 
-router.put('/:id', updateStudent);
-
-router.delete('/:id', deleteStudent);
-
-router.patch('/:id/toggle-status', toggleStudentStatus);
+// Toggle active/inactive status
+router.patch('/:id/toggle-status', protect, toggleStudentStatus);
 
 module.exports = router;

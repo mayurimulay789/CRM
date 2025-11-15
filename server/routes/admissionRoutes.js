@@ -23,7 +23,6 @@ router.get('/', getAllAdmissions);
 
 router.get('/stats/summary', getAdmissionStats);
 
-router.get('/search-approved-students', searchApprovedStudents);
 
 router.get('/:id', getAdmissionById);
 
@@ -32,6 +31,8 @@ router.get('/admissionNo/:admissionNo', getAdmissionByAdmissionNo);
 router.get('/student/:studentId', getAdmissionsByStudent);
 
 router.get('/course/:courseId', getAdmissionsByCourse);
+
+router.get('/search-approved-students', searchApprovedStudents);
 
 router.post('/', createAdmission);
 
