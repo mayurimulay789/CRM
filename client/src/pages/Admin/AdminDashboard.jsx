@@ -7,12 +7,13 @@ import StudentManagement from '../../components/admin/UserManagement/StudentMana
 import BatchManagement from '../../components/admin/Batches/BatchManagement';
 import DemoManagement from '../../components/admin/Demo/DemoManagement';
 import AdmissionManagement from '../../components/admin/Admission/AdmissionManagement';
-import CourseManagement from '../../components/admin/Courses/CourseManagement';
-import TrainerManagement from '../../components/admin/Trainers/TrainerManagement';
-import MISReports from '../../components/admin/MIS/MISReports';
-import BatchReports from '../../components/admin/Reports & Analytics/BatchReports';
-import CourseReports from '../../components/admin/Reports & Analytics/CourseReports/CourseReports';
 
+import ComplaintManagement from '../../components/admin/Complaint/StudentComplaint';
+import CampusGrievanceAdmin from '../../components/admin/Complaint/CampusGrievanceAdmin';
+
+import CourseManagement from '../../components/admin/Courses/CourseManagement';
+
+import MISReports from '../../components/admin/MIS/MISReports';
 
 const AdminDashboardComponent = ({ activeSection }) => {
   const renderContent = () => {
@@ -28,13 +29,6 @@ const AdminDashboardComponent = ({ activeSection }) => {
         return <StudentManagement />;
       
       // Batches
-      case 'batches':
-        return <BatchManagement />;
-
-      // Trainer
-      case 'trainer-management':
-        return <TrainerManagement />;
-
       case 'closed-batch':
       case 'running-batch':
       case 'upcoming-batch':
@@ -55,12 +49,15 @@ const AdminDashboardComponent = ({ activeSection }) => {
       
       // Complaint
       case 'student-grievance':
+        return <ComplaintManagement />;
+
       case 'campus-grievance':
-        return <ComplaintManagement activeSection={activeSection} />;
+        return <CampusGrievanceAdmin />;
 
       // Course Management
       case 'course-management':
         return <CourseManagement />;
+
       
       // MIS
       case 'mis':
@@ -75,10 +72,7 @@ const AdminDashboardComponent = ({ activeSection }) => {
       
       case 'financial-reports':
         return <FinancialReports />;
-
-      case 'batch-reports':
-        return <BatchReports />;
-
+      
       // System Settings
       case 'system-settings':
         return <SystemSettings />;
@@ -89,13 +83,14 @@ const AdminDashboardComponent = ({ activeSection }) => {
   };
 
   return (
+
     <div className="flex-1 bg-gray-50 min-h-screen">
-    // flex-1 bg-gray-50 min-h-screen
-    <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+
       {renderContent()}
     </div>
-        </div>
-
+    </div>
   );
 };
 

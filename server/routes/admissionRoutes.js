@@ -11,7 +11,8 @@ const {
   updateAdmissionStatus,
   deleteAdmission,
   verifyAdmissionEmail,
-  getAdmissionStats
+  getAdmissionStats,
+  searchApprovedStudents
 } = require('../controllers/admissionController');
 
 const { protect,admin } = require('../middleware/auth');
@@ -22,6 +23,7 @@ router.get('/', getAllAdmissions);
 
 router.get('/stats/summary', getAdmissionStats);
 
+
 router.get('/:id', getAdmissionById);
 
 router.get('/admissionNo/:admissionNo', getAdmissionByAdmissionNo);
@@ -29,6 +31,8 @@ router.get('/admissionNo/:admissionNo', getAdmissionByAdmissionNo);
 router.get('/student/:studentId', getAdmissionsByStudent);
 
 router.get('/course/:courseId', getAdmissionsByCourse);
+
+router.get('/search-approved-students', searchApprovedStudents);
 
 router.post('/', createAdmission);
 

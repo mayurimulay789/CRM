@@ -246,21 +246,6 @@ const AdminSidebar = ({ activeSection, setActiveSection }) => {
             </div>
           ))}
 
-          {/* Trainer */}
-          <button
-            onClick={() => setActiveSection('trainer-management')}
-            className={`w-full text-left px-5 py-4 rounded-2xl transition-all duration-300 flex items-center space-x-4 group ${
-              activeSection === 'trainer-management'
-                ? 'bg-gradient-to-r from-green-500 to-green-600 text-white shadow-lg shadow-green-200'
-                : 'bg-white text-gray-700 hover:bg-green-50 hover:shadow-md border border-indigo-100'
-            }`}
-          >
-            <div className={`text-xl ${activeSection === 'trainer-management' ? 'scale-110' : 'group-hover:scale-110'} transition-transform`}>
-              👨‍🏫
-            </div>
-            <span className="font-semibold">Trainer</span>
-          </button>
-
           {/* MIS Reports */}
           <button
             onClick={() => setActiveSection('mis')}

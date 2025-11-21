@@ -90,6 +90,7 @@ const CounsellorSidebar = ({ activeSection, setActiveSection }) => {
             <span className="font-semibold">Student Management</span>
           </button>
 
+
           {/* My Works */}
           <button
             onClick={() => setActiveSection('my-works')}
@@ -135,6 +136,7 @@ const CounsellorSidebar = ({ activeSection, setActiveSection }) => {
               items: [
                 { key: 'admission-form', label: 'Admission Form', color: 'indigo' },
                 { key: 'admission-management', label: 'Admission Status', color: 'indigo' },
+
                 { key: 'enrolled-student', label: 'Enrolled Student', color: 'teal' },
                 { key: 'payment-invoice-sheet', label: 'Payment Invoice', color: 'amber' }
               ]
