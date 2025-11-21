@@ -1,12 +1,12 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
-  fetchOneToOneDemos,
-  addOneToOneDemo,
-  updateOneToOneDemo,
-  deleteOneToOneDemo,
+  fetchLiveClasses,
+  addLiveClass,
+  updateLiveClass,
+  deleteLiveClass,
   setSearchQuery,
-} from "../../features/oneToOne/oneToOneSlice";
+} from "../../../features/liveClasses/liveClassesSlice";
 import {
   FiSearch,
   FiRefreshCw,
@@ -23,10 +23,10 @@ import { useNavigate } from "react-router-dom";
 import { jsPDF } from "jspdf";
 import { autoTable } from "jspdf-autotable";
 
-const OneToOneDemo = () => {
+const LiveClasses = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const { rows, searchQuery } = useSelector((state) => state.oneToOne);
+  const { rows, searchQuery } = useSelector((state) => state.liveClasses);
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isColumnsOpen, setIsColumnsOpen] = useState(false);
@@ -71,7 +71,7 @@ const OneToOneDemo = () => {
   const [errors, setErrors] = useState({});
 
   useEffect(() => {
-    dispatch(fetchOneToOneDemos());
+    dispatch(fetchLiveClasses());
   }, [dispatch]);
 
   useEffect(() => {
@@ -110,31 +110,38 @@ const OneToOneDemo = () => {
     if (!validateForm()) return;
 
     if (editingRow) {
-      await dispatch(updateOneToOneDemo({ id: editingRow._id, data: formData }));
+      await dispatch(updateLiveClass({ id: editingRow._id, data: formData }));
     } else {
-      await dispatch(addOneToOneDemo(formData));
+      await dispatch(addLiveClass(formData));
     }
 
     setIsFormOpen(false);
     setEditingRow(null);
-    dispatch(fetchOneToOneDemos());
+    dispatch(fetchLiveClasses());
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm("Are you sure you want to delete this demo?")) {
-      await dispatch(deleteOneToOneDemo(id));
-      dispatch(fetchOneToOneDemos());
+    if (window.confirm("Are you sure you want to delete this live class?")) {
+      await dispatch(deleteLiveClass(id));
+      dispatch(fetchLiveClasses());
     }
   };
 
   const handlePDFExport = () => {
     const doc = new jsPDF();
-    doc.text("One-to-One Demo Report", 14, 15);
+    doc.text("Live Classes Report", 14, 15);
     const tableColumn = ["S.No", ...visibleColumns];
     const tableRows = filteredRows.map((r, i) => [
       i + 1,
       ...visibleColumns.map((col) => {
-        const key = col.split(' ').map((word, index) => index === 0 ? word.toLowerCase() : word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join('');
+        const key = col
+          .split(" ")
+          .map((word, index) =>
+            index === 0
+              ? word.toLowerCase()
+              : word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+          )
+          .join("");
         switch (col) {
           case "Date":
             return r.date ? new Date(r.date).toLocaleDateString("en-GB") : "";
@@ -149,7 +156,7 @@ const OneToOneDemo = () => {
       startY: 25,
       styles: { fontSize: 8 },
     });
-    doc.save("OneToOneDemo.pdf");
+    doc.save("LiveClasses.pdf");
   };
 
   const formatDate = (d) => (!d ? "" : new Date(d).toLocaleDateString("en-GB"));
@@ -203,16 +210,16 @@ const OneToOneDemo = () => {
       {/* Title Section */}
       <div className="mx-6 mt-6 bg-gray-50 p-5 rounded-lg shadow-sm border relative">
         <div className="flex justify-between items-center mb-3">
-          <h2 className="text-xl font-semibold text-gray-800">1-1 Demo</h2>
+          <h2 className="text-xl font-semibold text-gray-800">Live Classes</h2>
           <button
             onClick={openCreateForm}
             className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition"
           >
-            <FiPlus /> Add 1-1 Demo
+            <FiPlus /> Add Live Class
           </button>
         </div>
 
-        {/* Columns and Action Buttons in same line */}
+        {/* Columns + Actions */}
         <div className="flex justify-between items-center mb-3">
           <div className="flex items-center gap-2">
             <button
@@ -296,17 +303,17 @@ const OneToOneDemo = () => {
               />
             </div>
             <button
-              onClick={() => dispatch(fetchOneToOneDemos())}
+              onClick={() => dispatch(fetchLiveClasses())}
               className="p-2 border border-gray-300 rounded-md hover:bg-gray-200"
             >
               <FiRefreshCw />
             </button>
             <button
-                          onClick={handlePDFExport}
-                          className="flex items-center gap-2 border border-gray-300 px-3 py-2 rounded-md hover:bg-gray-200 text-gray-700 transition"
-                        >
-                          <FiDownload /> Export PDF
-                        </button>
+              onClick={handlePDFExport}
+              className="flex items-center gap-2 border border-gray-300 px-3 py-2 rounded-md hover:bg-gray-200 text-gray-700 transition"
+            >
+              <FiDownload /> Export PDF
+            </button>
           </div>
         </div>
       </div>
@@ -323,7 +330,7 @@ const OneToOneDemo = () => {
             </button>
 
             <h3 className="text-xl font-semibold mb-4">
-              {editingRow ? "Edit 1-1 Demo" : "Add 1-1 Demo"}
+              {editingRow ? "Edit Live Class" : "Add Live Class"}
             </h3>
 
             <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-4">
@@ -470,4 +477,4 @@ const OneToOneDemo = () => {
   );
 };
 
-export default OneToOneDemo;
+export default LiveClasses;

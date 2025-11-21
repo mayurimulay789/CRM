@@ -105,7 +105,6 @@ const LoginForm = () => {
                 required
                 disabled={loading}
               />
-              {/* ✅ FIXED BUTTON - JSX attribute removed */}
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}

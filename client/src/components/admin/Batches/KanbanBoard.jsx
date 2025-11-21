@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   DndContext,
@@ -8,10 +8,9 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
-  // 🌟 NEW: Import useDroppable for column drop targets
-  useDroppable, 
 } from '@dnd-kit/core';
 import {
+  arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
@@ -19,11 +18,16 @@ import {
 import {
   useSortable,
 } from '@dnd-kit/sortable';
+import {
+  useDroppable,
+} from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
-import { updateBatch, deleteBatch } from '../../../store/slices/batchSlice'; // Assuming getBatches is handled elsewhere now
+import { getBatches, updateBatch } from '../../../store/slices/batchSlice';
 
-// --- KanbanColumn Component (Minimal structural change for context) ---
-const KanbanColumn = ({ id, title, items, onEditBatch, onDeleteBatch }) => {
+const KanbanColumn = ({ id, title, items, onEditBatch }) => {
+  const { setNodeRef, isOver } = useDroppable({
+    id,
+  });
 
   const getColumnColor = (id) => {
     switch (id) {
@@ -33,10 +37,6 @@ const KanbanColumn = ({ id, title, items, onEditBatch, onDeleteBatch }) => {
         return 'bg-gradient-to-br from-green-50 to-emerald-50 border-green-200';
       case 'closed':
         return 'bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200';
-      case 'completed':
-        return 'bg-gradient-to-br from-purple-50 to-indigo-50 border-purple-200';
-      case 'cancelled':
-        return 'bg-gradient-to-br from-red-50 to-pink-50 border-red-200';
       default:
         return 'bg-gray-100 border-gray-200';
     }
@@ -50,25 +50,25 @@ const KanbanColumn = ({ id, title, items, onEditBatch, onDeleteBatch }) => {
         return 'text-green-800';
       case 'closed':
         return 'text-blue-800';
-      case 'completed':
-        return 'text-purple-800';
-      case 'cancelled':
-        return 'text-red-800';
       default:
         return 'text-gray-800';
     }
   };
 
   return (
-    // The ref={setNodeRef} for droppable target is applied in DroppableKanbanColumn below
     <div
-      className={`p-4 rounded-xl min-h-[400px] border-2 transition-all duration-300 ${getColumnColor(id)} border-dashed`}
+      ref={setNodeRef}
+      className={`p-4 rounded-xl min-h-[400px] border-2 transition-all duration-300 ${
+        isOver
+          ? 'bg-blue-100 border-blue-400 shadow-lg scale-105'
+          : `${getColumnColor(id)} border-dashed`
+      }`}
     >
       <h3 className={`text-lg font-bold mb-4 text-center ${getHeaderColor(id)}`}>{title}</h3>
       <SortableContext items={items.map(item => item._id)} strategy={verticalListSortingStrategy}>
         <div className="space-y-3">
           {items.map((batch) => (
-            <BatchCard key={batch._id} batch={batch} onEditBatch={onEditBatch} onDeleteBatch={onDeleteBatch} />
+            <BatchCard key={batch._id} batch={batch} onEditBatch={onEditBatch} />
           ))}
         </div>
       </SortableContext>
@@ -76,22 +76,7 @@ const KanbanColumn = ({ id, title, items, onEditBatch, onDeleteBatch }) => {
   );
 };
 
-// --- DroppableKanbanColumn Component (The necessary addition for drop targets) ---
-const DroppableKanbanColumn = ({ id, title, items, onEditBatch, onDeleteBatch }) => {
-  // Register this div as a droppable area identified by its column ID
-  const { setNodeRef } = useDroppable({
-    id: id,
-  });
-
-  return (
-    <div ref={setNodeRef}>
-      <KanbanColumn id={id} title={title} items={items} onEditBatch={onEditBatch} onDeleteBatch={onDeleteBatch} />
-    </div>
-  );
-};
-
-// --- BatchCard Component (Unchanged) ---
-const BatchCard = ({ batch, onEditBatch, onDeleteBatch }) => {
+const BatchCard = ({ batch, onEditBatch }) => {
   const {
     attributes,
     listeners,
@@ -99,7 +84,7 @@ const BatchCard = ({ batch, onEditBatch, onDeleteBatch }) => {
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: batch._id, data: { type: 'batch', batch } });
+  } = useSortable({ id: batch._id });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -114,10 +99,6 @@ const BatchCard = ({ batch, onEditBatch, onDeleteBatch }) => {
         return 'bg-gradient-to-r from-green-400 to-emerald-400 text-white';
       case 'Closed':
         return 'bg-gradient-to-r from-blue-400 to-indigo-400 text-white';
-      case 'Completed':
-        return 'bg-gradient-to-r from-purple-400 to-indigo-400 text-white';
-      case 'Cancelled':
-        return 'bg-gradient-to-r from-red-400 to-pink-400 text-white';
       default:
         return 'bg-gray-400 text-white';
     }
@@ -133,8 +114,8 @@ const BatchCard = ({ batch, onEditBatch, onDeleteBatch }) => {
         isDragging ? 'opacity-50 rotate-2 scale-105' : ''
       }`}
     >
-      <div className="absolute bottom-3 right-3 flex space-x-1">
-        {batch.status !== 'Closed' && (
+      {batch.status !== 'Closed' && (
+        <div className="absolute bottom-3 right-3">
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -145,22 +126,8 @@ const BatchCard = ({ batch, onEditBatch, onDeleteBatch }) => {
           >
             📝
           </button>
-        )}
-        {batch.status !== 'Running' && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              if (window.confirm(`Are you sure you want to delete the batch "${batch.name}"?`)) {
-                onDeleteBatch(batch._id);
-              }
-            }}
-            className="text-red-500 hover:text-red-700 text-lg"
-            title="Delete Batch"
-          >
-            🗑️
-          </button>
-        )}
-      </div>
+        </div>
+      )}
       <div className={`absolute top-3 right-3 px-3 py-1 rounded-full text-xs font-semibold shadow-sm ${getStatusColor(batch.status)}`}>
         {batch.status}
       </div>
@@ -178,9 +145,7 @@ const BatchCard = ({ batch, onEditBatch, onDeleteBatch }) => {
   );
 };
 
-// --- KanbanBoard Component (Updated to use DroppableKanbanColumn) ---
 const KanbanBoard = ({ onEditBatch }) => {
-  const dispatch = useDispatch();
   const { batches, loading, error } = useSelector((state) => state.batch);
   const [activeId, setActiveId] = useState(null);
 
@@ -195,21 +160,19 @@ const KanbanBoard = ({ onEditBatch }) => {
     })
   );
 
+  // Remove the useEffect that was dispatching getBatches
+  // Batches are now preloaded in BatchManagement component
+
   const columns = useMemo(() => {
-    const statusOrder = ['upcoming', 'running', 'closed'];
-    const columnsObj = {};
-    statusOrder.forEach(status => {
-      columnsObj[status] = batches.filter(batch => batch.status.toLowerCase() === status);
-    });
-    return columnsObj;
+    return {
+      upcoming: batches.filter(batch => batch.status === 'Upcoming'),
+      running: batches.filter(batch => batch.status === 'Running'),
+      closed: batches.filter(batch => batch.status === 'Closed'),
+    };
   }, [batches]);
 
   const handleDragStart = (event) => {
     setActiveId(event.active.id);
-  };
-
-  const handleDeleteBatch = (batchId) => {
-    dispatch(deleteBatch(batchId));
   };
 
   const handleDragEnd = (event) => {
@@ -240,40 +203,28 @@ const KanbanBoard = ({ onEditBatch }) => {
       }
     }
 
-    // Determine destination column
-    const columnIds = Object.keys(columns);
-    let destColumn = null;
+    // Check if dropped on a column (not on another batch)
+    const columnIds = ['upcoming', 'running', 'closed'];
+    const destColumn = columnIds.includes(overId) ? overId : null;
 
-    // Check if dropped on a batch (sort within column) or a column container (move between columns)
-    const overBatch = batches.find(batch => batch._id === overId);
-    if (overBatch) {
-      // If dropped on an item, the destination is that item's column
-      destColumn = overBatch.status.toLowerCase();
-    } else if (columnIds.includes(overId)) {
-      // If dropped on the column container ID itself
-      destColumn = overId;
-    }
-
-    // --- Cross-Column Logic ---
     if (!sourceColumn || !destColumn || sourceColumn === destColumn) {
-      // If source and destination are the same, we only handle internal sorting here (currently returning)
       setActiveId(null);
       return;
     }
 
-    // Check if move is allowed (State Transition Guard)
+    // Check if move is allowed
     const allowedMoves = {
-      upcoming: ['running'], // Upcoming -> Running
-      running: ['closed'],   // Running -> Closed
-      closed: [],            // Closed cannot move
+      upcoming: ['running'], // Upcoming can only go to Running
+      running: ['closed'], // Running can go to Closed
+      closed: ['running'], // Closed cannot be moved
     };
 
-    if (!allowedMoves[sourceColumn] || !allowedMoves[sourceColumn].includes(destColumn)) {
+    if (!allowedMoves[sourceColumn].includes(destColumn)) {
       setActiveId(null);
-      return; // Move not allowed based on status hierarchy
+      return; // Move not allowed
     }
 
-    // Update batch status via Redux
+    // Update batch status
     const statusMap = {
       upcoming: 'Upcoming',
       running: 'Running',
@@ -315,26 +266,24 @@ const KanbanBoard = ({ onEditBatch }) => {
     >
       <div className="bg-gradient-to-br from-slate-50 to-gray-100 min-h-screen p-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {/* Render columns in fixed order: upcoming, running, closed */}
-          {['upcoming', 'running', 'closed'].map((statusKey) => {
-            const statusTitle = statusKey.charAt(0).toUpperCase() + statusKey.slice(1);
-            const emojiMap = {
-              upcoming: '📅',
-              running: '🚀',
-              closed: '✅',
-            };
-            const title = `${emojiMap[statusKey]} ${statusTitle}`;
-            return (
-              <DroppableKanbanColumn
-                key={statusKey}
-                id={statusKey}
-                title={title}
-                items={columns[statusKey]}
-                onEditBatch={onEditBatch}
-                onDeleteBatch={handleDeleteBatch}
-              />
-            );
-          })}
+          <KanbanColumn
+            id="upcoming"
+            title="📅 Upcoming"
+            items={columns.upcoming}
+            onEditBatch={onEditBatch}
+          />
+          <KanbanColumn
+            id="running"
+            title="🚀 Running"
+            items={columns.running}
+            onEditBatch={onEditBatch}
+          />
+          <KanbanColumn
+            id="closed"
+            title="✅ Closed"
+            items={columns.closed}
+            onEditBatch={onEditBatch}
+          />
         </div>
       </div>
       <DragOverlay>

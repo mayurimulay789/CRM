@@ -5,6 +5,7 @@ import AdminDashboard from '../../components/admin/Dashboard/AdminDashboard';
 import CounsellorManagement from '../../components/admin/UserManagement/CounsellorManagement';
 import StudentManagement from '../../components/admin/UserManagement/StudentManagement';
 import BatchManagement from '../../components/admin/Batches/BatchManagement';
+import TrainerManagement from '../../components/admin/Trainers/TrainerManagement';
 import DemoManagement from '../../components/admin/Demo/DemoManagement';
 import AdmissionManagement from '../../components/admin/Admission/AdmissionManagement';
 
@@ -29,11 +30,13 @@ const AdminDashboardComponent = ({ activeSection }) => {
         return <StudentManagement />;
       
       // Batches
-      case 'closed-batch':
-      case 'running-batch':
-      case 'upcoming-batch':
-        return <BatchManagement activeSection={activeSection} />;
-      
+      case 'batches':
+        return <BatchManagement />;
+
+      // Trainer
+      case 'trainer-management':
+        return <TrainerManagement />;
+
       // Demo
       case 'online-demo':
       case 'offline-demo':
