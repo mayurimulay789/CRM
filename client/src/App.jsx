@@ -5,7 +5,6 @@ import { Toaster } from 'react-hot-toast';
 import { store } from "./store/store";
 import { getCurrentUser } from "./store/slices/authSlice";
 
-
 // Common Components
 import Navbar from "./components/Navbar.jsx";
 import Footer from "./components/Footer.jsx";
@@ -21,14 +20,12 @@ import CounsellorDashboardPage from "./pages/CounsellorDashboardPage.jsx";
 import AddBatchForm from "./components/AddBatchForm.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 
-
 // Demo Management Pages
 import DemoPage from "./components/Demo/DemoPage";
 import OnlineDemo from "./components/counsellor/Demo/OnlineDemo.jsx";
 import OfflineDemo from "./components/Demo/OfflineDemo";
 import OneToOneDemo from "./components/Demo/OneToOneDemo";
 import LiveClasses from "./components/Demo/LiveClasses";
-
 
 // --------------------
 // AppContent Component
@@ -63,7 +60,6 @@ function AppContent() {
           <Route path="/login" element={<LoginForm />} />
 
           {/* ✅ Protected Routes (Require Authentication) */}
-          {/* 🧑‍💼 Protected Routes */}
           <Route
             path="/admin-panel"
             element={
@@ -80,42 +76,9 @@ function AppContent() {
               </ProtectedRoute>
             }
           />
-          <Route
-            path="/admin/add-batch"
-            element={
-              <ProtectedRoute>
-                <AddBatchForm />
-              </ProtectedRoute>
-            }
-          />
-
-    
         </Routes>
       </div>
       {/* <Footer /> */}
-      <Toaster
-        position="top-right"
-        toastOptions={{
-          success: {
-            style: {
-              background: 'green',
-              color: 'white',
-            },
-          },
-          error: {
-            style: {
-              background: 'red',
-              color: 'white',
-            },
-          },
-          warning: {
-            style: {
-              background: 'orange',
-              color: 'white',
-            },
-          },
-        }}
-      />
     </Router>
   );
 }
@@ -133,6 +96,5 @@ function App() {
     </Provider>
   );
 }
-
 
 export default App;

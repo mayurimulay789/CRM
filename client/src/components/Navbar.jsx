@@ -45,7 +45,6 @@ const Navbar = () => {
               <>
 
 
-
                 {/* <div className="flex items-center space-x-2">
                   <span className="text-gray-700 text-sm">
                     Welcome, {user?.FullName}
@@ -54,7 +53,6 @@ const Navbar = () => {
                     {user?.role}
                   </span>
                 </div> */}
-
 
 
                 <button

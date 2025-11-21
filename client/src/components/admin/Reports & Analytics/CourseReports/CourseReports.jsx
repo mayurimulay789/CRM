@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { getCourses } from '../../../../store/api/courseAPI';
+import { fetchCourses } from '../../../../store/slices/courseSlice';
 import { CSVLink } from 'react-csv';
 import {
   Download,
@@ -41,7 +41,7 @@ const CourseReports = () => {
 
   useEffect(() => {
     if (courses.length === 0 && !loading) {
-      dispatch(getCourses());
+      dispatch(fetchCourses());
     }
   }, [dispatch, courses.length, loading]);
 
