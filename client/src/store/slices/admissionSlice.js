@@ -1,335 +1,3 @@
-// import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-// import admissionAPI from '../api/admissionAPI';
-
-// // Async Thunks
-// export const createAdmission = createAsyncThunk(
-//   'admissions/createAdmission',
-//   async (admissionData, { rejectWithValue }) => {
-//     try {
-//       const response = await admissionAPI.createAdmission(admissionData);
-//       return response.data;
-//     } catch (error) {
-//       return rejectWithValue(
-//         error.response?.data?.error || error.response?.data?.message || 'Failed to create admission'
-//       );
-//     }
-//   }
-// );
-
-// export const getAdmissions = createAsyncThunk(
-//   'admissions/getAdmissions',
-//   async (_, { rejectWithValue }) => {
-//     try {
-//       const response = await admissionAPI.getAdmissions();
-//       return response.data;
-//     } catch (error) {
-//       return rejectWithValue(
-//         error.response?.data?.error || error.response?.data?.message || 'Failed to fetch admissions'
-//       );
-//     }
-//   }
-// );
-
-// export const getAdmission = createAsyncThunk(
-//   'admissions/getAdmission',
-//   async (admissionNo, { rejectWithValue }) => {
-//     try {
-//       const response = await admissionAPI.getAdmission(admissionNo);
-//       return response.data;
-//     } catch (error) {
-//       return rejectWithValue(
-//         error.response?.data?.error || error.response?.data?.message || 'Failed to fetch admission'
-//       );
-//     }
-//   }
-// );
-
-// export const updateAdmission = createAsyncThunk(
-//   'admissions/updateAdmission',
-//   async ({ admissionNo, admissionData }, { rejectWithValue }) => {
-//     try {
-//       const response = await admissionAPI.updateAdmission(admissionNo, admissionData);
-//       return response.data;
-//     } catch (error) {
-//       return rejectWithValue(
-//         error.response?.data?.error || error.response?.data?.message || 'Failed to update admission'
-//       );
-//     }
-//   }
-// );
-
-// export const deleteAdmission = createAsyncThunk(
-//   'admissions/deleteAdmission',
-//   async (admissionNo, { rejectWithValue }) => {
-//     try {
-//       const response = await admissionAPI.deleteAdmission(admissionNo);
-//       return { admissionNo, message: response.data.message };
-//     } catch (error) {
-//       return rejectWithValue(
-//         error.response?.data?.error || error.response?.data?.message || 'Failed to delete admission'
-//       );
-//     }
-//   }
-// );
-
-// export const verifyEmail = createAsyncThunk(
-//   'admissions/verifyEmail',
-//   async (admissionNo, { rejectWithValue }) => {
-//     try {
-//       const response = await admissionAPI.verifyEmail(admissionNo);
-//       return response.data;
-//     } catch (error) {
-//       return rejectWithValue(
-//         error.response?.data?.error || error.response?.data?.message || 'Failed to verify email'
-//       );
-//     }
-//   }
-// );
-
-// // NEW: Update admission status
-// export const updateAdmissionStatus = createAsyncThunk(
-//   'admissions/updateAdmissionStatus',
-//   async ({ admissionNo, status }, { rejectWithValue }) => {
-//     try {
-//       const response = await admissionAPI.updateAdmission(admissionNo, { status });
-//       return response.data;
-//     } catch (error) {
-//       return rejectWithValue(
-//         error.response?.data?.error || error.response?.data?.message || 'Failed to update admission status'
-//       );
-//     }
-//   }
-// );
-
-// // Initial State
-// const initialState = {
-//   admissions: [],
-//   currentAdmission: null,
-//   loading: false,
-//   error: null,
-//   success: null,
-//   operationLoading: false,
-//   operationError: null,
-//   operationSuccess: null,
-// };
-
-// // Admission Slice
-// const admissionSlice = createSlice({
-//   name: 'admissions',
-//   initialState,
-//   reducers: {
-//     clearError: (state) => {
-//       state.error = null;
-//       state.operationError = null;
-//     },
-//     clearSuccess: (state) => {
-//       state.success = null;
-//       state.operationSuccess = null;
-//     },
-//     clearCurrentAdmission: (state) => {
-//       state.currentAdmission = null;
-//     },
-//     setAdmissions: (state, action) => {
-//       state.admissions = action.payload;
-//     },
-//     resetAdmissionState: (state) => {
-//       state.admissions = [];
-//       state.currentAdmission = null;
-//       state.loading = false;
-//       state.error = null;
-//       state.success = null;
-//       state.operationLoading = false;
-//       state.operationError = null;
-//       state.operationSuccess = null;
-//     },
-//     // NEW: Add admission manually (useful for real-time updates)
-//     addAdmission: (state, action) => {
-//       state.admissions.unshift(action.payload);
-//     },
-//     // NEW: Update admission in list manually
-//     updateAdmissionInList: (state, action) => {
-//       const index = state.admissions.findIndex(
-//         admission => admission.admissionNo === action.payload.admissionNo
-//       );
-//       if (index !== -1) {
-//         state.admissions[index] = action.payload;
-//       }
-//     }
-//   },
-//   extraReducers: (builder) => {
-//     builder
-//       // Create Admission
-//       .addCase(createAdmission.pending, (state) => {
-//         state.operationLoading = true;
-//         state.operationError = null;
-//         state.operationSuccess = null;
-//       })
-//       .addCase(createAdmission.fulfilled, (state, action) => {
-//         state.operationLoading = false;
-//         state.operationSuccess = 'Admission created successfully';
-//         // Add to beginning of list
-//         state.admissions.unshift(action.payload.data);
-//       })
-//       .addCase(createAdmission.rejected, (state, action) => {
-//         state.operationLoading = false;
-//         state.operationError = action.payload;
-//       })
-      
-//       // Get All Admissions
-//       .addCase(getAdmissions.pending, (state) => {
-//         state.loading = true;
-//         state.error = null;
-//       })
-//       .addCase(getAdmissions.fulfilled, (state, action) => {
-//         state.loading = false;
-//         state.admissions = action.payload.data;
-//         state.success = 'Admissions fetched successfully';
-//       })
-//       .addCase(getAdmissions.rejected, (state, action) => {
-//         state.loading = false;
-//         state.error = action.payload;
-//       })
-      
-//       // Get Single Admission
-//       .addCase(getAdmission.pending, (state) => {
-//         state.operationLoading = true;
-//         state.operationError = null;
-//       })
-//       .addCase(getAdmission.fulfilled, (state, action) => {
-//         state.operationLoading = false;
-//         state.currentAdmission = action.payload.data;
-//         state.operationSuccess = 'Admission fetched successfully';
-//       })
-//       .addCase(getAdmission.rejected, (state, action) => {
-//         state.operationLoading = false;
-//         state.operationError = action.payload;
-//       })
-      
-//       // Update Admission
-//       .addCase(updateAdmission.pending, (state) => {
-//         state.operationLoading = true;
-//         state.operationError = null;
-//         state.operationSuccess = null;
-//       })
-//       .addCase(updateAdmission.fulfilled, (state, action) => {
-//         state.operationLoading = false;
-//         state.operationSuccess = 'Admission updated successfully';
-        
-//         // Update in admissions list
-//         const index = state.admissions.findIndex(
-//           admission => admission.admissionNo === action.payload.data.admissionNo
-//         );
-//         if (index !== -1) {
-//           state.admissions[index] = action.payload.data;
-//         }
-        
-//         // Update current admission if it's the one being updated
-//         if (state.currentAdmission && state.currentAdmission.admissionNo === action.payload.data.admissionNo) {
-//           state.currentAdmission = action.payload.data;
-//         }
-//       })
-//       .addCase(updateAdmission.rejected, (state, action) => {
-//         state.operationLoading = false;
-//         state.operationError = action.payload;
-//       })
-      
-//       // Update Admission Status
-//       .addCase(updateAdmissionStatus.pending, (state) => {
-//         state.operationLoading = true;
-//         state.operationError = null;
-//         state.operationSuccess = null;
-//       })
-//       .addCase(updateAdmissionStatus.fulfilled, (state, action) => {
-//         state.operationLoading = false;
-//         state.operationSuccess = `Admission status updated to ${action.payload.data.status}`;
-        
-//         // Update in admissions list
-//         const index = state.admissions.findIndex(
-//           admission => admission.admissionNo === action.payload.data.admissionNo
-//         );
-//         if (index !== -1) {
-//           state.admissions[index] = action.payload.data;
-//         }
-        
-//         // Update current admission if it's the one being updated
-//         if (state.currentAdmission && state.currentAdmission.admissionNo === action.payload.data.admissionNo) {
-//           state.currentAdmission = action.payload.data;
-//         }
-//       })
-//       .addCase(updateAdmissionStatus.rejected, (state, action) => {
-//         state.operationLoading = false;
-//         state.operationError = action.payload;
-//       })
-      
-//       // Delete Admission
-//       .addCase(deleteAdmission.pending, (state) => {
-//         state.operationLoading = true;
-//         state.operationError = null;
-//         state.operationSuccess = null;
-//       })
-//       .addCase(deleteAdmission.fulfilled, (state, action) => {
-//         state.operationLoading = false;
-//         state.operationSuccess = action.payload.message;
-        
-//         // Remove from admissions list
-//         state.admissions = state.admissions.filter(
-//           admission => admission.admissionNo !== action.payload.admissionNo
-//         );
-        
-//         // Clear current admission if it's the one being deleted
-//         if (state.currentAdmission && state.currentAdmission.admissionNo === action.payload.admissionNo) {
-//           state.currentAdmission = null;
-//         }
-//       })
-//       .addCase(deleteAdmission.rejected, (state, action) => {
-//         state.operationLoading = false;
-//         state.operationError = action.payload;
-//       })
-      
-//       // Verify Email
-//       .addCase(verifyEmail.pending, (state) => {
-//         state.operationLoading = true;
-//         state.operationError = null;
-//         state.operationSuccess = null;
-//       })
-//       .addCase(verifyEmail.fulfilled, (state, action) => {
-//         state.operationLoading = false;
-//         state.operationSuccess = 'Email verified successfully';
-        
-//         // Update in admissions list
-//         const index = state.admissions.findIndex(
-//           admission => admission.admissionNo === action.payload.data.admissionNo
-//         );
-//         if (index !== -1) {
-//           state.admissions[index] = action.payload.data;
-//         }
-        
-//         // Update current admission if it's the one being verified
-//         if (state.currentAdmission && state.currentAdmission.admissionNo === action.payload.data.admissionNo) {
-//           state.currentAdmission = action.payload.data;
-//         }
-//       })
-//       .addCase(verifyEmail.rejected, (state, action) => {
-//         state.operationLoading = false;
-//         state.operationError = action.payload;
-//       });
-//   },
-// });
-
-// export const { 
-//   clearError, 
-//   clearSuccess, 
-//   clearCurrentAdmission, 
-//   setAdmissions,
-//   resetAdmissionState,
-//   addAdmission,
-//   updateAdmissionInList
-// } = admissionSlice.actions;
-
-// export default admissionSlice.reducer;
-
-
-
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import admissionAPI from '../api/admissionAPI';
 
@@ -343,7 +11,7 @@ export const fetchAdmissions = createAsyncThunk(
       return response.data;
     } catch (error) {
       return rejectWithValue(
-        error.response?.data?.message || 'Failed to fetch admissions'
+        error.response?.data?.message || error.response?.data?.error || 'Failed to fetch admissions'
       );
     }
   }
@@ -357,7 +25,7 @@ export const fetchAdmissionById = createAsyncThunk(
       return response.data;
     } catch (error) {
       return rejectWithValue(
-        error.response?.data?.message || 'Failed to fetch admission'
+        error.response?.data?.message || error.response?.data?.error || 'Failed to fetch admission'
       );
     }
   }
@@ -371,7 +39,7 @@ export const fetchAdmissionByAdmissionNo = createAsyncThunk(
       return response.data;
     } catch (error) {
       return rejectWithValue(
-        error.response?.data?.message || 'Failed to fetch admission'
+        error.response?.data?.message || error.response?.data?.error || 'Failed to fetch admission'
       );
     }
   }
@@ -385,7 +53,7 @@ export const fetchAdmissionsByStudent = createAsyncThunk(
       return response.data;
     } catch (error) {
       return rejectWithValue(
-        error.response?.data?.message || 'Failed to fetch student admissions'
+        error.response?.data?.message || error.response?.data?.error || 'Failed to fetch student admissions'
       );
     }
   }
@@ -399,7 +67,7 @@ export const fetchAdmissionsByCourse = createAsyncThunk(
       return response.data;
     } catch (error) {
       return rejectWithValue(
-        error.response?.data?.message || 'Failed to fetch course admissions'
+        error.response?.data?.message || error.response?.data?.error || 'Failed to fetch course admissions'
       );
     }
   }
@@ -413,7 +81,7 @@ export const createAdmission = createAsyncThunk(
       return response.data;
     } catch (error) {
       return rejectWithValue(
-        error.response?.data?.message || 'Failed to create admission'
+        error.response?.data?.message || error.response?.data?.error || 'Failed to create admission'
       );
     }
   }
@@ -427,7 +95,7 @@ export const updateAdmission = createAsyncThunk(
       return response.data;
     } catch (error) {
       return rejectWithValue(
-        error.response?.data?.message || 'Failed to update admission'
+        error.response?.data?.message || error.response?.data?.error || 'Failed to update admission'
       );
     }
   }
@@ -441,7 +109,7 @@ export const updateAdmissionStatus = createAsyncThunk(
       return response.data;
     } catch (error) {
       return rejectWithValue(
-        error.response?.data?.message || 'Failed to update admission status'
+        error.response?.data?.message || error.response?.data?.error || 'Failed to update admission status'
       );
     }
   }
@@ -455,7 +123,7 @@ export const verifyAdmissionEmail = createAsyncThunk(
       return response.data;
     } catch (error) {
       return rejectWithValue(
-        error.response?.data?.message || 'Failed to verify email'
+        error.response?.data?.message || error.response?.data?.error || 'Failed to verify email'
       );
     }
   }
@@ -469,7 +137,7 @@ export const deleteAdmission = createAsyncThunk(
       return admissionId;
     } catch (error) {
       return rejectWithValue(
-        error.response?.data?.message || 'Failed to delete admission'
+        error.response?.data?.message || error.response?.data?.error || 'Failed to delete admission'
       );
     }
   }
@@ -483,7 +151,7 @@ export const fetchAdmissionStats = createAsyncThunk(
       return response.data;
     } catch (error) {
       return rejectWithValue(
-        error.response?.data?.message || 'Failed to fetch admission statistics'
+        error.response?.data?.message || error.response?.data?.error || 'Failed to fetch admission statistics'
       );
     }
   }
@@ -499,7 +167,7 @@ const initialState = {
   loading: false,
   operationLoading: false,
   error: null,
-  success: null,
+  operationSuccess: null, // Changed from success to operationSuccess to match component
   operation: null,
 };
 
@@ -512,7 +180,7 @@ const admissionSlice = createSlice({
       state.error = null;
     },
     clearSuccess: (state) => {
-      state.success = null;
+      state.operationSuccess = null; // Updated to match component
     },
     clearCurrentAdmission: (state) => {
       state.currentAdmission = null;
@@ -532,12 +200,25 @@ const admissionSlice = createSlice({
     resetFormState: (state) => {
       state.operationLoading = false;
       state.error = null;
-      state.success = null;
+      state.operationSuccess = null; // Updated to match component
+    },
+    // Manual updates for real-time sync
+    updateAdmissionInList: (state, action) => {
+      const index = state.admissions.findIndex(admission => admission._id === action.payload._id);
+      if (index !== -1) {
+        state.admissions[index] = { ...state.admissions[index], ...action.payload };
+      }
+    },
+    addAdmissionToList: (state, action) => {
+      state.admissions.unshift(action.payload);
+    },
+    removeAdmissionFromList: (state, action) => {
+      state.admissions = state.admissions.filter(admission => admission._id !== action.payload);
     }
   },
   extraReducers: (builder) => {
     builder
-      // Fetch All Admissions - FIXED: Check if data exists
+      // Fetch All Admissions - FIXED: Handle different response formats
       .addCase(fetchAdmissions.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -545,11 +226,19 @@ const admissionSlice = createSlice({
       })
       .addCase(fetchAdmissions.fulfilled, (state, action) => {
         state.loading = false;
-        // Ensure we're properly setting the admissions array
-        state.admissions = action.payload.data || [];
+        // Handle different response formats
+        if (Array.isArray(action.payload)) {
+          state.admissions = action.payload;
+        } else if (action.payload.data && Array.isArray(action.payload.data)) {
+          state.admissions = action.payload.data;
+        } else if (action.payload.admissions && Array.isArray(action.payload.admissions)) {
+          state.admissions = action.payload.admissions;
+        } else {
+          state.admissions = [];
+        }
         state.operation = null;
-        state.success = 'Admissions fetched successfully';
-        console.log("Redux state updated with admissions:", state.admissions);
+        state.operationSuccess = 'Admissions fetched successfully';
+        console.log("Redux state updated with admissions:", state.admissions.length, "admissions");
       })
       .addCase(fetchAdmissions.rejected, (state, action) => {
         state.loading = false;
@@ -557,6 +246,7 @@ const admissionSlice = createSlice({
         state.operation = null;
         state.admissions = [];
       })
+      
       // Fetch Admission By ID
       .addCase(fetchAdmissionById.pending, (state) => {
         state.loading = true;
@@ -564,14 +254,15 @@ const admissionSlice = createSlice({
       })
       .addCase(fetchAdmissionById.fulfilled, (state, action) => {
         state.loading = false;
-        state.currentAdmission = action.payload.data;
-        state.success = 'Admission fetched successfully';
+        state.currentAdmission = action.payload.data || action.payload;
+        state.operationSuccess = 'Admission fetched successfully';
       })
       .addCase(fetchAdmissionById.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
         state.currentAdmission = null;
       })
+      
       // Fetch Admission By Admission No
       .addCase(fetchAdmissionByAdmissionNo.pending, (state) => {
         state.loading = true;
@@ -579,14 +270,15 @@ const admissionSlice = createSlice({
       })
       .addCase(fetchAdmissionByAdmissionNo.fulfilled, (state, action) => {
         state.loading = false;
-        state.currentAdmission = action.payload.data;
-        state.success = 'Admission fetched successfully';
+        state.currentAdmission = action.payload.data || action.payload;
+        state.operationSuccess = 'Admission fetched successfully';
       })
       .addCase(fetchAdmissionByAdmissionNo.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
         state.currentAdmission = null;
       })
+      
       // Fetch Admissions By Student
       .addCase(fetchAdmissionsByStudent.pending, (state) => {
         state.loading = true;
@@ -594,14 +286,15 @@ const admissionSlice = createSlice({
       })
       .addCase(fetchAdmissionsByStudent.fulfilled, (state, action) => {
         state.loading = false;
-        state.studentAdmissions = action.payload.data || [];
-        state.success = 'Student admissions fetched successfully';
+        state.studentAdmissions = action.payload.data || action.payload || [];
+        state.operationSuccess = 'Student admissions fetched successfully';
       })
       .addCase(fetchAdmissionsByStudent.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
         state.studentAdmissions = [];
       })
+      
       // Fetch Admissions By Course
       .addCase(fetchAdmissionsByCourse.pending, (state) => {
         state.loading = true;
@@ -609,46 +302,49 @@ const admissionSlice = createSlice({
       })
       .addCase(fetchAdmissionsByCourse.fulfilled, (state, action) => {
         state.loading = false;
-        state.courseAdmissions = action.payload.data || [];
-        state.success = 'Course admissions fetched successfully';
+        state.courseAdmissions = action.payload.data || action.payload || [];
+        state.operationSuccess = 'Course admissions fetched successfully';
       })
       .addCase(fetchAdmissionsByCourse.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
         state.courseAdmissions = [];
       })
+      
       // Create Admission
       .addCase(createAdmission.pending, (state) => {
         state.operationLoading = true;
         state.error = null;
-        state.success = null;
+        state.operationSuccess = null;
         state.operation = 'create';
       })
       .addCase(createAdmission.fulfilled, (state, action) => {
         state.operationLoading = false;
-        if (action.payload.data) {
-          state.admissions.push(action.payload.data);
+        const newAdmission = action.payload.data || action.payload;
+        if (newAdmission) {
+          state.admissions.unshift(newAdmission);
         }
         state.operation = null;
-        state.success = action.payload.message || 'Admission created successfully';
+        state.operationSuccess = action.payload.message || 'Admission created successfully';
         state.error = null;
       })
       .addCase(createAdmission.rejected, (state, action) => {
         state.operationLoading = false;
         state.error = action.payload;
-        state.success = null;
+        state.operationSuccess = null;
         state.operation = null;
       })
+      
       // Update Admission
       .addCase(updateAdmission.pending, (state) => {
         state.operationLoading = true;
         state.error = null;
-        state.success = null;
+        state.operationSuccess = null;
         state.operation = 'update';
       })
       .addCase(updateAdmission.fulfilled, (state, action) => {
         state.operationLoading = false;
-        const updatedAdmission = action.payload.data;
+        const updatedAdmission = action.payload.data || action.payload;
         if (updatedAdmission) {
           const index = state.admissions.findIndex(admission => admission._id === updatedAdmission._id);
           if (index !== -1) {
@@ -659,24 +355,25 @@ const admissionSlice = createSlice({
           }
         }
         state.operation = null;
-        state.success = action.payload.message || 'Admission updated successfully';
+        state.operationSuccess = action.payload.message || 'Admission updated successfully';
         state.error = null;
       })
       .addCase(updateAdmission.rejected, (state, action) => {
         state.operationLoading = false;
         state.error = action.payload;
-        state.success = null;
+        state.operationSuccess = null;
         state.operation = null;
       })
+      
       // Update Admission Status
       .addCase(updateAdmissionStatus.pending, (state) => {
         state.operationLoading = true;
         state.error = null;
-        state.success = null;
+        state.operationSuccess = null;
       })
       .addCase(updateAdmissionStatus.fulfilled, (state, action) => {
         state.operationLoading = false;
-        const updatedAdmission = action.payload.data;
+        const updatedAdmission = action.payload.data || action.payload;
         if (updatedAdmission) {
           const index = state.admissions.findIndex(admission => admission._id === updatedAdmission._id);
           if (index !== -1) {
@@ -686,23 +383,24 @@ const admissionSlice = createSlice({
             state.currentAdmission = updatedAdmission;
           }
         }
-        state.success = action.payload.message || 'Admission status updated successfully';
+        state.operationSuccess = action.payload.message || 'Admission status updated successfully';
         state.error = null;
       })
       .addCase(updateAdmissionStatus.rejected, (state, action) => {
         state.operationLoading = false;
         state.error = action.payload;
-        state.success = null;
+        state.operationSuccess = null;
       })
+      
       // Verify Email
       .addCase(verifyAdmissionEmail.pending, (state) => {
         state.operationLoading = true;
         state.error = null;
-        state.success = null;
+        state.operationSuccess = null;
       })
       .addCase(verifyAdmissionEmail.fulfilled, (state, action) => {
         state.operationLoading = false;
-        const updatedAdmission = action.payload.data;
+        const updatedAdmission = action.payload.data || action.payload;
         if (updatedAdmission) {
           const index = state.admissions.findIndex(admission => admission._id === updatedAdmission._id);
           if (index !== -1) {
@@ -712,14 +410,15 @@ const admissionSlice = createSlice({
             state.currentAdmission = updatedAdmission;
           }
         }
-        state.success = action.payload.message || 'Email verified successfully';
+        state.operationSuccess = action.payload.message || 'Email verified successfully';
         state.error = null;
       })
       .addCase(verifyAdmissionEmail.rejected, (state, action) => {
         state.operationLoading = false;
         state.error = action.payload;
-        state.success = null;
+        state.operationSuccess = null;
       })
+      
       // Delete Admission
       .addCase(deleteAdmission.pending, (state) => {
         state.operationLoading = true;
@@ -730,7 +429,7 @@ const admissionSlice = createSlice({
         state.operationLoading = false;
         state.admissions = state.admissions.filter(admission => admission._id !== action.payload);
         state.operation = null;
-        state.success = 'Admission deleted successfully';
+        state.operationSuccess = 'Admission deleted successfully';
         state.error = null;
       })
       .addCase(deleteAdmission.rejected, (state, action) => {
@@ -738,6 +437,7 @@ const admissionSlice = createSlice({
         state.error = action.payload;
         state.operation = null;
       })
+      
       // Fetch Admission Stats
       .addCase(fetchAdmissionStats.pending, (state) => {
         state.loading = true;
@@ -745,8 +445,8 @@ const admissionSlice = createSlice({
       })
       .addCase(fetchAdmissionStats.fulfilled, (state, action) => {
         state.loading = false;
-        state.stats = action.payload.data;
-        state.success = 'Statistics fetched successfully';
+        state.stats = action.payload.data || action.payload;
+        state.operationSuccess = 'Statistics fetched successfully';
       })
       .addCase(fetchAdmissionStats.rejected, (state, action) => {
         state.loading = false;
@@ -765,6 +465,9 @@ export const {
   setOperation,
   clearOperation,
   resetFormState,
+  updateAdmissionInList,
+  addAdmissionToList,
+  removeAdmissionFromList
 } = admissionSlice.actions;
 
 export default admissionSlice.reducer;

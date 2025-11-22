@@ -10,23 +10,18 @@ const {
   toggleStudentStatus,
   getStudentStats
 } = require('../controllers/studentController');
-
-
+const { uploadStudentFiles, handleUploadErrors } = require('../middleware/uploadMiddleware');
 
 router.get('/', getAllStudents);
-
 router.get('/stats/summary', getStudentStats);
-
 router.get('/:id', getStudentById);
-
 router.get('/studentId/:studentId', getStudentByStudentId);
 
-router.post('/', createStudent);
-
-router.put('/:id', updateStudent);
+// Add upload middleware directly to routes with error handling
+router.post('/', uploadStudentFiles, handleUploadErrors, createStudent);
+router.put('/:id', uploadStudentFiles, handleUploadErrors, updateStudent);
 
 router.delete('/:id', deleteStudent);
-
 router.patch('/:id/toggle-status', toggleStudentStatus);
 
 module.exports = router;

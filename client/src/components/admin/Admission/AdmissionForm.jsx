@@ -6,164 +6,212 @@ import {
   clearError,
   clearSuccess 
 } from '../../../store/slices/admissionSlice';
+import { fetchStudents } from '../../../store/slices/studentSlice';
+import { fetchCourses } from '../../../store/slices/courseSlice';
 
 const AdmissionForm = ({ admission, onClose, isCounsellor = false }) => {
   const dispatch = useDispatch();
-  const { loading, error, operationSuccess } = useSelector(state => state.admissions);
+  const { operationLoading, error, operationSuccess } = useSelector(state => state.admissions);
+  const { students } = useSelector(state => state.students);
+  const { courses } = useSelector(state => state.courses);
   
   const [formData, setFormData] = useState({
-    // Student Information
-    student: {
-      name: '',
-      email: '',
-      phone: '',
-      alternateEmail: '',
-      alternatePhone: '',
-      dateOfBirth: '',
-      gender: '',
-      address: '',
-      city: '',
-      state: '',
-      pincode: ''
-    },
-    
-    // Course Information
+    student: '',
     course: '',
     trainingBranch: '',
-    appliedBatch: '',
-    admissionDate: new Date().toISOString().split('T')[0],
-    
-    // Admission Details
     counsellor: '',
+    termsCondition: false,
     priority: 'medium',
+    appliedBatch: '',
     source: 'website',
     notes: '',
-    
-    // Documents (for display only - would be file uploads in real implementation)
-    idProof: '',
-    studentPhoto: '',
-    signature: '',
-    
-    // Status (Admin only)
     status: 'pending',
     emailVerified: false
   });
 
+  // File states
+  const [files, setFiles] = useState({
+    admissionFrontPage: null,
+    admissionBackPage: null,
+    studentStatement: null,
+    confidentialForm: null
+  });
+
   const [errors, setErrors] = useState({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [touched, setTouched] = useState({});
 
-  // Courses and branches data (would typically come from API)
-  const courses = [
-    'Full Stack Development',
-    'Data Science',
-    'Cyber Security',
-    'Cloud Computing',
-    'AI & Machine Learning',
-    'Digital Marketing'
-  ];
-
-  const branches = [
-    'Main Campus',
-    'Downtown Branch',
-    'Westside Center',
-    'Online'
-  ];
-
-  const batches = [
-    'Morning Batch (9 AM - 12 PM)',
-    'Afternoon Batch (1 PM - 4 PM)',
-    'Evening Batch (6 PM - 9 PM)',
-    'Weekend Batch'
-  ];
-
-  const counsellors = [
-    'John Smith',
-    'Sarah Johnson',
-    'Mike Davis',
-    'Emily Wilson',
-    'Robert Brown'
-  ];
+  useEffect(() => {
+    // Fetch students and courses for dropdowns
+    dispatch(fetchStudents());
+    dispatch(fetchCourses());
+  }, [dispatch]);
 
   useEffect(() => {
     if (admission) {
-      // Populate form with existing admission data
-      setFormData(prev => ({
-        ...prev,
-        ...admission,
-        student: {
-          ...prev.student,
-          ...(admission.student || {})
-        },
+      setFormData({
+        student: admission.student?._id || admission.student || '',
         course: admission.course?._id || admission.course || '',
-        admissionDate: admission.admissionDate ? new Date(admission.admissionDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
-      }));
+        trainingBranch: admission.trainingBranch || '',
+        counsellor: admission.counsellor || '',
+        termsCondition: admission.termsCondition || false,
+        priority: admission.priority || 'medium',
+        appliedBatch: admission.appliedBatch || '',
+        source: admission.source || 'website',
+        notes: admission.notes || '',
+        status: admission.status || 'pending',
+        emailVerified: admission.emailVerified || false
+      });
     }
   }, [admission]);
 
+  // Handle successful operation and close form
   useEffect(() => {
-    if (operationSuccess) {
-      setIsSubmitting(false);
-      onClose();
+    if (operationSuccess && (operationSuccess.includes('created') || operationSuccess.includes('updated'))) {
+      const timer = setTimeout(() => {
+        onClose();
+      }, 1000);
+      
+      return () => clearTimeout(timer);
     }
   }, [operationSuccess, onClose]);
 
-  const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    
-    if (name.startsWith('student.')) {
-      const studentField = name.split('.')[1];
-      setFormData(prev => ({
-        ...prev,
-        student: {
-          ...prev.student,
-          [studentField]: value
+  // Clear error when component unmounts
+  useEffect(() => {
+    return () => {
+      dispatch(clearError());
+      dispatch(clearSuccess());
+    };
+  }, [dispatch]);
+
+  const validateField = (name, value) => {
+    const newErrors = { ...errors };
+
+    switch (name) {
+      case 'student':
+        if (!value) {
+          newErrors.student = 'Student is required';
+        } else {
+          delete newErrors.student;
         }
-      }));
-    } else {
-      setFormData(prev => ({
-        ...prev,
-        [name]: type === 'checkbox' ? checked : value
-      }));
+        break;
+      
+      case 'course':
+        if (!value) {
+          newErrors.course = 'Course is required';
+        } else {
+          delete newErrors.course;
+        }
+        break;
+      
+      case 'trainingBranch':
+        if (!value.trim()) {
+          newErrors.trainingBranch = 'Training branch is required';
+        } else {
+          delete newErrors.trainingBranch;
+        }
+        break;
+      
+      case 'counsellor':
+        if (!value.trim()) {
+          newErrors.counsellor = 'Counsellor name is required';
+        } else {
+          delete newErrors.counsellor;
+        }
+        break;
+      
+      case 'termsCondition':
+        if (!value) {
+          newErrors.termsCondition = 'Terms and conditions must be accepted';
+        } else {
+          delete newErrors.termsCondition;
+        }
+        break;
+      
+      case 'notes':
+        if (value && value.length > 500) {
+          newErrors.notes = 'Notes must be less than 500 characters';
+        } else {
+          delete newErrors.notes;
+        }
+        break;
+      
+      default:
+        break;
     }
 
-    // Clear error when user starts typing
-    if (errors[name]) {
-      setErrors(prev => ({
-        ...prev,
-        [name]: ''
-      }));
-    }
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const validateForm = () => {
     const newErrors = {};
 
-    // Student validation
-    if (!formData.student.name?.trim()) {
-      newErrors['student.name'] = 'Student name is required';
-    }
-    if (!formData.student.email?.trim()) {
-      newErrors['student.email'] = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(formData.student.email)) {
-      newErrors['student.email'] = 'Email is invalid';
-    }
-    if (!formData.student.phone?.trim()) {
-      newErrors['student.phone'] = 'Phone number is required';
+    if (!formData.student) {
+      newErrors.student = 'Student is required';
     }
 
-    // Course validation
     if (!formData.course) {
-      newErrors.course = 'Course selection is required';
+      newErrors.course = 'Course is required';
     }
-    if (!formData.trainingBranch) {
+
+    if (!formData.trainingBranch.trim()) {
       newErrors.trainingBranch = 'Training branch is required';
     }
-    if (!formData.counsellor) {
-      newErrors.counsellor = 'Counsellor assignment is required';
+
+    if (!formData.counsellor.trim()) {
+      newErrors.counsellor = 'Counsellor name is required';
+    }
+
+    if (!formData.termsCondition) {
+      newErrors.termsCondition = 'Terms and conditions must be accepted';
+    }
+
+    if (formData.notes && formData.notes.length > 500) {
+      newErrors.notes = 'Notes must be less than 500 characters';
     }
 
     setErrors(newErrors);
+    setTouched({
+      student: true,
+      course: true,
+      trainingBranch: true,
+      counsellor: true,
+      termsCondition: true,
+      notes: true
+    });
+
     return Object.keys(newErrors).length === 0;
+  };
+
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    const fieldValue = type === 'checkbox' ? checked : value;
+
+    setFormData(prev => ({
+      ...prev,
+      [name]: fieldValue
+    }));
+
+    // Validate field in real-time if it's been touched
+    if (touched[name]) {
+      validateField(name, fieldValue);
+    }
+  };
+
+  const handleFileChange = (e) => {
+    const { name, files: fileList } = e.target;
+    if (fileList && fileList[0]) {
+      setFiles(prev => ({
+        ...prev,
+        [name]: fileList[0]
+      }));
+    }
+  };
+
+  const handleBlur = (e) => {
+    const { name, value } = e.target;
+    setTouched(prev => ({ ...prev, [name]: true }));
+    validateField(name, value);
   };
 
   const handleSubmit = async (e) => {
@@ -173,24 +221,89 @@ const AdmissionForm = ({ admission, onClose, isCounsellor = false }) => {
       return;
     }
 
-    setIsSubmitting(true);
+    // Create FormData for file upload
+    const submitFormData = new FormData();
+
+    // Append all form fields
+    submitFormData.append('student', formData.student);
+    submitFormData.append('course', formData.course);
+    submitFormData.append('trainingBranch', formData.trainingBranch.trim());
+    submitFormData.append('counsellor', formData.counsellor.trim());
+    submitFormData.append('termsCondition', formData.termsCondition);
+    submitFormData.append('priority', formData.priority);
+    submitFormData.append('appliedBatch', formData.appliedBatch.trim());
+    submitFormData.append('source', formData.source);
+    submitFormData.append('notes', formData.notes.trim());
+    
+    // Admin-only fields
+    if (!isCounsellor) {
+      submitFormData.append('status', formData.status);
+      submitFormData.append('emailVerified', formData.emailVerified);
+    }
+
+    // Append files
+    if (files.admissionFrontPage) {
+      submitFormData.append('admissionFrontPage', files.admissionFrontPage);
+    }
+    if (files.admissionBackPage) {
+      submitFormData.append('admissionBackPage', files.admissionBackPage);
+    }
+    if (files.studentStatement) {
+      submitFormData.append('studentStatement', files.studentStatement);
+    }
+    if (files.confidentialForm) {
+      submitFormData.append('confidentialForm', files.confidentialForm);
+    }
+
+    // Clear any previous errors
+    dispatch(clearError());
 
     try {
       if (admission) {
-        // Update existing admission
-        await dispatch(updateAdmission({
-          admissionId: admission._id,
-          admissionData: formData
-        }));
+        await dispatch(updateAdmission({ admissionId: admission._id, admissionData: submitFormData }));
       } else {
-        // Create new admission
-        await dispatch(createAdmission(formData));
+        await dispatch(createAdmission(submitFormData));
       }
     } catch (err) {
       console.error('Form submission error:', err);
-      setIsSubmitting(false);
     }
   };
+
+  const handleReset = () => {
+    setFormData({
+      student: '',
+      course: '',
+      trainingBranch: '',
+      counsellor: '',
+      termsCondition: false,
+      priority: 'medium',
+      appliedBatch: '',
+      source: 'website',
+      notes: '',
+      status: 'pending',
+      emailVerified: false
+    });
+    setFiles({
+      admissionFrontPage: null,
+      admissionBackPage: null,
+      studentStatement: null,
+      confidentialForm: null
+    });
+    setErrors({});
+    setTouched({});
+    dispatch(clearError());
+  };
+
+  const getFileName = (file) => {
+    return file ? file.name : 'No file chosen';
+  };
+
+  const notesCount = formData.notes.length;
+
+  const activeCourses = courses.filter(course => course.isActive);
+  const branches = ['Main Campus', 'Downtown Branch', 'Westside Center', 'Online'];
+  const batches = ['Morning Batch (9 AM - 12 PM)', 'Afternoon Batch (1 PM - 4 PM)', 'Evening Batch (6 PM - 9 PM)', 'Weekend Batch'];
+  const counsellors = ['John Smith', 'Sarah Johnson', 'Mike Davis', 'Emily Wilson', 'Robert Brown'];
 
   const getFormTitle = () => {
     if (admission) {
@@ -202,309 +315,174 @@ const AdmissionForm = ({ admission, onClose, isCounsellor = false }) => {
     return 'Create New Admission';
   };
 
-  const canEditStatus = !isCounsellor && admission;
+  const canEditStatus = !isCounsellor;
 
   return (
-    <div className="max-h-[80vh] overflow-y-auto">
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Student Information Section */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">Student Information</h3>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Full Name *
-              </label>
-              <input
-                type="text"
-                name="student.name"
-                value={formData.student.name}
-                onChange={handleChange}
-                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  errors['student.name'] ? 'border-red-500' : 'border-gray-300'
-                }`}
-                placeholder="Enter student's full name"
-              />
-              {errors['student.name'] && (
-                <p className="text-red-500 text-xs mt-1">{errors['student.name']}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Email Address *
-              </label>
-              <input
-                type="email"
-                name="student.email"
-                value={formData.student.email}
-                onChange={handleChange}
-                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  errors['student.email'] ? 'border-red-500' : 'border-gray-300'
-                }`}
-                placeholder="student@example.com"
-              />
-              {errors['student.email'] && (
-                <p className="text-red-500 text-xs mt-1">{errors['student.email']}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Phone Number *
-              </label>
-              <input
-                type="tel"
-                name="student.phone"
-                value={formData.student.phone}
-                onChange={handleChange}
-                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  errors['student.phone'] ? 'border-red-500' : 'border-gray-300'
-                }`}
-                placeholder="+91 9876543210"
-              />
-              {errors['student.phone'] && (
-                <p className="text-red-500 text-xs mt-1">{errors['student.phone']}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Alternate Email
-              </label>
-              <input
-                type="email"
-                name="student.alternateEmail"
-                value={formData.student.alternateEmail}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="alternate@example.com"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Alternate Phone
-              </label>
-              <input
-                type="tel"
-                name="student.alternatePhone"
-                value={formData.student.alternatePhone}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="+91 9876543210"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Date of Birth
-              </label>
-              <input
-                type="date"
-                name="student.dateOfBirth"
-                value={formData.student.dateOfBirth}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Gender
-              </label>
-              <select
-                name="student.gender"
-                value={formData.student.gender}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Select Gender</option>
-                <option value="male">Male</option>
-                <option value="female">Female</option>
-                <option value="other">Other</option>
-                <option value="prefer-not-to-say">Prefer not to say</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="mt-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Address
-            </label>
-            <textarea
-              name="student.address"
-              value={formData.student.address}
-              onChange={handleChange}
-              rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Enter complete address"
-            />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                City
-              </label>
-              <input
-                type="text"
-                name="student.city"
-                value={formData.student.city}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="City"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                State
-              </label>
-              <input
-                type="text"
-                name="student.state"
-                value={formData.student.state}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="State"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                PIN Code
-              </label>
-              <input
-                type="text"
-                name="student.pincode"
-                value={formData.student.pincode}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="PIN Code"
-              />
-            </div>
-          </div>
+    <div className="max-h-[90vh] overflow-y-auto">
+      <div className="p-6">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-xl font-bold text-gray-800">{getFormTitle()}</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl">×</button>
         </div>
 
-        {/* Course Information Section */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">Course Information</h3>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Success Message */}
+        {operationSuccess && (
+          <div className="mb-6 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <span>✅</span>
+              <span>{operationSuccess}</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <span className="text-sm text-green-600">Closing...</span>
+              <button onClick={onClose} className="text-green-700 hover:text-green-900">
+                ×
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Error Message */}
+        {error && (
+          <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <span>❌</span>
+              <span>{error}</span>
+            </div>
+            <button onClick={() => dispatch(clearError())} className="text-red-700 hover:text-red-900">
+              ×
+            </button>
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Student and Course Selection */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Student Selection */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Course *
+              <label htmlFor="student" className="block text-sm font-medium text-gray-700 mb-2">
+                Student <span className="text-red-500">*</span>
               </label>
               <select
+                id="student"
+                name="student"
+                value={formData.student}
+                onChange={handleChange}
+                onBlur={handleBlur}
+                className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  errors.student ? 'border-red-300' : 'border-gray-300'
+                }`}
+                disabled={operationLoading}
+              >
+                <option value="">Select a student</option>
+                {students.map(student => (
+                  <option key={student._id} value={student._id}>
+                    {student.name} ({student.studentId})
+                  </option>
+                ))}
+              </select>
+              {errors.student && touched.student && (
+                <p className="mt-1 text-sm text-red-600">{errors.student}</p>
+              )}
+            </div>
+
+            {/* Course Selection */}
+            <div>
+              <label htmlFor="course" className="block text-sm font-medium text-gray-700 mb-2">
+                Course <span className="text-red-500">*</span>
+              </label>
+              <select
+                id="course"
                 name="course"
                 value={formData.course}
                 onChange={handleChange}
-                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  errors.course ? 'border-red-500' : 'border-gray-300'
+                onBlur={handleBlur}
+                className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  errors.course ? 'border-red-300' : 'border-gray-300'
                 }`}
+                disabled={operationLoading}
               >
-                <option value="">Select Course</option>
-                {courses.map(course => (
-                  <option key={course} value={course}>{course}</option>
+                <option value="">Select a course</option>
+                {activeCourses.map(course => (
+                  <option key={course._id} value={course._id}>
+                    {course.name} - ₹{course.fee?.toLocaleString()}
+                  </option>
                 ))}
               </select>
-              {errors.course && (
-                <p className="text-red-500 text-xs mt-1">{errors.course}</p>
+              {errors.course && touched.course && (
+                <p className="mt-1 text-sm text-red-600">{errors.course}</p>
               )}
             </div>
+          </div>
 
+          {/* Training Branch and Counsellor */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Training Branch */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Training Branch *
+              <label htmlFor="trainingBranch" className="block text-sm font-medium text-gray-700 mb-2">
+                Training Branch <span className="text-red-500">*</span>
               </label>
               <select
+                id="trainingBranch"
                 name="trainingBranch"
                 value={formData.trainingBranch}
                 onChange={handleChange}
-                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  errors.trainingBranch ? 'border-red-500' : 'border-gray-300'
+                onBlur={handleBlur}
+                className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  errors.trainingBranch ? 'border-red-300' : 'border-gray-300'
                 }`}
+                disabled={operationLoading}
               >
-                <option value="">Select Branch</option>
+                <option value="">Select training branch</option>
                 {branches.map(branch => (
                   <option key={branch} value={branch}>{branch}</option>
                 ))}
               </select>
-              {errors.trainingBranch && (
-                <p className="text-red-500 text-xs mt-1">{errors.trainingBranch}</p>
+              {errors.trainingBranch && touched.trainingBranch && (
+                <p className="mt-1 text-sm text-red-600">{errors.trainingBranch}</p>
               )}
             </div>
 
+            {/* Counsellor */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Applied Batch
+              <label htmlFor="counsellor" className="block text-sm font-medium text-gray-700 mb-2">
+                Counsellor <span className="text-red-500">*</span>
               </label>
               <select
-                name="appliedBatch"
-                value={formData.appliedBatch}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Select Batch</option>
-                {batches.map(batch => (
-                  <option key={batch} value={batch}>{batch}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Admission Date
-              </label>
-              <input
-                type="date"
-                name="admissionDate"
-                value={formData.admissionDate}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Admission Details Section */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">Admission Details</h3>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Counsellor *
-              </label>
-              <select
+                id="counsellor"
                 name="counsellor"
                 value={formData.counsellor}
                 onChange={handleChange}
-                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  errors.counsellor ? 'border-red-500' : 'border-gray-300'
+                onBlur={handleBlur}
+                className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  errors.counsellor ? 'border-red-300' : 'border-gray-300'
                 }`}
+                disabled={operationLoading}
               >
-                <option value="">Select Counsellor</option>
+                <option value="">Select counsellor</option>
                 {counsellors.map(counsellor => (
                   <option key={counsellor} value={counsellor}>{counsellor}</option>
                 ))}
               </select>
-              {errors.counsellor && (
-                <p className="text-red-500 text-xs mt-1">{errors.counsellor}</p>
+              {errors.counsellor && touched.counsellor && (
+                <p className="mt-1 text-sm text-red-600">{errors.counsellor}</p>
               )}
             </div>
+          </div>
 
+          {/* Priority and Source */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Priority */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="priority" className="block text-sm font-medium text-gray-700 mb-2">
                 Priority
               </label>
               <select
+                id="priority"
                 name="priority"
                 value={formData.priority}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                disabled={operationLoading}
               >
                 <option value="low">Low</option>
                 <option value="medium">Medium</option>
@@ -512,35 +490,82 @@ const AdmissionForm = ({ admission, onClose, isCounsellor = false }) => {
               </select>
             </div>
 
+            {/* Source */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="source" className="block text-sm font-medium text-gray-700 mb-2">
                 Source
               </label>
               <select
+                id="source"
                 name="source"
                 value={formData.source}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                disabled={operationLoading}
               >
                 <option value="website">Website</option>
-                <option value="referral">Referral</option>
                 <option value="walkin">Walk-in</option>
+                <option value="referral">Referral</option>
+                <option value="counsellor">Counsellor</option>
                 <option value="social_media">Social Media</option>
-                <option value="advertisement">Advertisement</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Applied Batch and Admission Date */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Applied Batch */}
+            <div>
+              <label htmlFor="appliedBatch" className="block text-sm font-medium text-gray-700 mb-2">
+                Applied Batch
+              </label>
+              <select
+                id="appliedBatch"
+                name="appliedBatch"
+                value={formData.appliedBatch}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                disabled={operationLoading}
+              >
+                <option value="">Select batch</option>
+                {batches.map(batch => (
+                  <option key={batch} value={batch}>{batch}</option>
+                ))}
               </select>
             </div>
 
-            {/* Admin-only fields */}
-            {canEditStatus && (
+            {/* Admission Date */}
+            <div>
+              <label htmlFor="admissionDate" className="block text-sm font-medium text-gray-700 mb-2">
+                Admission Date
+              </label>
+              <input
+                type="date"
+                id="admissionDate"
+                name="admissionDate"
+                value={formData.admissionDate}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                disabled={operationLoading}
+              />
+            </div>
+          </div>
+
+          {/* Admin-only fields */}
+          {canEditStatus && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Status */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-2">
                   Status
                 </label>
                 <select
+                  id="status"
                   name="status"
                   value={formData.status}
                   onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  disabled={operationLoading}
                 >
                   <option value="pending">Pending</option>
                   <option value="approved">Approved</option>
@@ -548,111 +573,207 @@ const AdmissionForm = ({ admission, onClose, isCounsellor = false }) => {
                   <option value="waiting_list">Waiting List</option>
                 </select>
               </div>
-            )}
 
-            {canEditStatus && (
+              {/* Email Verified */}
               <div className="flex items-center">
                 <input
                   type="checkbox"
+                  id="emailVerified"
                   name="emailVerified"
                   checked={formData.emailVerified}
                   onChange={handleChange}
                   className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  disabled={operationLoading}
                 />
-                <label className="ml-2 block text-sm text-gray-700">
+                <label htmlFor="emailVerified" className="ml-2 block text-sm text-gray-700">
                   Email Verified
                 </label>
               </div>
-            )}
-          </div>
+            </div>
+          )}
 
-          <div className="mt-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Notes & Comments
-            </label>
-            <textarea
-              name="notes"
-              value={formData.notes}
-              onChange={handleChange}
-              rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Any additional notes or comments about this admission..."
-            />
-          </div>
-        </div>
+          {/* Document Uploads */}
+          <div className="bg-blue-50 p-4 rounded-lg">
+            <h3 className="text-lg font-semibold text-blue-800 mb-4">Upload Documents (Images or PDFs)</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Admission Front Page */}
+              <div>
+                <label htmlFor="admissionFrontPage" className="block text-sm font-medium text-gray-700 mb-2">
+                  Admission Front Page
+                </label>
+                <input
+                  type="file"
+                  id="admissionFrontPage"
+                  name="admissionFrontPage"
+                  onChange={handleFileChange}
+                  accept="image/*,.pdf"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  disabled={operationLoading}
+                />
+                <p className="mt-1 text-sm text-gray-500">
+                  {getFileName(files.admissionFrontPage)}
+                </p>
+              </div>
 
-        {/* Documents Section (Read-only for display) */}
-        {admission && (
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">Documents</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+              {/* Admission Back Page */}
               <div>
-                <span className="font-medium text-gray-700">ID Proof:</span>
-                <span className="ml-2 text-gray-600">
-                  {admission.idProofPhoto ? '✅ Uploaded' : '❌ Not uploaded'}
-                </span>
+                <label htmlFor="admissionBackPage" className="block text-sm font-medium text-gray-700 mb-2">
+                  Admission Back Page
+                </label>
+                <input
+                  type="file"
+                  id="admissionBackPage"
+                  name="admissionBackPage"
+                  onChange={handleFileChange}
+                  accept="image/*,.pdf"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  disabled={operationLoading}
+                />
+                <p className="mt-1 text-sm text-gray-500">
+                  {getFileName(files.admissionBackPage)}
+                </p>
               </div>
+
+              {/* Student Statement */}
               <div>
-                <span className="font-medium text-gray-700">Student Photo:</span>
-                <span className="ml-2 text-gray-600">
-                  {admission.studentPhoto ? '✅ Uploaded' : '❌ Not uploaded'}
-                </span>
+                <label htmlFor="studentStatement" className="block text-sm font-medium text-gray-700 mb-2">
+                  Student Statement
+                </label>
+                <input
+                  type="file"
+                  id="studentStatement"
+                  name="studentStatement"
+                  onChange={handleFileChange}
+                  accept="image/*,.pdf"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  disabled={operationLoading}
+                />
+                <p className="mt-1 text-sm text-gray-500">
+                  {getFileName(files.studentStatement)}
+                </p>
               </div>
+
+              {/* Confidential Form */}
               <div>
-                <span className="font-medium text-gray-700">Signature:</span>
-                <span className="ml-2 text-gray-600">
-                  {admission.studentSignature ? '✅ Uploaded' : '❌ Not uploaded'}
-                </span>
-              </div>
-              <div>
-                <span className="font-medium text-gray-700">Payment Receipt:</span>
-                <span className="ml-2 text-gray-600">
-                  {admission.paymentReceipt ? '✅ Uploaded' : '❌ Not uploaded'}
-                </span>
+                <label htmlFor="confidentialForm" className="block text-sm font-medium text-gray-700 mb-2">
+                  Confidential Form
+                </label>
+                <input
+                  type="file"
+                  id="confidentialForm"
+                  name="confidentialForm"
+                  onChange={handleFileChange}
+                  accept="image/*,.pdf"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  disabled={operationLoading}
+                />
+                <p className="mt-1 text-sm text-gray-500">
+                  {getFileName(files.confidentialForm)}
+                </p>
               </div>
             </div>
-            <p className="text-xs text-gray-500 mt-2">
-              Document management available in document upload section
+            <p className="mt-2 text-xs text-gray-600">
+              Supported formats: JPG, PNG, GIF, PDF (Max 10MB per file)
             </p>
           </div>
-        )}
 
-        {/* Error Display */}
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-            <div className="flex items-center space-x-2">
-              <span>❌</span>
-              <span>{error}</span>
+          {/* Notes */}
+          <div>
+            <label htmlFor="notes" className="block text-sm font-medium text-gray-700 mb-2">
+              Notes
+              <span className="text-gray-400 text-xs ml-2">
+                {notesCount}/500 characters
+              </span>
+            </label>
+            <textarea
+              id="notes"
+              name="notes"
+              rows={3}
+              value={formData.notes}
+              onChange={handleChange}
+              onBlur={handleBlur}
+              className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none ${
+                errors.notes ? 'border-red-300' : 'border-gray-300'
+              }`}
+              placeholder="Additional notes or comments..."
+              disabled={operationLoading}
+            />
+            {errors.notes && touched.notes && (
+              <p className="mt-1 text-sm text-red-600">{errors.notes}</p>
+            )}
+            <div className="flex justify-between mt-1">
+              <span className={`text-xs ${
+                notesCount > 500 ? 'text-red-600' : 'text-gray-500'
+              }`}>
+                {500 - notesCount} characters remaining
+              </span>
             </div>
           </div>
-        )}
 
-        {/* Form Actions */}
-        <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors duration-200"
-            disabled={isSubmitting}
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
-          >
-            {isSubmitting ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                <span>{admission ? 'Updating...' : 'Creating...'}</span>
-              </>
-            ) : (
-              <span>{admission ? 'Update Admission' : 'Create Admission'}</span>
-            )}
-          </button>
-        </div>
-      </form>
+          {/* Terms and Conditions */}
+          <div className="flex items-start space-x-3">
+            <input
+              type="checkbox"
+              id="termsCondition"
+              name="termsCondition"
+              checked={formData.termsCondition}
+              onChange={handleChange}
+              onBlur={handleBlur}
+              className={`h-4 w-4 mt-1 text-blue-600 focus:ring-blue-500 border-gray-300 rounded ${
+                errors.termsCondition ? 'border-red-300' : ''
+              }`}
+              disabled={operationLoading}
+            />
+            <div className="flex-1">
+              <label htmlFor="termsCondition" className="block text-sm font-medium text-gray-700">
+                Terms and Conditions <span className="text-red-500">*</span>
+              </label>
+              <p className="text-xs text-gray-500 mt-1">
+                I confirm that all information provided is accurate and I accept the terms and conditions of admission.
+              </p>
+              {errors.termsCondition && touched.termsCondition && (
+                <p className="mt-1 text-sm text-red-600">{errors.termsCondition}</p>
+              )}
+            </div>
+          </div>
+
+          {/* Form Actions */}
+          <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
+            <button
+              type="button"
+              onClick={handleReset}
+              disabled={operationLoading}
+              className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent transition-colors duration-200 disabled:opacity-50"
+            >
+              Reset
+            </button>
+            
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={operationLoading}
+              className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent transition-colors duration-200 disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            
+            <button
+              type="submit"
+              disabled={operationLoading || !formData.termsCondition}
+              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+            >
+              {operationLoading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  <span>{admission ? 'Updating...' : 'Creating...'}</span>
+                </>
+              ) : (
+                <span>{admission ? 'Update Admission' : 'Create Admission'}</span>
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 };

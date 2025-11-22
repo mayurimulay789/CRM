@@ -136,21 +136,6 @@ const RegistrationForm = () => {
               />
             </div>
 
-            {/* Role */}
-            <div>
-              <label className="block text-gray-700 mb-1">Role</label>
-              <select
-                name="role"
-                value={role}
-                onChange={onChange}
-                className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-amber-400"
-                disabled={loading} // ✅ Disable during loading
-              >
-                <option value="counsellor">Counsellor</option>
-                <option value="admin">Admin</option>
-              </select>
-            </div>
-
             {/* Submit */}
             <div className="flex justify-between items-center text-sm">
               <button

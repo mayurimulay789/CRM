@@ -4,11 +4,16 @@ import React from 'react';
 import AdminDashboard from '../../components/admin/Dashboard/AdminDashboard';
 import CounsellorManagement from '../../components/admin/UserManagement/CounsellorManagement';
 import StudentManagement from '../../components/admin/UserManagement/StudentManagement';
-import BatchManagement from '../../components/admin/Batches/BatchManagement';
 import DemoManagement from '../../components/admin/Demo/DemoManagement';
 import AdmissionManagement from '../../components/admin/Admission/AdmissionManagement';
 import CourseManagement from '../../components/admin/Courses/CourseManagement';
 import MISReports from '../../components/admin/MIS/MISReports';
+import BatchManagement from '../../components/admin/Batches/BatchManagement';
+import TrainerManagement from '../../components/admin/Trainers/TrainerManagement';
+
+// NEW: Import Enrollment and Payment Components
+import EnrollmentManagement from '../../components/admin/Enrollment/EnrollmentManagement';
+import PaymentManagement from '../../components/admin/Payment/PaymentManagement';
 
 const AdminDashboardComponent = ({ activeSection }) => {
   const renderContent = () => {
@@ -24,6 +29,13 @@ const AdminDashboardComponent = ({ activeSection }) => {
         return <StudentManagement />;
       
       // Batches
+      case 'batches':
+        return <BatchManagement />;
+
+      // Trainer
+      case 'trainer-management':
+        return <TrainerManagement />;
+
       case 'closed-batch':
       case 'running-batch':
       case 'upcoming-batch':
@@ -41,6 +53,14 @@ const AdminDashboardComponent = ({ activeSection }) => {
       case 'enrolled-student':
       case 'payment-invoice-sheet':
         return <AdmissionManagement activeSection={activeSection} />;
+      
+      // NEW: Enrollment Management
+      case 'enrollment-management':
+        return <EnrollmentManagement />;
+      
+      // NEW: Payment Management
+      case 'payment-management':
+        return <PaymentManagement />;
       
       // Complaint
       case 'student-grievance':
@@ -75,7 +95,6 @@ const AdminDashboardComponent = ({ activeSection }) => {
   };
 
   return (
-    // flex-1 bg-gray-50 min-h-screen
     <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
       {renderContent()}
     </div>
