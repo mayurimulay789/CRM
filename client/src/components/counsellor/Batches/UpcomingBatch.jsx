@@ -1,3 +1,4 @@
+
 import React, { useEffect, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { getBatches } from '../../../store/slices/batchSlice';
@@ -185,5 +186,5 @@ const UpcomingBatch = () => {
     </div>
   );
 };
-
 export default UpcomingBatch;
+

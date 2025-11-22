@@ -21,7 +21,7 @@ const batchAPI = {
 
   // Update batch
   updateBatch: async (id, batchData) => {
-    const response = await axiosInstance.put(`/batches/${id}`, batchData);
+    const response = await axiosInstance.put(`/batches/${id}, batchData`);
     return response;
   },
 

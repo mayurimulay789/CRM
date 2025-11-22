@@ -52,6 +52,13 @@ const authAPI = {
     const response = await authApi.put('/myprofile', userData);
     return response;
   },
+    // ✅ NEW: Get all counsellors (Admin only)
+  getAllCounsellors: async (queryParams = {}) => {
+    const response = await authApi.get('/allCounsellor', {
+      params: queryParams // Pass query parameters like page, limit, search
+    });
+    return response;
+  }
 };
 
 export default authAPI;

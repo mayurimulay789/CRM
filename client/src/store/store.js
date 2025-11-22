@@ -11,23 +11,26 @@ import trainerReducer from './slices/trainerSlice';
 import admissionReducer from './slices/admissionSlice';
 import courseReducer from './slices/courseSlice';
 import studentReducer from './slices/studentSlice';
+import enrollmentRducer from './slices/enrollmentSlice';
+import paymentReducer from './slices/paymentSlice';
 
 
 export const store = configureStore({
   reducer: {
     auth: authReducer,
-
     onlineDemo: onlineDemoReducer,
     offlineDemo: offlineDemoReducer,
     oneToOne: oneToOneReducer,
     liveClasses: liveClassesReducer,
     batch: batchReducer,
     trainer: trainerReducer,
-
     admissions: admissionReducer, // Added admission reducer
     courses: courseReducer,
     students: studentReducer,
-
+    trainer: trainerReducer,
+    batch: batchReducer,
+    enrollments: enrollmentRducer,
+    payments: paymentReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

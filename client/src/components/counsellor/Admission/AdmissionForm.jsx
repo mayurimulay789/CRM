@@ -1,531 +1,3 @@
-// import React, { useState, useEffect } from 'react';
-// import { useDispatch, useSelector } from 'react-redux';
-// import { createAdmission, updateAdmission, clearError, clearSuccess } from '../../../store/slices/admissionSlice';
-
-// const AdmissionForm = ({ admission, onClose }) => {
-//   const dispatch = useDispatch();
-//   const { operationLoading, operationSuccess, error } = useSelector(state => state.admissions);
-  
-//   const [formData, setFormData] = useState({
-//     // Basic Information
-//     admissionNo: '',
-//     admissionDate: '',
-//     name: '',
-    
-//     // Contact Information
-//     email: '',
-//     alternateEmail: '',
-//     phoneNo: '',
-//     alternateNumber: '',
-//     primaryEmail: '',
-//     primaryNumber: '',
-    
-//     // Course Information
-//     course: '',
-//     courseFee: '',
-//     trainingBranch: '',
-//     counsellor: '',
-    
-//     // Document URLs
-//     idProofPhoto: '',
-//     studentPhoto: '',
-//     studentSignature: '',
-//     admissionFrontPage: '',
-//     admissionBackPage: '',
-//     paymentReceipt: '',
-//     studentStatement: '',
-//     confidentialForm: '',
-    
-//     // Status & Terms
-//     termsCondition: false,
-//     emailVerified: false,
-//     status: 'pending',
-//     operation: ''
-//   });
-
-//   const [fileUploads, setFileUploads] = useState({
-//     idProofPhoto: null,
-//     studentPhoto: null,
-//     studentSignature: null,
-//     admissionFrontPage: null,
-//     admissionBackPage: null,
-//     paymentReceipt: null,
-//     studentStatement: null,
-//     confidentialForm: null
-//   });
-
-//   useEffect(() => {
-//     if (admission) {
-//       // Pre-fill form for edit mode
-//       setFormData({
-//         admissionNo: admission.admissionNo || '',
-//         admissionDate: admission.admissionDate ? new Date(admission.admissionDate).toISOString().split('T')[0] : '',
-//         name: admission.name || '',
-        
-//         email: admission.email || '',
-//         alternateEmail: admission.alternateEmail || '',
-//         phoneNo: admission.phoneNo || '',
-//         alternateNumber: admission.alternateNumber || '',
-//         primaryEmail: admission.primaryEmail || '',
-//         primaryNumber: admission.primaryNumber || '',
-        
-//         course: admission.course || '',
-//         courseFee: admission.courseFee || '',
-//         trainingBranch: admission.trainingBranch || '',
-//         counsellor: admission.counsellor || '',
-        
-//         idProofPhoto: admission.idProofPhoto || '',
-//         studentPhoto: admission.studentPhoto || '',
-//         studentSignature: admission.studentSignature || '',
-//         admissionFrontPage: admission.admissionFrontPage || '',
-//         admissionBackPage: admission.admissionBackPage || '',
-//         paymentReceipt: admission.paymentReceipt || '',
-//         studentStatement: admission.studentStatement || '',
-//         confidentialForm: admission.confidentialForm || '',
-        
-//         termsCondition: admission.termsCondition || false,
-//         emailVerified: admission.emailVerified || false,
-//         status: admission.status || 'pending',
-//         operation: admission.operation || ''
-//       });
-//     } else {
-//       // Generate admission number for new admission
-//       const newAdmissionNo = `ADM${Date.now()}`;
-//       setFormData(prev => ({ ...prev, admissionNo: newAdmissionNo }));
-//     }
-//   }, [admission]);
-
-//   useEffect(() => {
-//     if (operationSuccess) {
-//       const timer = setTimeout(() => {
-//         onClose();
-//       }, 1000);
-//       return () => clearTimeout(timer);
-//     }
-//   }, [operationSuccess, onClose]);
-
-//   const handleInputChange = (e) => {
-//     const { name, value, type, checked } = e.target;
-//     setFormData(prev => ({
-//       ...prev,
-//       [name]: type === 'checkbox' ? checked : value
-//     }));
-//   };
-
-//   const handleFileChange = (e, fieldName) => {
-//     const file = e.target.files[0];
-//     if (file) {
-//       setFileUploads(prev => ({
-//         ...prev,
-//         [fieldName]: file
-//       }));
-      
-//       // For demo purposes, create a temporary URL
-//       // In real application, you would upload to cloud storage and get URL
-//       const tempUrl = URL.createObjectURL(file);
-//       setFormData(prev => ({
-//         ...prev,
-//         [fieldName]: tempUrl
-//       }));
-//     }
-//   };
-
-//   const handleSubmit = async (e) => {
-//     e.preventDefault();
-    
-//     try {
-//       const submitData = {
-//         ...formData,
-//         courseFee: Number(formData.courseFee),
-//         admissionDate: new Date(formData.admissionDate).toISOString()
-//       };
-
-//       if (admission) {
-//         // Update existing admission
-//         await dispatch(updateAdmission({ admissionNo: admission.admissionNo, admissionData: submitData }));
-//       } else {
-//         // Create new admission
-//         await dispatch(createAdmission(submitData));
-//       }
-//     } catch (error) {
-//       console.error('Error submitting admission:', error);
-//     }
-//   };
-
-//   const statusOptions = [
-//     { value: 'pending', label: 'Pending' },
-//     { value: 'approved', label: 'Approved' },
-//     { value: 'rejected', label: 'Rejected' },
-//     { value: 'enrolled', label: 'Enrolled' }
-//   ];
-
-//   const courseOptions = [
-//     'Full Stack Development',
-//     'Data Science',
-//     'Cyber Security',
-//     'Cloud Computing',
-//     'Digital Marketing',
-//     'UI/UX Design'
-//   ];
-
-//   const branchOptions = [
-//     'Mumbai',
-//     'Delhi',
-//     'Bangalore',
-//     'Hyderabad',
-//     'Chennai',
-//     'Pune',
-//     'Kolkata'
-//   ];
-
-//   const renderFileInput = (fieldName, label, accept = "image/*,.pdf,.doc,.docx") => (
-//     <div>
-//       <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
-//       <input
-//         type="file"
-//         accept={accept}
-//         onChange={(e) => handleFileChange(e, fieldName)}
-//         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-//       />
-//       {formData[fieldName] && (
-//         <div className="mt-1">
-//           <span className="text-xs text-green-600">✓ File selected</span>
-//           {formData[fieldName].startsWith('blob:') && (
-//             <a 
-//               href={formData[fieldName]} 
-//               target="_blank" 
-//               rel="noopener noreferrer"
-//               className="ml-2 text-xs text-blue-600 hover:underline"
-//             >
-//               Preview
-//             </a>
-//           )}
-//         </div>
-//       )}
-//     </div>
-//   );
-
-//   return (
-//     <div className="max-h-[80vh] overflow-y-auto">
-//       <form onSubmit={handleSubmit} className="space-y-6">
-//         {/* Success Message */}
-//         {operationSuccess && (
-//           <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
-//             <div className="flex items-center space-x-2">
-//               <span>✅</span>
-//               <span>{operationSuccess}</span>
-//             </div>
-//           </div>
-//         )}
-
-//         {/* Error Message */}
-//         {error && (
-//           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-//             <div className="flex items-center space-x-2">
-//               <span>❌</span>
-//               <span>{error}</span>
-//             </div>
-//             <button 
-//               type="button"
-//               onClick={() => dispatch(clearError())} 
-//               className="mt-2 text-red-700 hover:text-red-900 text-sm"
-//             >
-//               Dismiss
-//             </button>
-//           </div>
-//         )}
-
-//         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-//           {/* Basic Information Section */}
-//           <div className="col-span-full">
-//             <h3 className="text-lg font-semibold text-gray-800 mb-4 border-b pb-2">Basic Information</h3>
-//           </div>
-
-//           <div>
-//             <label className="block text-sm font-medium text-gray-700 mb-1">Admission Number *</label>
-//             <input
-//               type="text"
-//               name="admissionNo"
-//               value={formData.admissionNo}
-//               onChange={handleInputChange}
-//               required
-//               disabled={!!admission} // Disable editing admission number for existing records
-//               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
-//             />
-//           </div>
-
-//           <div>
-//             <label className="block text-sm font-medium text-gray-700 mb-1">Admission Date *</label>
-//             <input
-//               type="date"
-//               name="admissionDate"
-//               value={formData.admissionDate}
-//               onChange={handleInputChange}
-//               required
-//               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-//             />
-//           </div>
-
-//           <div>
-//             <label className="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
-//             <input
-//               type="text"
-//               name="name"
-//               value={formData.name}
-//               onChange={handleInputChange}
-//               required
-//               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-//             />
-//           </div>
-
-//           {/* Contact Information Section */}
-//           <div className="col-span-full mt-6">
-//             <h3 className="text-lg font-semibold text-gray-800 mb-4 border-b pb-2">Contact Information</h3>
-//           </div>
-
-//           <div>
-//             <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
-//             <input
-//               type="email"
-//               name="email"
-//               value={formData.email}
-//               onChange={handleInputChange}
-//               required
-//               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-//             />
-//           </div>
-
-//           <div>
-//             <label className="block text-sm font-medium text-gray-700 mb-1">Alternate Email</label>
-//             <input
-//               type="email"
-//               name="alternateEmail"
-//               value={formData.alternateEmail}
-//               onChange={handleInputChange}
-//               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-//             />
-//           </div>
-
-//           <div>
-//             <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number *</label>
-//             <input
-//               type="tel"
-//               name="phoneNo"
-//               value={formData.phoneNo}
-//               onChange={handleInputChange}
-//               required
-//               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-//             />
-//           </div>
-
-//           <div>
-//             <label className="block text-sm font-medium text-gray-700 mb-1">Alternate Phone</label>
-//             <input
-//               type="tel"
-//               name="alternateNumber"
-//               value={formData.alternateNumber}
-//               onChange={handleInputChange}
-//               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-//             />
-//           </div>
-
-//           <div>
-//             <label className="block text-sm font-medium text-gray-700 mb-1">Primary Email</label>
-//             <input
-//               type="email"
-//               name="primaryEmail"
-//               value={formData.primaryEmail}
-//               onChange={handleInputChange}
-//               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-//             />
-//           </div>
-
-//           <div>
-//             <label className="block text-sm font-medium text-gray-700 mb-1">Primary Phone</label>
-//             <input
-//               type="tel"
-//               name="primaryNumber"
-//               value={formData.primaryNumber}
-//               onChange={handleInputChange}
-//               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-//             />
-//           </div>
-
-//           {/* Course Information Section */}
-//           <div className="col-span-full mt-6">
-//             <h3 className="text-lg font-semibold text-gray-800 mb-4 border-b pb-2">Course Information</h3>
-//           </div>
-
-//           <div>
-//             <label className="block text-sm font-medium text-gray-700 mb-1">Course *</label>
-//             <select
-//               name="course"
-//               value={formData.course}
-//               onChange={handleInputChange}
-//               required
-//               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-//             >
-//               <option value="">Select Course</option>
-//               {courseOptions.map(course => (
-//                 <option key={course} value={course}>{course}</option>
-//               ))}
-//             </select>
-//           </div>
-
-//           <div>
-//             <label className="block text-sm font-medium text-gray-700 mb-1">Course Fee (₹) *</label>
-//             <input
-//               type="number"
-//               name="courseFee"
-//               value={formData.courseFee}
-//               onChange={handleInputChange}
-//               required
-//               min="0"
-//               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-//             />
-//           </div>
-
-//           <div>
-//             <label className="block text-sm font-medium text-gray-700 mb-1">Training Branch *</label>
-//             <select
-//               name="trainingBranch"
-//               value={formData.trainingBranch}
-//               onChange={handleInputChange}
-//               required
-//               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-//             >
-//               <option value="">Select Branch</option>
-//               {branchOptions.map(branch => (
-//                 <option key={branch} value={branch}>{branch}</option>
-//               ))}
-//             </select>
-//           </div>
-
-//           <div className="col-span-full">
-//             <label className="block text-sm font-medium text-gray-700 mb-1">Counsellor *</label>
-//             <input
-//               type="text"
-//               name="counsellor"
-//               value={formData.counsellor}
-//               onChange={handleInputChange}
-//               required
-//               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-//             />
-//           </div>
-
-//           {/* Document Uploads Section */}
-//           <div className="col-span-full mt-6">
-//             <h3 className="text-lg font-semibold text-gray-800 mb-4 border-b pb-2">Document Uploads</h3>
-//           </div>
-
-//           <div className="col-span-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-//             {renderFileInput('idProofPhoto', 'ID Proof Photo')}
-//             {renderFileInput('studentPhoto', 'Student Photo')}
-//             {renderFileInput('studentSignature', 'Student Signature')}
-//             {renderFileInput('admissionFrontPage', 'Admission Front Page')}
-//             {renderFileInput('admissionBackPage', 'Admission Back Page')}
-//             {renderFileInput('paymentReceipt', 'Payment Receipt')}
-//             {renderFileInput('studentStatement', 'Student Statement')}
-//             {renderFileInput('confidentialForm', 'Confidential Form')}
-//           </div>
-
-//           {/* Status & Terms Section */}
-//           <div className="col-span-full mt-6">
-//             <h3 className="text-lg font-semibold text-gray-800 mb-4 border-b pb-2">Status & Terms</h3>
-//           </div>
-
-//           <div>
-//             <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-//             <select
-//               name="status"
-//               value={formData.status}
-//               onChange={handleInputChange}
-//               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-//             >
-//               {statusOptions.map(option => (
-//                 <option key={option.value} value={option.value}>{option.label}</option>
-//               ))}
-//             </select>
-//           </div>
-
-//           <div>
-//             <label className="block text-sm font-medium text-gray-700 mb-1">Operation</label>
-//             <input
-//               type="text"
-//               name="operation"
-//               value={formData.operation}
-//               onChange={handleInputChange}
-//               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-//             />
-//           </div>
-
-//           <div className="col-span-full">
-//             <div className="flex items-center space-x-2">
-//               <input
-//                 type="checkbox"
-//                 name="termsCondition"
-//                 checked={formData.termsCondition}
-//                 onChange={handleInputChange}
-//                 className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-//               />
-//               <label className="text-sm font-medium text-gray-700">
-//                 Terms & Conditions Accepted
-//               </label>
-//             </div>
-//           </div>
-
-//           {admission && (
-//             <div className="col-span-full">
-//               <div className="flex items-center space-x-2">
-//                 <input
-//                   type="checkbox"
-//                   name="emailVerified"
-//                   checked={formData.emailVerified}
-//                   onChange={handleInputChange}
-//                   className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-//                 />
-//                 <label className="text-sm font-medium text-gray-700">
-//                   Email Verified
-//                 </label>
-//               </div>
-//             </div>
-//           )}
-//         </div>
-
-//         {/* Form Actions */}
-//         <div className="flex justify-end space-x-4 pt-6 border-t">
-//           <button
-//             type="button"
-//             onClick={onClose}
-//             disabled={operationLoading}
-//             className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
-//           >
-//             Cancel
-//           </button>
-//           <button
-//             type="submit"
-//             disabled={operationLoading}
-//             className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 flex items-center space-x-2"
-//           >
-//             {operationLoading ? (
-//               <>
-//                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-//                 <span>{admission ? 'Updating...' : 'Creating...'}</span>
-//               </>
-//             ) : (
-//               <span>{admission ? 'Update Admission' : 'Create Admission'}</span>
-//             )}
-//           </button>
-//         </div>
-//       </form>
-//     </div>
-//   );
-// };
-
-// export default AdmissionForm;
-
-
-
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { createAdmission, updateAdmission, clearError, clearSuccess } from '../../../store/slices/admissionSlice';
@@ -542,16 +14,19 @@ const AdmissionForm = ({ admission, onClose }) => {
     student: '',
     course: '',
     trainingBranch: '',
-    counsellor: '',
-    admissionFrontPage: '',
-    admissionBackPage: '',
-    studentStatement: '',
-    confidentialForm: '',
     termsCondition: false,
     priority: 'medium',
     appliedBatch: '',
     source: 'website',
     notes: ''
+  });
+
+  // File states
+  const [files, setFiles] = useState({
+    admissionFrontPage: null,
+    admissionBackPage: null,
+    studentStatement: null,
+    confidentialForm: null
   });
 
   const [errors, setErrors] = useState({});
@@ -569,11 +44,6 @@ const AdmissionForm = ({ admission, onClose }) => {
         student: admission.student?._id || admission.student || '',
         course: admission.course?._id || admission.course || '',
         trainingBranch: admission.trainingBranch || '',
-        counsellor: admission.counsellor || '',
-        admissionFrontPage: admission.admissionFrontPage || '',
-        admissionBackPage: admission.admissionBackPage || '',
-        studentStatement: admission.studentStatement || '',
-        confidentialForm: admission.confidentialForm || '',
         termsCondition: admission.termsCondition || false,
         priority: admission.priority || 'medium',
         appliedBatch: admission.appliedBatch || '',
@@ -630,14 +100,6 @@ const AdmissionForm = ({ admission, onClose }) => {
         }
         break;
       
-      case 'counsellor':
-        if (!value.trim()) {
-          newErrors.counsellor = 'Counsellor name is required';
-        } else {
-          delete newErrors.counsellor;
-        }
-        break;
-      
       case 'termsCondition':
         if (!value) {
           newErrors.termsCondition = 'Terms and conditions must be accepted';
@@ -685,16 +147,9 @@ const AdmissionForm = ({ admission, onClose }) => {
       newErrors.trainingBranch = 'Training branch is required';
     }
 
-    if (!formData.counsellor.trim()) {
-      newErrors.counsellor = 'Counsellor name is required';
-    }
 
     if (!formData.termsCondition) {
       newErrors.termsCondition = 'Terms and conditions must be accepted';
-    }
-
-    if (formData.studentStatement && formData.studentStatement.length > 1000) {
-      newErrors.studentStatement = 'Student statement must be less than 1000 characters';
     }
 
     if (formData.notes && formData.notes.length > 500) {
@@ -706,9 +161,7 @@ const AdmissionForm = ({ admission, onClose }) => {
       student: true,
       course: true,
       trainingBranch: true,
-      counsellor: true,
       termsCondition: true,
-      studentStatement: true,
       notes: true
     });
 
@@ -730,6 +183,16 @@ const AdmissionForm = ({ admission, onClose }) => {
     }
   };
 
+  const handleFileChange = (e) => {
+    const { name, files: fileList } = e.target;
+    if (fileList && fileList[0]) {
+      setFiles(prev => ({
+        ...prev,
+        [name]: fileList[0]
+      }));
+    }
+  };
+
   const handleBlur = (e) => {
     const { name, value } = e.target;
     setTouched(prev => ({ ...prev, [name]: true }));
@@ -743,22 +206,40 @@ const AdmissionForm = ({ admission, onClose }) => {
       return;
     }
 
-    const submitData = {
-      ...formData,
-      trainingBranch: formData.trainingBranch.trim(),
-      counsellor: formData.counsellor.trim(),
-      studentStatement: formData.studentStatement.trim(),
-      notes: formData.notes.trim(),
-      appliedBatch: formData.appliedBatch.trim()
-    };
+    // Create FormData for file upload
+    const submitFormData = new FormData();
+
+    // Append all form fields
+    submitFormData.append('student', formData.student);
+    submitFormData.append('course', formData.course);
+    submitFormData.append('trainingBranch', formData.trainingBranch.trim());
+    submitFormData.append('termsCondition', formData.termsCondition);
+    submitFormData.append('priority', formData.priority);
+    submitFormData.append('appliedBatch', formData.appliedBatch.trim());
+    submitFormData.append('source', formData.source);
+    submitFormData.append('notes', formData.notes.trim());
+
+    // Append files
+    if (files.admissionFrontPage) {
+      submitFormData.append('admissionFrontPage', files.admissionFrontPage);
+    }
+    if (files.admissionBackPage) {
+      submitFormData.append('admissionBackPage', files.admissionBackPage);
+    }
+    if (files.studentStatement) {
+      submitFormData.append('studentStatement', files.studentStatement);
+    }
+    if (files.confidentialForm) {
+      submitFormData.append('confidentialForm', files.confidentialForm);
+    }
 
     // Clear any previous errors
     dispatch(clearError());
 
     if (admission) {
-      await dispatch(updateAdmission({ admissionId: admission._id, admissionData: submitData }));
+      await dispatch(updateAdmission({ admissionId: admission._id, admissionData: submitFormData }));
     } else {
-      await dispatch(createAdmission(submitData));
+      await dispatch(createAdmission(submitFormData));
     }
   };
 
@@ -767,16 +248,17 @@ const AdmissionForm = ({ admission, onClose }) => {
       student: '',
       course: '',
       trainingBranch: '',
-      counsellor: '',
-      admissionFrontPage: '',
-      admissionBackPage: '',
-      studentStatement: '',
-      confidentialForm: '',
       termsCondition: false,
       priority: 'medium',
       appliedBatch: '',
       source: 'website',
       notes: ''
+    });
+    setFiles({
+      admissionFrontPage: null,
+      admissionBackPage: null,
+      studentStatement: null,
+      confidentialForm: null
     });
     setErrors({});
     setTouched({});
@@ -791,12 +273,14 @@ const AdmissionForm = ({ admission, onClose }) => {
     return formData.student && 
            formData.course && 
            formData.trainingBranch.trim() && 
-           formData.counsellor.trim() && 
            formData.termsCondition && 
            Object.keys(errors).length === 0;
   };
 
-  const studentStatementCount = formData.studentStatement.length;
+  const getFileName = (file) => {
+    return file ? file.name : 'No file chosen';
+  };
+
   const notesCount = formData.notes.length;
 
   const activeCourses = courses.filter(course => course.isActive);
@@ -916,29 +400,6 @@ const AdmissionForm = ({ admission, onClose }) => {
               <p className="mt-1 text-sm text-red-600">{errors.trainingBranch}</p>
             )}
           </div>
-
-          {/* Counsellor */}
-          <div>
-            <label htmlFor="counsellor" className="block text-sm font-medium text-gray-700 mb-2">
-              Counsellor <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              id="counsellor"
-              name="counsellor"
-              value={formData.counsellor}
-              onChange={handleChange}
-              onBlur={handleBlur}
-              className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                errors.counsellor ? 'border-red-300' : 'border-gray-300'
-              }`}
-              placeholder="Enter counsellor name"
-              disabled={operationLoading}
-            />
-            {errors.counsellor && touched.counsellor && (
-              <p className="mt-1 text-sm text-red-600">{errors.counsellor}</p>
-            )}
-          </div>
         </div>
 
         {/* Priority and Source */}
@@ -1001,91 +462,89 @@ const AdmissionForm = ({ admission, onClose }) => {
           />
         </div>
 
-        {/* Document Links */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Admission Front Page */}
-          <div>
-            <label htmlFor="admissionFrontPage" className="block text-sm font-medium text-gray-700 mb-2">
-              Admission Front Page URL
-            </label>
-            <input
-              type="url"
-              id="admissionFrontPage"
-              name="admissionFrontPage"
-              value={formData.admissionFrontPage}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="https://example.com/front-page.jpg"
-              disabled={operationLoading}
-            />
-          </div>
+        {/* Document Uploads */}
+        <div className="bg-blue-50 p-4 rounded-lg">
+          <h3 className="text-lg font-semibold text-blue-800 mb-4">Upload Documents (Images or PDFs)</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Admission Front Page */}
+            <div>
+              <label htmlFor="admissionFrontPage" className="block text-sm font-medium text-gray-700 mb-2">
+                Admission Front Page
+              </label>
+              <input
+                type="file"
+                id="admissionFrontPage"
+                name="admissionFrontPage"
+                onChange={handleFileChange}
+                accept="image/*,.pdf"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                disabled={operationLoading}
+              />
+              <p className="mt-1 text-sm text-gray-500">
+                {getFileName(files.admissionFrontPage)}
+              </p>
+            </div>
 
-          {/* Admission Back Page */}
-          <div>
-            <label htmlFor="admissionBackPage" className="block text-sm font-medium text-gray-700 mb-2">
-              Admission Back Page URL
-            </label>
-            <input
-              type="url"
-              id="admissionBackPage"
-              name="admissionBackPage"
-              value={formData.admissionBackPage}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="https://example.com/back-page.jpg"
-              disabled={operationLoading}
-            />
-          </div>
-        </div>
+            {/* Admission Back Page */}
+            <div>
+              <label htmlFor="admissionBackPage" className="block text-sm font-medium text-gray-700 mb-2">
+                Admission Back Page
+              </label>
+              <input
+                type="file"
+                id="admissionBackPage"
+                name="admissionBackPage"
+                onChange={handleFileChange}
+                accept="image/*,.pdf"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                disabled={operationLoading}
+              />
+              <p className="mt-1 text-sm text-gray-500">
+                {getFileName(files.admissionBackPage)}
+              </p>
+            </div>
 
-        {/* Confidential Form */}
-        <div>
-          <label htmlFor="confidentialForm" className="block text-sm font-medium text-gray-700 mb-2">
-            Confidential Form URL
-          </label>
-          <input
-            type="url"
-            id="confidentialForm"
-            name="confidentialForm"
-            value={formData.confidentialForm}
-            onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            placeholder="https://example.com/confidential-form.pdf"
-            disabled={operationLoading}
-          />
-        </div>
+            {/* Student Statement */}
+            <div>
+              <label htmlFor="studentStatement" className="block text-sm font-medium text-gray-700 mb-2">
+                Student Statement
+              </label>
+              <input
+                type="file"
+                id="studentStatement"
+                name="studentStatement"
+                onChange={handleFileChange}
+                accept="image/*,.pdf"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                disabled={operationLoading}
+              />
+              <p className="mt-1 text-sm text-gray-500">
+                {getFileName(files.studentStatement)}
+              </p>
+            </div>
 
-        {/* Student Statement */}
-        <div>
-          <label htmlFor="studentStatement" className="block text-sm font-medium text-gray-700 mb-2">
-            Student Statement
-            <span className="text-gray-400 text-xs ml-2">
-              {studentStatementCount}/1000 characters
-            </span>
-          </label>
-          <textarea
-            id="studentStatement"
-            name="studentStatement"
-            rows={3}
-            value={formData.studentStatement}
-            onChange={handleChange}
-            onBlur={handleBlur}
-            className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none ${
-              errors.studentStatement ? 'border-red-300' : 'border-gray-300'
-            }`}
-            placeholder="Student's statement about their interest and goals..."
-            disabled={operationLoading}
-          />
-          {errors.studentStatement && touched.studentStatement && (
-            <p className="mt-1 text-sm text-red-600">{errors.studentStatement}</p>
-          )}
-          <div className="flex justify-between mt-1">
-            <span className={`text-xs ${
-              studentStatementCount > 1000 ? 'text-red-600' : 'text-gray-500'
-            }`}>
-              {1000 - studentStatementCount} characters remaining
-            </span>
+            {/* Confidential Form */}
+            <div>
+              <label htmlFor="confidentialForm" className="block text-sm font-medium text-gray-700 mb-2">
+                Confidential Form
+              </label>
+              <input
+                type="file"
+                id="confidentialForm"
+                name="confidentialForm"
+                onChange={handleFileChange}
+                accept="image/*,.pdf"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                disabled={operationLoading}
+              />
+              <p className="mt-1 text-sm text-gray-500">
+                {getFileName(files.confidentialForm)}
+              </p>
+            </div>
           </div>
+          <p className="mt-2 text-xs text-gray-600">
+            Supported formats: JPG, PNG, GIF, PDF (Max 10MB per file)
+          </p>
         </div>
 
         {/* Notes */}
@@ -1184,22 +643,6 @@ const AdmissionForm = ({ admission, onClose }) => {
           </button>
         </div>
 
-        {/* Form Help Text */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <div className="flex items-start space-x-2">
-            <span className="text-blue-500">💡</span>
-            <div>
-              <h4 className="text-sm font-medium text-blue-800">Admission Guidelines:</h4>
-              <ul className="mt-1 text-xs text-blue-700 list-disc list-inside space-y-1">
-                <li>Ensure student has completed all prerequisite documentation</li>
-                <li>Verify course availability and batch timings</li>
-                <li>Confirm all required documents are uploaded</li>
-                <li>Set appropriate priority based on student requirements</li>
-                <li>Always accept terms and conditions before submission</li>
-              </ul>
-            </div>
-          </div>
-        </div>
       </form>
     </div>
   );

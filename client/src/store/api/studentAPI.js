@@ -40,15 +40,23 @@ const studentAPI = {
     return response;
   },
 
-  // Create new student
+  // Create new student with file upload support
   createStudent: async (studentData) => {
-    const response = await studentApi.post('/', studentData);
+    const response = await studentApi.post('/', studentData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
     return response;
   },
 
-  // Update student
+  // Update student with file upload support
   updateStudent: async (studentId, studentData) => {
-    const response = await studentApi.put(`/${studentId}`, studentData);
+    const response = await studentApi.put(`/${studentId}`, studentData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
     return response;
   },
 

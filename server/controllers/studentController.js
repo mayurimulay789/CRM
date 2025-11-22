@@ -1,4 +1,6 @@
 const Student = require('../models/Student');
+const Admission = require('../models/Admission');
+const { uploadToCloudinary, deleteFromCloudinary } = require('../utils/cloudinary');
 
 const getAllStudents = async (req, res) => {
   try {
@@ -42,6 +44,8 @@ const getAllStudents = async (req, res) => {
 
     // Get total count for pagination
     const total = await Student.countDocuments(filter);
+
+    console.log('response',students);
 
     res.status(200).json({
       success: true,
@@ -110,6 +114,10 @@ const getStudentByStudentId = async (req, res) => {
 
 const createStudent = async (req, res) => {
   try {
+    console.log('=== CREATE STUDENT STARTED ===');
+    console.log('Request body:', req.body);
+    console.log('Request files:', req.files ? Object.keys(req.files) : 'No files');
+
     const {
       name,
       email,
@@ -119,9 +127,7 @@ const createStudent = async (req, res) => {
       dateOfBirth,
       gender,
       address,
-      idProof,
-      studentPhoto,
-      studentSignature
+      idProof
     } = req.body;
 
     // Check if student with email already exists
@@ -133,10 +139,90 @@ const createStudent = async (req, res) => {
     });
 
     if (existingStudent) {
+      console.log('❌ Student already exists with email/phone:', email, phone);
       return res.status(400).json({
         success: false,
         message: 'Student with this email or phone already exists'
       });
+    }
+
+    // Handle file uploads to Cloudinary from buffer
+    let studentPhotoUrl = '';
+    let studentSignatureUrl = '';
+    let idProofPhotoUrl = '';
+
+    if (req.files) {
+      try {
+        console.log('=== FILE UPLOAD PROCESS STARTED ===');
+        
+        if (req.files.studentPhoto && req.files.studentPhoto[0]) {
+          const file = req.files.studentPhoto[0];
+          console.log('📸 Uploading student photo:', {
+            originalname: file.originalname,
+            size: file.size,
+            mimetype: file.mimetype,
+            bufferLength: file.buffer.length
+          });
+          
+          studentPhotoUrl = await uploadToCloudinary(file.buffer, 'lms/students/photos');
+          console.log('✅ Student photo uploaded. URL:', studentPhotoUrl);
+        } else {
+          console.log('📸 No student photo provided');
+        }
+
+        if (req.files.studentSignature && req.files.studentSignature[0]) {
+          const file = req.files.studentSignature[0];
+          console.log('✍️ Uploading student signature:', {
+            originalname: file.originalname,
+            size: file.size,
+            mimetype: file.mimetype,
+            bufferLength: file.buffer.length
+          });
+          
+          studentSignatureUrl = await uploadToCloudinary(file.buffer, 'lms/students/signatures');
+          console.log('✅ Student signature uploaded. URL:', studentSignatureUrl);
+        } else {
+          console.log('✍️ No student signature provided');
+        }
+
+        if (req.files.idProofPhoto && req.files.idProofPhoto[0]) {
+          const file = req.files.idProofPhoto[0];
+          console.log('📄 Uploading ID proof photo:', {
+            originalname: file.originalname,
+            size: file.size,
+            mimetype: file.mimetype,
+            bufferLength: file.buffer.length
+          });
+          
+          idProofPhotoUrl = await uploadToCloudinary(file.buffer, 'lms/students/idproofs');
+          console.log('✅ ID proof photo uploaded. URL:', idProofPhotoUrl);
+        } else {
+          console.log('📄 No ID proof photo provided');
+        }
+        
+        console.log('=== FILE UPLOAD PROCESS COMPLETED ===');
+      } catch (uploadError) {
+        console.error('❌ File upload error:', uploadError);
+        return res.status(500).json({
+          success: false,
+          message: `File upload failed: ${uploadError.message}`
+        });
+      }
+    } else {
+      console.log('📁 No files in request');
+    }
+
+    // Parse idProof if it's a string (from form-data)
+    let idProofData = idProof;
+    if (typeof idProof === 'string') {
+      try {
+        console.log('🔄 Parsing idProof string:', idProof);
+        idProofData = JSON.parse(idProof);
+        console.log('✅ idProof parsed successfully:', idProofData);
+      } catch (error) {
+        console.log('❌ Failed to parse idProof, using empty object');
+        idProofData = {};
+      }
     }
 
     // Generate sequential studentId
@@ -146,40 +232,67 @@ const createStudent = async (req, res) => {
     if (lastStudent && lastStudent.studentId) {
       const lastNumber = parseInt(lastStudent.studentId.replace('STU', ''));
       studentId = `STU${(lastNumber + 1).toString().padStart(6, '0')}`;
+      console.log('🎫 Generated studentId from last student:', studentId);
     } else {
       studentId = 'STU000001';
+      console.log('🎫 Generated first studentId:', studentId);
     }
 
+    // Prepare student data
     const studentData = {
       studentId,
       name,
       email,
       phone,
-      alternateEmail,
-      alternatePhone,
-      dateOfBirth,
-      gender,
-      address,
-      idProof,
-      studentPhoto,
-      studentSignature
+      alternateEmail: alternateEmail || undefined,
+      alternatePhone: alternatePhone || undefined,
+      dateOfBirth: dateOfBirth || undefined,
+      gender: gender || undefined,
+      address: address || {},
+      idProof: {
+        ...idProofData,
+        photo: idProofPhotoUrl || idProofData?.photo || ''
+      },
+      studentPhoto: studentPhotoUrl || undefined,
+      studentSignature: studentSignatureUrl || undefined
     };
 
+    console.log('📦 Final student data to save:', {
+      studentId: studentData.studentId,
+      name: studentData.name,
+      email: studentData.email,
+      hasStudentPhoto: !!studentData.studentPhoto,
+      hasStudentSignature: !!studentData.studentSignature,
+      hasIdProofPhoto: !!studentData.idProof.photo,
+      idProofType: studentData.idProof.type,
+      idProofNumber: studentData.idProof.number
+    });
+
+    // Create and save student
     const student = new Student(studentData);
+    console.log('💾 Saving student to database...');
+    
     const savedStudent = await student.save();
+    console.log('✅ Student saved successfully. ID:', savedStudent._id);
 
     // Remove version key from response
     const studentResponse = savedStudent.toObject();
     delete studentResponse.__v;
 
+    console.log('=== CREATE STUDENT COMPLETED SUCCESSFULLY ===');
+    
     res.status(201).json({
       success: true,
       message: 'Student created successfully',
       data: studentResponse
     });
+
   } catch (error) {
+    console.error('❌ CREATE STUDENT ERROR:', error);
+    
     if (error.name === 'ValidationError') {
       const messages = Object.values(error.errors).map(val => val.message);
+      console.log('❌ Validation errors:', messages);
       return res.status(400).json({
         success: false,
         message: 'Validation error',
@@ -189,6 +302,7 @@ const createStudent = async (req, res) => {
 
     // Handle duplicate key error (if studentId generation fails)
     if (error.code === 11000) {
+      console.log('❌ Duplicate key error:', error.message);
       return res.status(400).json({
         success: false,
         message: 'Student ID already exists. Please try again.',
@@ -196,6 +310,7 @@ const createStudent = async (req, res) => {
       });
     }
 
+    console.log('❌ Unexpected error:', error.message);
     res.status(500).json({
       success: false,
       message: 'Error creating student',
@@ -216,9 +331,8 @@ const updateStudent = async (req, res) => {
       gender,
       address,
       idProof,
-      studentPhoto,
-      studentSignature,
       isActive
+      // Remove file fields from body
     } = req.body;
 
     // Check if student exists
@@ -257,7 +371,62 @@ const updateStudent = async (req, res) => {
       }
     }
 
-    // Update student fields
+    // Handle file uploads for updates
+    let fileUpdateData = {};
+    if (req.files) {
+      try {
+        // Handle student photo update
+        if (req.files.studentPhoto && req.files.studentPhoto[0]) {
+          const file = req.files.studentPhoto[0];
+          fileUpdateData.studentPhoto = await uploadToCloudinary(file.buffer, 'lms/students/photos');
+          
+          // Delete old photo if exists
+          if (student.studentPhoto) {
+            await deleteFromCloudinary(student.studentPhoto);
+          }
+        }
+
+        // Handle student signature update
+        if (req.files.studentSignature && req.files.studentSignature[0]) {
+          const file = req.files.studentSignature[0];
+          fileUpdateData.studentSignature = await uploadToCloudinary(file.buffer, 'lms/students/signatures');
+          
+          // Delete old signature if exists
+          if (student.studentSignature) {
+            await deleteFromCloudinary(student.studentSignature);
+          }
+        }
+
+        // Handle ID proof photo update
+        if (req.files.idProofPhoto && req.files.idProofPhoto[0]) {
+          const file = req.files.idProofPhoto[0];
+          fileUpdateData.idProofPhoto = await uploadToCloudinary(file.buffer, 'lms/students/idproofs');
+          
+          // Delete old ID proof photo if exists
+          if (student.idProof && student.idProof.photo) {
+            await deleteFromCloudinary(student.idProof.photo);
+          }
+        }
+      } catch (uploadError) {
+        console.error('File upload error:', uploadError);
+        return res.status(500).json({
+          success: false,
+          message: `File upload failed: ${uploadError.message}`
+        });
+      }
+    }
+
+    // Parse idProof if it's a string
+    let idProofData = idProof;
+    if (typeof idProof === 'string') {
+      try {
+        idProofData = JSON.parse(idProof);
+      } catch (error) {
+        idProofData = student.idProof;
+      }
+    }
+
+    // Update student data
     const updateData = {
       name: name || student.name,
       email: email || student.email,
@@ -267,10 +436,13 @@ const updateStudent = async (req, res) => {
       dateOfBirth: dateOfBirth || student.dateOfBirth,
       gender: gender || student.gender,
       address: address || student.address,
-      idProof: idProof || student.idProof,
-      studentPhoto: studentPhoto !== undefined ? studentPhoto : student.studentPhoto,
-      studentSignature: studentSignature !== undefined ? studentSignature : student.studentSignature,
-      isActive: isActive !== undefined ? isActive : student.isActive
+      idProof: {
+        ...student.idProof,
+        ...idProofData,
+        ...(fileUpdateData.idProofPhoto && { photo: fileUpdateData.idProofPhoto })
+      },
+      isActive: isActive !== undefined ? isActive : student.isActive,
+      ...fileUpdateData
     };
 
     const updatedStudent = await Student.findByIdAndUpdate(
@@ -316,14 +488,30 @@ const deleteStudent = async (req, res) => {
       });
     }
 
-    // Check if student has any admissions (you might want to add this check)
-    // const admissionCount = await Admission.countDocuments({ student: req.params.id });
-    // if (admissionCount > 0) {
-    //   return res.status(400).json({
-    //     success: false,
-    //     message: 'Cannot delete student. Student has admissions records.'
-    //   });
-    // }
+    // Check if student is involved in admission then can't delete this
+    const admissionCount = await Admission.countDocuments({ student: req.params.id });
+    if (admissionCount > 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot delete student. Student has admissions records.'
+      });
+    }
+
+    // Delete files from Cloudinary before deleting student
+    try {
+      if (student.studentPhoto) {
+        await deleteFromCloudinary(student.studentPhoto);
+      }
+      if (student.studentSignature) {
+        await deleteFromCloudinary(student.studentSignature);
+      }
+      if (student.idProof && student.idProof.photo) {
+        await deleteFromCloudinary(student.idProof.photo);
+      }
+    } catch (deleteError) {
+      console.error('Error deleting files from Cloudinary:', deleteError);
+      // Continue with student deletion even if file deletion fails
+    }
 
     await Student.findByIdAndDelete(req.params.id);
 

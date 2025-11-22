@@ -146,6 +146,7 @@ const BatchCard = ({ batch, onEditBatch }) => {
 };
 
 const KanbanBoard = ({ onEditBatch }) => {
+  const dispatch = useDispatch();
   const { batches, loading, error } = useSelector((state) => state.batch);
   const [activeId, setActiveId] = useState(null);
 
@@ -203,9 +204,22 @@ const KanbanBoard = ({ onEditBatch }) => {
       }
     }
 
-    // Check if dropped on a column (not on another batch)
+    // Determine destination column - check if overId is a column or a batch
+    let destColumn = null;
     const columnIds = ['upcoming', 'running', 'closed'];
-    const destColumn = columnIds.includes(overId) ? overId : null;
+    
+    if (columnIds.includes(overId)) {
+      // Dropped directly on column
+      destColumn = overId;
+    } else {
+      // Dropped on a batch, find which column it belongs to
+      for (const key of columnKeys) {
+        if (columns[key].some(batch => batch._id === overId)) {
+          destColumn = key;
+          break;
+        }
+      }
+    }
 
     if (!sourceColumn || !destColumn || sourceColumn === destColumn) {
       setActiveId(null);
@@ -216,7 +230,7 @@ const KanbanBoard = ({ onEditBatch }) => {
     const allowedMoves = {
       upcoming: ['running'], // Upcoming can only go to Running
       running: ['closed'], // Running can go to Closed
-      closed: ['running'], // Closed cannot be moved
+      closed: ['running'], // Closed can go back to Running
     };
 
     if (!allowedMoves[sourceColumn].includes(destColumn)) {

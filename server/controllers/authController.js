@@ -25,7 +25,7 @@ const registerUser = async (req, res) => {
       FullName,
       email,
       password,
-      role: role || 'Counsellor',
+      role:'Counsellor',
     });
 
     console.log("User created:", user);
@@ -178,10 +178,77 @@ const updateUserProfile = async (req, res) => {
   }
 };
 
+
+const getAllCounsellor = async (req, res) => {
+  try {
+    // Get pagination parameters from query
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    // Get search parameter
+    const search = req.query.search || '';
+
+    // Build search query
+    let searchQuery = { role: 'Counsellor' };
+    
+    if (search) {
+      searchQuery.$or = [
+        { FullName: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    // Get total count for pagination
+    const totalCounsellors = await User.countDocuments(searchQuery);
+
+    // Find counsellors with pagination and search
+    const counsellors = await User.find(searchQuery)
+      .select('-password')
+      .sort({ FullName: 1 })
+      .skip(skip)
+      .limit(limit);
+
+    // Calculate pagination info
+    const totalPages = Math.ceil(totalCounsellors / limit);
+    const hasNextPage = page < totalPages;
+    const hasPrevPage = page > 1;
+
+    res.status(200).json({
+      message: 'Counsellors retrieved successfully',
+      counsellors: counsellors.map(counsellor => ({
+        _id: counsellor._id,
+        FullName: counsellor.FullName,
+        email: counsellor.email,
+        role: counsellor.role,
+        phone: counsellor.phone || null,
+        createdAt: counsellor.createdAt,
+        updatedAt: counsellor.updatedAt
+      })),
+      pagination: {
+        currentPage: page,
+        totalPages: totalPages,
+        totalCounsellors: totalCounsellors,
+        hasNextPage: hasNextPage,
+        hasPrevPage: hasPrevPage,
+        limit: limit
+      }
+    });
+
+  } catch (error) {
+    console.error('Get All Counsellors Error:', error);
+    res.status(500).json({ 
+      message: 'Server error while fetching counsellors',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
+
 module.exports = { 
   registerUser,
   loginUser,
   logoutUser,
   getCurrentUser,
-  updateUserProfile
+  updateUserProfile,
+  getAllCounsellor
 };

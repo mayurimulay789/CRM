@@ -5,6 +5,7 @@ import authAPI from '../api/authAPI';
 const getStoredUser = () => {
   try {
     const user = localStorage.getItem('user');
+    console.log("Stored user:", user);
     return user && user !== 'undefined' ? JSON.parse(user) : null;
   } catch (error) {
     console.error('Error parsing stored user:', error);
@@ -72,7 +73,6 @@ export const logoutUser = createAsyncThunk(
       // ✅ ALWAYS clear localStorage
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-        
     }
     
     return null;
@@ -122,6 +122,21 @@ export const updateUserProfile = createAsyncThunk(
   }
 );
 
+// ✅ NEW: Get All Counsellors (Admin only)
+export const getAllCounsellors = createAsyncThunk(
+  'auth/getAllCounsellors',
+  async (queryParams = {}, { rejectWithValue }) => {
+    try {
+      const response = await authAPI.getAllCounsellors(queryParams);
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || 'Failed to fetch counsellors'
+      );
+    }
+  }
+);
+
 // ✅ SAFE Initial State
 const initialState = {
   user: userFromStorage,
@@ -130,6 +145,20 @@ const initialState = {
   loading: false,
   error: null,
   success: null,
+  // ✅ NEW: Counsellors state
+  counsellors: {
+    list: [],
+    loading: false,
+    error: null,
+    pagination: {
+      currentPage: 1,
+      totalPages: 0,
+      totalCounsellors: 0,
+      hasNextPage: false,
+      hasPrevPage: false,
+      limit: 10
+    }
+  }
 };
 
 // Auth Slice
@@ -175,6 +204,22 @@ const authSlice = createSlice({
       state.user = null;
       state.token = null;
       state.isAuthenticated = false;
+    },
+    // ✅ NEW: Clear counsellors error
+    clearCounsellorsError: (state) => {
+      state.counsellors.error = null;
+    },
+    // ✅ NEW: Clear counsellors list
+    clearCounsellors: (state) => {
+      state.counsellors.list = [];
+      state.counsellors.pagination = {
+        currentPage: 1,
+        totalPages: 0,
+        totalCounsellors: 0,
+        hasNextPage: false,
+        hasPrevPage: false,
+        limit: 10
+      };
     }
   },
   extraReducers: (builder) => {
@@ -227,6 +272,16 @@ const authSlice = createSlice({
         state.token = null;
         state.isAuthenticated = false;
         state.success = 'Logout successful';
+        // ✅ Clear counsellors data on logout
+        state.counsellors.list = [];
+        state.counsellors.pagination = {
+          currentPage: 1,
+          totalPages: 0,
+          totalCounsellors: 0,
+          hasNextPage: false,
+          hasPrevPage: false,
+          limit: 10
+        };
       })
       .addCase(logoutUser.rejected, (state, action) => {
         state.loading = false;
@@ -234,6 +289,16 @@ const authSlice = createSlice({
         state.token = null;
         state.isAuthenticated = false;
         state.error = action.payload;
+        // ✅ Clear counsellors data on logout error too
+        state.counsellors.list = [];
+        state.counsellors.pagination = {
+          currentPage: 1,
+          totalPages: 0,
+          totalCounsellors: 0,
+          hasNextPage: false,
+          hasPrevPage: false,
+          limit: 10
+        };
       })
       // Get Current User
       .addCase(getCurrentUser.pending, (state) => {
@@ -264,10 +329,45 @@ const authSlice = createSlice({
       .addCase(updateUserProfile.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
+      })
+      // ✅ NEW: Get All Counsellors
+      .addCase(getAllCounsellors.pending, (state) => {
+        state.counsellors.loading = true;
+        state.counsellors.error = null;
+      })
+      .addCase(getAllCounsellors.fulfilled, (state, action) => {
+        state.counsellors.loading = false;
+        state.counsellors.list = action.payload.counsellors || [];
+        
+        // Update pagination if available
+        if (action.payload.pagination) {
+          state.counsellors.pagination = {
+            ...state.counsellors.pagination,
+            ...action.payload.pagination
+          };
+        } else {
+          // If no pagination data, set basic info
+          state.counsellors.pagination.totalCounsellors = action.payload.count || action.payload.counsellors?.length || 0;
+        }
+        
+        state.success = action.payload.message || 'Counsellors fetched successfully';
+      })
+      .addCase(getAllCounsellors.rejected, (state, action) => {
+        state.counsellors.loading = false;
+        state.counsellors.error = action.payload;
+        state.counsellors.list = [];
       });
   },
 });
 
-export const { clearError, clearSuccess, setCredentials, manualLogout, clearInvalidStorage } = authSlice.actions;
+export const { 
+  clearError, 
+  clearSuccess, 
+  setCredentials, 
+  manualLogout, 
+  clearInvalidStorage,
+  clearCounsellorsError,
+  clearCounsellors
+} = authSlice.actions;
 
 export default authSlice.reducer;

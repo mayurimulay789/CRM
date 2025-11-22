@@ -1,4 +1,3 @@
-
 const express = require('express');
 const router = express.Router();
 const {
@@ -15,30 +14,24 @@ const {
   getAdmissionStats
 } = require('../controllers/admissionController');
 
-const { protect,admin } = require('../middleware/auth');
+const { protect, admin } = require('../middleware/auth');
+const { uploadAdmissionFiles, handleUploadErrors } = require('../middleware/uploadMiddleware');
 
 router.use(protect);
 
 router.get('/', getAllAdmissions);
-
 router.get('/stats/summary', getAdmissionStats);
-
 router.get('/:id', getAdmissionById);
-
 router.get('/admissionNo/:admissionNo', getAdmissionByAdmissionNo);
-
 router.get('/student/:studentId', getAdmissionsByStudent);
-
 router.get('/course/:courseId', getAdmissionsByCourse);
 
-router.post('/', createAdmission);
-
-router.put('/:id', updateAdmission);
+// Add upload middleware to create and update routes
+router.post('/', uploadAdmissionFiles, handleUploadErrors, createAdmission);
+router.put('/:id', uploadAdmissionFiles, handleUploadErrors, updateAdmission);
 
 router.patch('/:id/status', updateAdmissionStatus);
-
 router.patch('/:id/verify-email', verifyAdmissionEmail);
-
 router.delete('/:id', deleteAdmission);
 
 module.exports = router;

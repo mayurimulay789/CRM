@@ -1,4 +1,6 @@
 const Course = require('../models/Course');
+const Enrollment=require('../models/Enrollment');
+const Admission=require('../models/Admission');
 
 const createCourse = async (req, res) => {
   try {
@@ -147,14 +149,27 @@ const deleteCourse = async (req, res) => {
       });
     }
 
+
+    //if course is envoled in admission or enroolment then dont delete it
+
+
+
     // Check if course is being used in admissions (you might want to add this check)
-    // const admissionCount = await Admission.countDocuments({ course: req.params.id });
-    // if (admissionCount > 0) {
-    //   return res.status(400).json({
-    //     success: false,
-    //     message: 'Cannot delete course. It is being used in admissions.'
-    //   });
-    // }
+    const admissionCount = await Admission.countDocuments({ course: req.params.id });
+    if (admissionCount > 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot delete course. It is being used in admissions.'
+      });
+    }
+    const enrollmentCount = await Enrollment.countDocuments({ course: req.params.id });
+    if (admissionCount > 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot delete course. It is being used in Enrollment.'
+      });
+    }
+
 
     await Course.findByIdAndDelete(req.params.id);
 

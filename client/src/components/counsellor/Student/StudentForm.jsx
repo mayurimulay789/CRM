@@ -30,8 +30,16 @@ const StudentForm = ({ student, onClose }) => {
     studentSignature: ''
   });
 
+  // File states
+  const [files, setFiles] = useState({
+    studentPhoto: null,
+    studentSignature: null,
+    idProofPhoto: null
+  });
+
   const [errors, setErrors] = useState({});
   const [touched, setTouched] = useState({});
+  const [fileErrors, setFileErrors] = useState({});
 
   useEffect(() => {
     if (student) {
@@ -64,10 +72,8 @@ const StudentForm = ({ student, onClose }) => {
   // Handle successful operation and close form
   useEffect(() => {
     if (success && (success.includes('created') || success.includes('updated'))) {
-      console.log('Operation successful, closing form in 1 second...');
       
       const timer = setTimeout(() => {
-        console.log('Closing form now');
         onClose();
       }, 1000);
       
@@ -83,88 +89,292 @@ const StudentForm = ({ student, onClose }) => {
     };
   }, [dispatch]);
 
+  // Validation rules
+  const validationRules = {
+    name: {
+      required: true,
+      minLength: 2,
+      maxLength: 100,
+      pattern: /^[a-zA-Z\s.'-]+$/,
+      message: {
+        required: 'Student name is required',
+        minLength: 'Name must be at least 2 characters long',
+        maxLength: 'Name cannot exceed 100 characters',
+        pattern: 'Name can only contain letters, spaces, apostrophes, hyphens, and periods'
+      }
+    },
+    email: {
+      required: true,
+      pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+      maxLength: 255,
+      message: {
+        required: 'Email is required',
+        pattern: 'Please enter a valid email address',
+        maxLength: 'Email cannot exceed 255 characters'
+      }
+    },
+    phone: {
+      required: true,
+      pattern: /^\d{10}$/,
+      message: {
+        required: 'Phone number is required',
+        pattern: 'Please enter a valid 10-digit phone number'
+      }
+    },
+    alternateEmail: {
+      required: false,
+      pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+      message: {
+        pattern: 'Please enter a valid alternate email address'
+      }
+    },
+    alternatePhone: {
+      required: false,
+      pattern: /^\d{10}$/,
+      message: {
+        pattern: 'Please enter a valid 10-digit alternate phone number'
+      }
+    },
+    dateOfBirth: {
+      required: false,
+      validate: (value) => {
+        if (!value) return true;
+        const dob = new Date(value);
+        const today = new Date();
+        const minDate = new Date();
+        minDate.setFullYear(minDate.getFullYear() - 100); // 100 years ago
+        
+        if (dob > today) return 'Date of birth cannot be in the future';
+        if (dob < minDate) return 'Date of birth cannot be more than 100 years ago';
+        if (today.getFullYear() - dob.getFullYear() < 5) return 'Student must be at least 5 years old';
+        
+        return true;
+      }
+    },
+    gender: {
+      required: false
+    },
+    'address.street': {
+      required: false,
+      maxLength: 255,
+      message: {
+        maxLength: 'Street address cannot exceed 255 characters'
+      }
+    },
+    'address.city': {
+      required: false,
+      maxLength: 100,
+      pattern: /^[a-zA-Z\s.-]+$/,
+      message: {
+        maxLength: 'City name cannot exceed 100 characters',
+        pattern: 'City name can only contain letters, spaces, hyphens, and periods'
+      }
+    },
+    'address.state': {
+      required: false,
+      maxLength: 100,
+      pattern: /^[a-zA-Z\s.-]+$/,
+      message: {
+        maxLength: 'State name cannot exceed 100 characters',
+        pattern: 'State name can only contain letters, spaces, hyphens, and periods'
+      }
+    },
+    'address.zipCode': {
+      required: false,
+      pattern: /^\d{6}$/,
+      message: {
+        pattern: 'ZIP code must be exactly 6 digits'
+      }
+    },
+    'address.country': {
+      required: false,
+      maxLength: 100,
+      message: {
+        maxLength: 'Country name cannot exceed 100 characters'
+      }
+    },
+    'idProof.type': {
+      required: false
+    },
+    'idProof.number': {
+      required: false,
+      validate: (value, formData) => {
+        if (!value) return true;
+        
+        const idType = formData.idProof.type;
+        const idNumber = value.trim();
+        
+        const idPatterns = {
+          aadhaar: /^\d{12}$/,
+          pan_card: /^[A-Z]{5}\d{4}[A-Z]{1}$/,
+          passport: /^[A-PR-WY][1-9]\d\s?\d{4}[1-9]$/,
+          driving_license: /^[A-Z]{2}\d{13}$/,
+          voter_id: /^[A-Z]{3}\d{7}$/
+        };
+        
+        if (idType && idPatterns[idType]) {
+          if (!idPatterns[idType].test(idNumber)) {
+            return `Please enter a valid ${idType.replace('_', ' ')} number`;
+          }
+        }
+        
+        return true;
+      }
+    }
+  };
+
+  const fileValidationRules = {
+    studentPhoto: {
+      maxSize: 5 * 1024 * 1024, // 5MB
+      allowedTypes: ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'],
+      message: {
+        type: 'Student photo must be a JPEG, PNG, or GIF image',
+        size: 'Student photo must be less than 5MB'
+      }
+    },
+    studentSignature: {
+      maxSize: 2 * 1024 * 1024, // 2MB
+      allowedTypes: ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'],
+      message: {
+        type: 'Signature must be a JPEG, PNG, or GIF image',
+        size: 'Signature must be less than 2MB'
+      }
+    },
+    idProofPhoto: {
+      maxSize: 10 * 1024 * 1024, // 10MB
+      allowedTypes: ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'],
+      message: {
+        type: 'ID proof must be an image (JPEG, PNG) or PDF',
+        size: 'ID proof must be less than 10MB'
+      }
+    }
+  };
+
   const validateField = (name, value) => {
+    const rule = validationRules[name];
     const newErrors = { ...errors };
 
-    switch (name) {
-      case 'name':
-        if (!value.trim()) {
-          newErrors.name = 'Student name is required';
-        } else if (value.trim().length < 2) {
-          newErrors.name = 'Student name must be at least 2 characters';
-        } else {
-          delete newErrors.name;
-        }
-        break;
-      
-      case 'email':
-        if (!value.trim()) {
-          newErrors.email = 'Email is required';
-        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
-          newErrors.email = 'Please enter a valid email address';
-        } else {
-          delete newErrors.email;
-        }
-        break;
-      
-      case 'phone':
-        if (!value.trim()) {
-          newErrors.phone = 'Phone number is required';
-        } else if (!/^\d{10}$/.test(value.replace(/\D/g, ''))) {
-          newErrors.phone = 'Please enter a valid 10-digit phone number';
-        } else {
-          delete newErrors.phone;
-        }
-        break;
-      
-      case 'dateOfBirth':
-        if (value && new Date(value) > new Date()) {
-          newErrors.dateOfBirth = 'Date of birth cannot be in the future';
-        } else {
-          delete newErrors.dateOfBirth;
-        }
-        break;
-      
-      default:
-        break;
+    if (!rule) {
+      delete newErrors[name];
+      setErrors(newErrors);
+      return true;
+    }
+
+    // Clear error if field is empty and not required
+    if (!value.trim() && !rule.required) {
+      delete newErrors[name];
+      setErrors(newErrors);
+      return true;
+    }
+
+    // Required validation
+    if (rule.required && !value.trim()) {
+      newErrors[name] = rule.message.required;
+    }
+    // Pattern validation
+    else if (rule.pattern && value.trim() && !rule.pattern.test(value.trim())) {
+      newErrors[name] = rule.message.pattern;
+    }
+    // Min length validation
+    else if (rule.minLength && value.trim().length < rule.minLength) {
+      newErrors[name] = rule.message.minLength;
+    }
+    // Max length validation
+    else if (rule.maxLength && value.trim().length > rule.maxLength) {
+      newErrors[name] = rule.message.maxLength;
+    }
+    // Custom validation function
+    else if (rule.validate) {
+      const validationResult = rule.validate(value, formData);
+      if (validationResult !== true) {
+        newErrors[name] = validationResult;
+      } else {
+        delete newErrors[name];
+      }
+    }
+    // If no errors, remove from errors object
+    else {
+      delete newErrors[name];
     }
 
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    return !newErrors[name];
+  };
+
+  const validateFile = (name, file) => {
+    const rule = fileValidationRules[name];
+    const newFileErrors = { ...fileErrors };
+
+    if (!file) {
+      delete newFileErrors[name];
+      setFileErrors(newFileErrors);
+      return true;
+    }
+
+    if (!rule.allowedTypes.includes(file.type)) {
+      newFileErrors[name] = rule.message.type;
+    } else if (file.size > rule.maxSize) {
+      newFileErrors[name] = rule.message.size;
+    } else {
+      delete newFileErrors[name];
+    }
+
+    setFileErrors(newFileErrors);
+    return !newFileErrors[name];
   };
 
   const validateForm = () => {
     const newErrors = {};
+    const newFileErrors = { ...fileErrors };
 
-    if (!formData.name.trim()) {
-      newErrors.name = 'Student name is required';
-    }
-
-    if (!formData.email.trim()) {
-      newErrors.email = 'Email is required';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'Please enter a valid email address';
-    }
-
-    if (!formData.phone.trim()) {
-      newErrors.phone = 'Phone number is required';
-    } else if (!/^\d{10}$/.test(formData.phone.replace(/\D/g, ''))) {
-      newErrors.phone = 'Please enter a valid 10-digit phone number';
-    }
-
-    if (formData.dateOfBirth && new Date(formData.dateOfBirth) > new Date()) {
-      newErrors.dateOfBirth = 'Date of birth cannot be in the future';
-    }
-
-    setErrors(newErrors);
-    setTouched({
-      name: true,
-      email: true,
-      phone: true,
-      dateOfBirth: true
+    // Validate all fields
+    Object.keys(validationRules).forEach(field => {
+      let value;
+      
+      if (field.includes('.')) {
+        const [parent, child] = field.split('.');
+        value = formData[parent]?.[child] || '';
+      } else {
+        value = formData[field] || '';
+      }
+      
+      const rule = validationRules[field];
+      
+      if (rule.required && !value.trim()) {
+        newErrors[field] = rule.message.required;
+      } else if (value.trim()) {
+        if (rule.pattern && !rule.pattern.test(value.trim())) {
+          newErrors[field] = rule.message.pattern;
+        } else if (rule.minLength && value.trim().length < rule.minLength) {
+          newErrors[field] = rule.message.minLength;
+        } else if (rule.maxLength && value.trim().length > rule.maxLength) {
+          newErrors[field] = rule.message.maxLength;
+        } else if (rule.validate) {
+          const validationResult = rule.validate(value, formData);
+          if (validationResult !== true) {
+            newErrors[field] = validationResult;
+          }
+        }
+      }
     });
 
-    return Object.keys(newErrors).length === 0;
+    // Validate files
+    Object.keys(files).forEach(fileField => {
+      const file = files[fileField];
+      if (file) {
+        validateFile(fileField, file);
+      }
+    });
+
+    // Mark all fields as touched for error display
+    const allTouched = {};
+    Object.keys(validationRules).forEach(field => {
+      allTouched[field] = true;
+    });
+    setTouched(allTouched);
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0 && Object.keys(newFileErrors).length === 0;
   };
 
   const handleChange = (e) => {
@@ -179,6 +389,11 @@ const StudentForm = ({ student, onClose }) => {
           [field]: value
         }
       }));
+      
+      // Validate nested address field
+      if (touched[name]) {
+        validateField(name, value);
+      }
     } else if (name.startsWith('idProof.')) {
       const field = name.split('.')[1];
       setFormData(prev => ({
@@ -188,16 +403,48 @@ const StudentForm = ({ student, onClose }) => {
           [field]: value
         }
       }));
+      
+      // Validate nested idProof field
+      if (touched[name]) {
+        validateField(name, value);
+      }
+      
+      // Special case: if idProof type changes, validate the number
+      if (field === 'type' && touched['idProof.number']) {
+        validateField('idProof.number', formData.idProof.number);
+      }
     } else {
       setFormData(prev => ({
         ...prev,
         [name]: type === 'checkbox' ? checked : value
       }));
-    }
 
-    // Validate field in real-time if it's been touched
-    if (touched[name]) {
-      validateField(name, value);
+      // Validate field in real-time if it's been touched
+      if (touched[name]) {
+        validateField(name, value);
+      }
+    }
+  };
+
+  const handleFileChange = (e) => {
+    const { name, files: fileList } = e.target;
+    if (fileList && fileList[0]) {
+      const file = fileList[0];
+      setFiles(prev => ({
+        ...prev,
+        [name]: file
+      }));
+      validateFile(name, file);
+    } else {
+      setFiles(prev => ({
+        ...prev,
+        [name]: null
+      }));
+      setFileErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
     }
   };
 
@@ -211,31 +458,85 @@ const StudentForm = ({ student, onClose }) => {
     e.preventDefault();
     
     if (!validateForm()) {
+      // Scroll to first error
+      const firstErrorField = document.querySelector('[class*="border-red-300"]');
+      if (firstErrorField) {
+        firstErrorField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
       return;
     }
 
-    console.log('Submitting form...');
 
-    const submitData = {
-      ...formData,
-      name: formData.name.trim(),
-      email: formData.email.trim().toLowerCase(),
-      phone: formData.phone.trim(),
-      alternateEmail: formData.alternateEmail.trim() || undefined,
-      alternatePhone: formData.alternatePhone.trim() || undefined,
-      dateOfBirth: formData.dateOfBirth || undefined,
-      gender: formData.gender || undefined
-    };
+    // Create FormData object for file upload
+    const submitFormData = new FormData();
+
+    // Append all form fields
+    submitFormData.append('name', formData.name.trim());
+    submitFormData.append('email', formData.email.trim().toLowerCase());
+    submitFormData.append('phone', formData.phone.trim());
+    
+    if (formData.alternateEmail.trim()) {
+      submitFormData.append('alternateEmail', formData.alternateEmail.trim());
+    }
+    
+    if (formData.alternatePhone.trim()) {
+      submitFormData.append('alternatePhone', formData.alternatePhone.trim());
+    }
+    
+    if (formData.dateOfBirth) {
+      submitFormData.append('dateOfBirth', formData.dateOfBirth);
+    }
+    
+    if (formData.gender) {
+      submitFormData.append('gender', formData.gender);
+    }
+
+    // Append address fields
+    if (formData.address.street) {
+      submitFormData.append('address[street]', formData.address.street);
+    }
+    if (formData.address.city) {
+      submitFormData.append('address[city]', formData.address.city);
+    }
+    if (formData.address.state) {
+      submitFormData.append('address[state]', formData.address.state);
+    }
+    if (formData.address.zipCode) {
+      submitFormData.append('address[zipCode]', formData.address.zipCode);
+    }
+    if (formData.address.country) {
+      submitFormData.append('address[country]', formData.address.country);
+    }
+
+    // Append idProof fields as JSON string
+    if (formData.idProof.type || formData.idProof.number) {
+      submitFormData.append('idProof', JSON.stringify({
+        type: formData.idProof.type,
+        number: formData.idProof.number
+      }));
+    }
+
+    // Append files
+    if (files.studentPhoto) {
+      submitFormData.append('studentPhoto', files.studentPhoto);
+    }
+    if (files.studentSignature) {
+      submitFormData.append('studentSignature', files.studentSignature);
+    }
+    if (files.idProofPhoto) {
+      submitFormData.append('idProofPhoto', files.idProofPhoto);
+    }
 
     // Clear any previous errors
     dispatch(clearError());
 
     if (student) {
-      console.log('Updating student...');
-      await dispatch(updateStudent({ studentId: student._id, studentData: submitData }));
+      await dispatch(updateStudent({ 
+        studentId: student._id, 
+        studentData: submitFormData 
+      }));
     } else {
-      console.log('Creating student...');
-      await dispatch(createStudent(submitData));
+      await dispatch(createStudent(submitFormData));
     }
   };
 
@@ -263,8 +564,14 @@ const StudentForm = ({ student, onClose }) => {
       studentPhoto: '',
       studentSignature: ''
     });
+    setFiles({
+      studentPhoto: null,
+      studentSignature: null,
+      idProofPhoto: null
+    });
     setErrors({});
     setTouched({});
+    setFileErrors({});
     dispatch(clearError());
   };
 
@@ -273,10 +580,15 @@ const StudentForm = ({ student, onClose }) => {
   };
 
   const isFormValid = () => {
-    return formData.name.trim() && 
-           formData.email.trim() && 
-           formData.phone.trim() && 
-           Object.keys(errors).length === 0;
+    const requiredFields = ['name', 'email', 'phone'];
+    const hasRequiredFields = requiredFields.every(field => 
+      formData[field] && formData[field].trim()
+    );
+    
+    const hasFieldErrors = Object.keys(errors).length > 0;
+    const hasFileErrors = Object.keys(fileErrors).length > 0;
+    
+    return hasRequiredFields && !hasFieldErrors && !hasFileErrors;
   };
 
   const calculateAge = () => {
@@ -291,12 +603,20 @@ const StudentForm = ({ student, onClose }) => {
     return age;
   };
 
+  const getFileName = (file) => {
+    return file ? file.name : 'No file chosen';
+  };
+
+  const getFieldError = (fieldName) => {
+    return touched[fieldName] ? errors[fieldName] : '';
+  };
+
+  const getFileError = (fileName) => {
+    return fileErrors[fileName];
+  };
+
   return (
     <div className="max-w-4xl mx-auto">
-      {/* Debug info - Remove in production */}
-      <div className="text-xs text-gray-500 mb-2 p-2 bg-gray-100 rounded">
-        Debug: success: {success || 'null'}, operationLoading: {operationLoading ? 'true' : 'false'}, error: {error || 'null'}
-      </div>
 
       {/* Success Message */}
       {success && (success.includes('created') || success.includes('updated')) && (
@@ -345,13 +665,14 @@ const StudentForm = ({ student, onClose }) => {
                 onChange={handleChange}
                 onBlur={handleBlur}
                 className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                  errors.name ? 'border-red-300' : 'border-gray-300'
+                  getFieldError('name') ? 'border-red-300' : 'border-gray-300'
                 }`}
                 placeholder="Enter full name"
                 disabled={operationLoading}
+                maxLength={100}
               />
-              {errors.name && touched.name && (
-                <p className="mt-1 text-sm text-red-600">{errors.name}</p>
+              {getFieldError('name') && (
+                <p className="mt-1 text-sm text-red-600">{getFieldError('name')}</p>
               )}
             </div>
 
@@ -368,13 +689,14 @@ const StudentForm = ({ student, onClose }) => {
                 onChange={handleChange}
                 onBlur={handleBlur}
                 className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                  errors.email ? 'border-red-300' : 'border-gray-300'
+                  getFieldError('email') ? 'border-red-300' : 'border-gray-300'
                 }`}
                 placeholder="Enter email address"
                 disabled={operationLoading}
+                maxLength={255}
               />
-              {errors.email && touched.email && (
-                <p className="mt-1 text-sm text-red-600">{errors.email}</p>
+              {getFieldError('email') && (
+                <p className="mt-1 text-sm text-red-600">{getFieldError('email')}</p>
               )}
             </div>
 
@@ -391,13 +713,15 @@ const StudentForm = ({ student, onClose }) => {
                 onChange={handleChange}
                 onBlur={handleBlur}
                 className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                  errors.phone ? 'border-red-300' : 'border-gray-300'
+                  getFieldError('phone') ? 'border-red-300' : 'border-gray-300'
                 }`}
                 placeholder="Enter 10-digit phone number"
                 disabled={operationLoading}
+                maxLength={10}
+                pattern="[0-9]{10}"
               />
-              {errors.phone && touched.phone && (
-                <p className="mt-1 text-sm text-red-600">{errors.phone}</p>
+              {getFieldError('phone') && (
+                <p className="mt-1 text-sm text-red-600">{getFieldError('phone')}</p>
               )}
             </div>
 
@@ -414,14 +738,15 @@ const StudentForm = ({ student, onClose }) => {
                 onChange={handleChange}
                 onBlur={handleBlur}
                 className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                  errors.dateOfBirth ? 'border-red-300' : 'border-gray-300'
+                  getFieldError('dateOfBirth') ? 'border-red-300' : 'border-gray-300'
                 }`}
                 disabled={operationLoading}
+                max={new Date().toISOString().split('T')[0]}
               />
-              {errors.dateOfBirth && touched.dateOfBirth && (
-                <p className="mt-1 text-sm text-red-600">{errors.dateOfBirth}</p>
+              {getFieldError('dateOfBirth') && (
+                <p className="mt-1 text-sm text-red-600">{getFieldError('dateOfBirth')}</p>
               )}
-              {formData.dateOfBirth && (
+              {formData.dateOfBirth && !getFieldError('dateOfBirth') && (
                 <p className="mt-1 text-sm text-gray-500">Age: {calculateAge()} years</p>
               )}
             </div>
@@ -463,10 +788,17 @@ const StudentForm = ({ student, onClose }) => {
                 name="alternateEmail"
                 value={formData.alternateEmail}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                onBlur={handleBlur}
+                className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  getFieldError('alternateEmail') ? 'border-red-300' : 'border-gray-300'
+                }`}
                 placeholder="Enter alternate email"
                 disabled={operationLoading}
+                maxLength={255}
               />
+              {getFieldError('alternateEmail') && (
+                <p className="mt-1 text-sm text-red-600">{getFieldError('alternateEmail')}</p>
+              )}
             </div>
 
             {/* Alternate Phone */}
@@ -480,10 +812,18 @@ const StudentForm = ({ student, onClose }) => {
                 name="alternatePhone"
                 value={formData.alternatePhone}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                onBlur={handleBlur}
+                className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  getFieldError('alternatePhone') ? 'border-red-300' : 'border-gray-300'
+                }`}
                 placeholder="Enter alternate phone number"
                 disabled={operationLoading}
+                maxLength={10}
+                pattern="[0-9]{10}"
               />
+              {getFieldError('alternatePhone') && (
+                <p className="mt-1 text-sm text-red-600">{getFieldError('alternatePhone')}</p>
+              )}
             </div>
           </div>
         </div>
@@ -503,10 +843,17 @@ const StudentForm = ({ student, onClose }) => {
                 name="address.street"
                 value={formData.address.street}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                onBlur={handleBlur}
+                className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  getFieldError('address.street') ? 'border-red-300' : 'border-gray-300'
+                }`}
                 placeholder="Enter street address"
                 disabled={operationLoading}
+                maxLength={255}
               />
+              {getFieldError('address.street') && (
+                <p className="mt-1 text-sm text-red-600">{getFieldError('address.street')}</p>
+              )}
             </div>
 
             {/* City */}
@@ -520,10 +867,17 @@ const StudentForm = ({ student, onClose }) => {
                 name="address.city"
                 value={formData.address.city}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                onBlur={handleBlur}
+                className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  getFieldError('address.city') ? 'border-red-300' : 'border-gray-300'
+                }`}
                 placeholder="Enter city"
                 disabled={operationLoading}
+                maxLength={100}
               />
+              {getFieldError('address.city') && (
+                <p className="mt-1 text-sm text-red-600">{getFieldError('address.city')}</p>
+              )}
             </div>
 
             {/* State */}
@@ -537,10 +891,17 @@ const StudentForm = ({ student, onClose }) => {
                 name="address.state"
                 value={formData.address.state}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                onBlur={handleBlur}
+                className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  getFieldError('address.state') ? 'border-red-300' : 'border-gray-300'
+                }`}
                 placeholder="Enter state"
                 disabled={operationLoading}
+                maxLength={100}
               />
+              {getFieldError('address.state') && (
+                <p className="mt-1 text-sm text-red-600">{getFieldError('address.state')}</p>
+              )}
             </div>
 
             {/* Zip Code */}
@@ -554,10 +915,18 @@ const StudentForm = ({ student, onClose }) => {
                 name="address.zipCode"
                 value={formData.address.zipCode}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Enter ZIP code"
+                onBlur={handleBlur}
+                className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  getFieldError('address.zipCode') ? 'border-red-300' : 'border-gray-300'
+                }`}
+                placeholder="Enter 6-digit ZIP code"
                 disabled={operationLoading}
+                maxLength={6}
+                pattern="[0-9]{6}"
               />
+              {getFieldError('address.zipCode') && (
+                <p className="mt-1 text-sm text-red-600">{getFieldError('address.zipCode')}</p>
+              )}
             </div>
 
             {/* Country */}
@@ -571,10 +940,17 @@ const StudentForm = ({ student, onClose }) => {
                 name="address.country"
                 value={formData.address.country}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                onBlur={handleBlur}
+                className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  getFieldError('address.country') ? 'border-red-300' : 'border-gray-300'
+                }`}
                 placeholder="Enter country"
                 disabled={operationLoading}
+                maxLength={100}
               />
+              {getFieldError('address.country') && (
+                <p className="mt-1 text-sm text-red-600">{getFieldError('address.country')}</p>
+              )}
             </div>
           </div>
         </div>
@@ -616,10 +992,112 @@ const StudentForm = ({ student, onClose }) => {
                 name="idProof.number"
                 value={formData.idProof.number}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                onBlur={handleBlur}
+                className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  getFieldError('idProof.number') ? 'border-red-300' : 'border-gray-300'
+                }`}
                 placeholder="Enter ID number"
                 disabled={operationLoading}
               />
+              {getFieldError('idProof.number') && (
+                <p className="mt-1 text-sm text-red-600">{getFieldError('idProof.number')}</p>
+              )}
+              {formData.idProof.type && !getFieldError('idProof.number') && (
+                <p className="mt-1 text-sm text-gray-500 text-xs">
+                  {formData.idProof.type === 'aadhaar' && 'Format: 12 digits (e.g., 123456789012)'}
+                  {formData.idProof.type === 'pan_card' && 'Format: 5 letters, 4 digits, 1 letter (e.g., ABCDE1234F)'}
+                  {formData.idProof.type === 'passport' && 'Format: 1 letter, 7 digits (e.g., A1234567)'}
+                  {formData.idProof.type === 'driving_license' && 'Format: 2 letters, 13 digits (e.g., DL1234567890123)'}
+                  {formData.idProof.type === 'voter_id' && 'Format: 3 letters, 7 digits (e.g., ABC1234567)'}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* File Upload Section */}
+        <div className="bg-yellow-50 p-4 rounded-lg">
+          <h3 className="text-lg font-semibold text-yellow-800 mb-4">Upload Documents</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Student Photo */}
+            <div>
+              <label htmlFor="studentPhoto" className="block text-sm font-medium text-gray-700 mb-2">
+                Student Photo
+              </label>
+              <input
+                type="file"
+                id="studentPhoto"
+                name="studentPhoto"
+                onChange={handleFileChange}
+                accept="image/jpeg, image/jpg, image/png, image/gif"
+                className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  getFileError('studentPhoto') ? 'border-red-300' : 'border-gray-300'
+                }`}
+                disabled={operationLoading}
+              />
+              <p className="mt-1 text-sm text-gray-500">
+                {getFileName(files.studentPhoto)}
+              </p>
+              {getFileError('studentPhoto') && (
+                <p className="mt-1 text-sm text-red-600">{getFileError('studentPhoto')}</p>
+              )}
+              <p className="mt-1 text-xs text-gray-500">
+                Accepted: JPEG, PNG, GIF | Max: 5MB
+              </p>
+            </div>
+
+            {/* Student Signature */}
+            <div>
+              <label htmlFor="studentSignature" className="block text-sm font-medium text-gray-700 mb-2">
+                Student Signature
+              </label>
+              <input
+                type="file"
+                id="studentSignature"
+                name="studentSignature"
+                onChange={handleFileChange}
+                accept="image/jpeg, image/jpg, image/png, image/gif"
+                className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  getFileError('studentSignature') ? 'border-red-300' : 'border-gray-300'
+                }`}
+                disabled={operationLoading}
+              />
+              <p className="mt-1 text-sm text-gray-500">
+                {getFileName(files.studentSignature)}
+              </p>
+              {getFileError('studentSignature') && (
+                <p className="mt-1 text-sm text-red-600">{getFileError('studentSignature')}</p>
+              )}
+              <p className="mt-1 text-xs text-gray-500">
+                Accepted: JPEG, PNG, GIF | Max: 2MB
+              </p>
+            </div>
+
+            {/* ID Proof Photo */}
+            <div className="md:col-span-2">
+              <label htmlFor="idProofPhoto" className="block text-sm font-medium text-gray-700 mb-2">
+                ID Proof Document (Image or PDF)
+              </label>
+              <input
+                type="file"
+                id="idProofPhoto"
+                name="idProofPhoto"
+                onChange={handleFileChange}
+                accept="image/jpeg, image/jpg, image/png, application/pdf"
+                className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  getFileError('idProofPhoto') ? 'border-red-300' : 'border-gray-300'
+                }`}
+                disabled={operationLoading}
+              />
+              <p className="mt-1 text-sm text-gray-500">
+                {getFileName(files.idProofPhoto)}
+              </p>
+              {getFileError('idProofPhoto') && (
+                <p className="mt-1 text-sm text-red-600">{getFileError('idProofPhoto')}</p>
+              )}
+              <p className="mt-1 text-xs text-gray-500">
+                Accepted: JPEG, PNG, PDF | Max: 10MB
+              </p>
             </div>
           </div>
         </div>
