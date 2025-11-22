@@ -192,21 +192,6 @@ const AdminSidebar = ({ activeSection, setActiveSection }) => {
             )}
           </div>
 
-          {/* Batches */}
-          <button
-            onClick={() => setActiveSection('batches')}
-            className={`w-full text-left px-5 py-4 rounded-2xl transition-all duration-300 flex items-center space-x-4 group ${
-              activeSection === 'batches'
-                ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-200'
-                : 'bg-white text-gray-700 hover:bg-blue-50 hover:shadow-md border border-indigo-100'
-            }`}
-          >
-            <div className={`text-xl ${activeSection === 'batches' ? 'scale-110' : 'group-hover:scale-110'} transition-transform`}>
-              📚
-            </div>
-            <span className="font-semibold">Batches</span>
-          </button>
-
           {/* Trainer */}
           <button
             onClick={() => setActiveSection('trainer-management')}
