@@ -363,7 +363,7 @@ const AdminSidebar = ({ activeSection, setActiveSection, isSidebarOpen, setIsSid
               )}
             </div>
           ))}
-
+          
           {/* Trainer */}
           <button
             onClick={() => handleSectionChange('trainer-management')}
@@ -378,6 +378,7 @@ const AdminSidebar = ({ activeSection, setActiveSection, isSidebarOpen, setIsSid
             </div>
             <span className="font-semibold text-sm lg:text-base">Trainer</span>
           </button>
+
 
           {/* MIS Reports */}
           <button

@@ -6,6 +6,7 @@ const protect = async (req, res, next) => {
   console.log('Protect middleware invoked');
   console.log('Authorization Header:', req.headers.authorization);
 
+
   if (
     req.headers.authorization &&
     req.headers.authorization.startsWith('Bearer')
@@ -19,7 +20,14 @@ const protect = async (req, res, next) => {
 
       // Get user from the token
       req.user = await User.findById(decoded.id).select('-password');
+
+
+      if (!req.user) {
+        res.status(401).json({ message: 'Not authorized, user not found' });
+        return;
+      }
       console.log('User authenticated scuessfully:', req.user);
+
 
       next();
     } catch (error) {

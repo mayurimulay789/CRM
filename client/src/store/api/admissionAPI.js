@@ -97,4 +97,21 @@ const admissionAPI = {
   },
 };
 
+
+
+// 🔍 Search admitted students by name (for Student Grievance form)
+export const searchAdmissionsByName = async (name) => {
+  try {
+    const response = await fetch(
+      `http://localhost:5000/api/admissions/search?name=${encodeURIComponent(name)}`
+    );
+    const data = await response.json();
+    return data.data || [];
+  } catch (error) {
+    console.error("Error searching admissions:", error);
+    return [];
+  }
+};
+
+
 export default admissionAPI;

@@ -11,7 +11,8 @@ const {
   updateAdmissionStatus,
   deleteAdmission,
   verifyAdmissionEmail,
-  getAdmissionStats
+  getAdmissionStats,
+  searchApprovedStudents
 } = require('../controllers/admissionController');
 
 const { protect, admin } = require('../middleware/auth');
@@ -21,6 +22,7 @@ router.use(protect);
 
 router.get('/', getAllAdmissions);
 router.get('/stats/summary', getAdmissionStats);
+
 router.get('/:id', getAdmissionById);
 router.get('/admissionNo/:admissionNo', getAdmissionByAdmissionNo);
 router.get('/student/:studentId', getAdmissionsByStudent);
@@ -29,6 +31,11 @@ router.get('/course/:courseId', getAdmissionsByCourse);
 // Add upload middleware to create and update routes
 router.post('/', uploadAdmissionFiles, handleUploadErrors, createAdmission);
 router.put('/:id', uploadAdmissionFiles, handleUploadErrors, updateAdmission);
+router.get('/search-approved-students', searchApprovedStudents);
+
+router.post('/', createAdmission);
+
+router.put('/:id', updateAdmission);
 
 router.patch('/:id/status', updateAdmissionStatus);
 router.patch('/:id/verify-email', verifyAdmissionEmail);

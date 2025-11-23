@@ -1069,6 +1069,53 @@ const getAdmissionStats = async (req, res) => {
   }
 };
 
+const searchApprovedStudents = async (req, res) => {
+  try {
+    const { name } = req.query;
+
+    if (!name || name.length < 1) {
+      return res.status(200).json({
+        success: true,
+        data: []
+      });
+    }
+
+    // Find approved admissions and populate student details
+    const approvedAdmissions = await Admission.find({ status: 'approved' })
+      .populate('student', 'studentId name email phone')
+      .select('student');
+
+    // Filter students by name and remove duplicates
+    const students = [];
+    const seenStudentIds = new Set();
+
+    approvedAdmissions.forEach(admission => {
+      if (admission.student &&
+          admission.student.name.toLowerCase().includes(name.toLowerCase()) &&
+          !seenStudentIds.has(admission.student._id.toString())) {
+        students.push({
+          studentId: admission.student.studentId,
+          studentName: admission.student.name,
+          email: admission.student.email,
+          phone: admission.student.phone
+        });
+        seenStudentIds.add(admission.student._id.toString());
+      }
+    });
+
+    res.status(200).json({
+      success: true,
+      data: students
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error searching approved students',
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   getAllAdmissions,
   getAdmissionById,
@@ -1080,5 +1127,6 @@ module.exports = {
   updateAdmissionStatus,
   deleteAdmission,
   verifyAdmissionEmail,
-  getAdmissionStats
+  getAdmissionStats,
+  searchApprovedStudents
 };

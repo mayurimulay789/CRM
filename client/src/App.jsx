@@ -20,10 +20,6 @@ import AdminDashboardPage from "./pages/AdminDashboardPage.jsx";
 import CounsellorDashboardPage from "./pages/CounsellorDashboardPage.jsx";
 import AddBatchForm from "./components/AddBatchForm.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
-
-
-
-
 // --------------------
 // AppContent Component
 // --------------------
@@ -81,8 +77,9 @@ function AppContent() {
             }
           />
 
+
           {/* 🎓 Demo Management Routes */}
-          
+
         </Routes>
       </div>
       {/* <Footer /> */}
@@ -123,5 +120,6 @@ function App() {
     </Provider>
   );
 }
+
 
 export default App;

@@ -131,6 +131,7 @@ const CounsellorSidebar = ({ activeSection, setActiveSection, isSidebarOpen, set
             <span className="font-semibold text-sm lg:text-base">Student Management</span>
           </button>
 
+
           {/* My Works */}
           <button
             onClick={() => handleSectionChange('my-works')}
@@ -174,9 +175,16 @@ const CounsellorSidebar = ({ activeSection, setActiveSection, isSidebarOpen, set
               isOpen: isAdmissionOpen,
               setIsOpen: setIsAdmissionOpen,
               items: [
+
+                { key: 'admission-form', label: 'Admission Form', color: 'indigo' },
+
                 { key: 'admission-management', label: 'Admission Status', color: 'indigo' },
                 { key: 'enrollment-management', label: 'Enrollments', color: 'teal' },
-                { key: 'payment-management', label: 'Payments', color: 'amber' }
+                { key: 'payment-management', label: 'Payments', color: 'amber' },
+
+                { key: 'enrolled-student', label: 'Enrolled Student', color: 'teal' },
+                { key: 'payment-invoice-sheet', label: 'Payment Invoice', color: 'amber' }
+
               ]
             },
             {

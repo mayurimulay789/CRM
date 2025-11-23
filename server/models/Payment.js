@@ -101,8 +101,7 @@ const paymentSchema = new mongoose.Schema({
 
 }, {
   timestamps: true
-});
-
+}); 
 
 // Indexes for better query performance
 paymentSchema.index({ paymentNo: 1 });
