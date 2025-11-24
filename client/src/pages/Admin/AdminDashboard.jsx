@@ -1,27 +1,32 @@
 import React from 'react';
 
 // Import Admin Components
-import AdminDashboard from '../../components/admin/Dashboard/AdminDashboard';
-import CounsellorManagement from '../../components/admin/UserManagement/CounsellorManagement';
-import StudentManagement from '../../components/admin/UserManagement/StudentManagement';
+import AdminDashboard from '../../components/admin/Dashboard/AdminDashboard.jsx';
+import CounsellorManagement from '../../components/admin/UserManagement/CounsellorManagement.jsx';
+import StudentManagement from '../../components/admin/UserManagement/StudentManagement.jsx';
 
-import BatchManagement from '../../components/admin/Batches/BatchManagement';
-import TrainerManagement from '../../components/admin/Trainers/TrainerManagement';
+import BatchManagement from '../../components/admin/Batches/BatchManagement.jsx';
+import TrainerManagement from '../../components/admin/Trainers/TrainerManagement.jsx';
 
-import DemoManagement from '../../components/admin/Demo/DemoManagement';
-import AdmissionManagement from '../../components/admin/Admission/AdmissionManagement';
+import DemoManagement from '../../components/admin/Demo/DemoManagement.jsx';
+import AdmissionManagement from '../../components/admin/Admission/AdmissionManagement.jsx';
 
-import ComplaintManagement from '../../components/admin/Complaint/StudentComplaint';
-import CampusGrievanceAdmin from '../../components/admin/Complaint/CampusGrievanceAdmin';
+import ComplaintManagement from '../../components/admin/Complaint/StudentComplaint.jsx';
+import CampusGrievanceAdmin from '../../components/admin/Complaint/CampusGrievanceAdmin.jsx';
 
-import CourseManagement from '../../components/admin/Courses/CourseManagement';
+import CourseManagement from '../../components/admin/Courses/CourseManagement.jsx';
 
-import MISReports from '../../components/admin/MIS/MISReports';
-
+import MISReports from '../../components/admin/MIS/MISReports.jsx';
 
 // NEW: Import Enrollment and Payment Components
-import EnrollmentManagement from '../../components/admin/Enrollment/EnrollmentManagement';
-import PaymentManagement from '../../components/admin/Payment/PaymentManagement';
+import EnrollmentManagement from '../../components/admin/Enrollment/EnrollmentManagement.jsx';
+import PaymentManagement from '../../components/admin/Payment/PaymentManagement.jsx';   
+
+// FIXED: Correct import path for AdmissionReports
+import PerformanceReports from '../../components/admin/Reports & Analytics/BatchReports.jsx';
+import AdmissionReports from '../../components/admin/Reports & Analytics/AdmissionReport.jsx'; // Fixed path
+import FinancialReports from '../../components/admin/Reports & Analytics/DemoReport.jsx';
+// import SystemSettings from '../../components/admin/SystemSettings/SystemSettings.jsx';
 
 const AdminDashboardComponent = ({ activeSection }) => {
   const renderContent = () => {
@@ -44,14 +49,11 @@ const AdminDashboardComponent = ({ activeSection }) => {
       case 'trainer-management':
         return <TrainerManagement />;
 
-
-
       case 'closed-batch':
       case 'running-batch':
       case 'upcoming-batch':
         return <BatchManagement activeSection={activeSection} />;
       
-
       // Demo
       case 'online-demo':
       case 'offline-demo':
@@ -84,17 +86,16 @@ const AdminDashboardComponent = ({ activeSection }) => {
       case 'course-management':
         return <CourseManagement />;
 
-      
       // MIS
       case 'mis':
         return <MISReports />;
       
-      // Reports
+      // Reports - FIXED: Using correct component names
       case 'performance-reports':
         return <PerformanceReports />;
       
       case 'admission-reports':
-        return <AdmissionReports />;
+        return <AdmissionReports />; // This should now work
       
       case 'financial-reports':
         return <FinancialReports />;
@@ -109,18 +110,12 @@ const AdminDashboardComponent = ({ activeSection }) => {
   };
 
   return (
-
     <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-
-
-    <div className="flex-1 bg-gray-50 min-h-screen">
-
+      <div className="flex-1 bg-gray-50 min-h-screen">
         <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-
-
-      {renderContent()}
-    </div>
-    </div>
+          {renderContent()}
+        </div>
+      </div>
     </div>
   );
 };

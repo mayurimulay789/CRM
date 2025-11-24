@@ -12,6 +12,7 @@ import studentReducer from './slices/studentSlice';
 import enrollmentRducer from './slices/enrollmentSlice';
 import paymentReducer from './slices/paymentSlice';
 import studentGrievanceReducer from "./slices/studentGrievanceSlice";
+import demoReportSlice from './slices/demoReportSlice';
 
 export const store = configureStore({
   reducer: {
@@ -34,6 +35,7 @@ export const store = configureStore({
     //courses: courseReducer,
     //students: studentReducer,
     studentGrievance: studentGrievanceReducer, 
+    demoReports: demoReportSlice,
 
   },
   middleware: (getDefaultMiddleware) =>

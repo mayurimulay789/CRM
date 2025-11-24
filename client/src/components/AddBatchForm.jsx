@@ -198,10 +198,12 @@ const AddBatchForm = ({ onBack, isEdit = false, batchData = null, onEditSubmit =
           batchExtenApproval: '',
           approvalStatus: '',
         });
+        setTrainerSearch('');
       }
       if (onBack) onBack();
     } catch (error) {
       console.error('Failed to save batch:', error);
+      toast.error('Failed to save batch. Please try again.');
     }
   };
 
@@ -287,6 +289,8 @@ const AddBatchForm = ({ onBack, isEdit = false, batchData = null, onEditSubmit =
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
               >
                 <option value="Upcoming">Upcoming</option>
+                <option value="Running">Running</option>
+                <option value="Closed">Closed</option>
               </select>
             </div>
             <div>

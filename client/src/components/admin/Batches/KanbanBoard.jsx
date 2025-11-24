@@ -228,9 +228,9 @@ const KanbanBoard = ({ onEditBatch }) => {
 
     // Check if move is allowed
     const allowedMoves = {
-      upcoming: ['running'], // Upcoming can only go to Running
-      running: ['closed'], // Running can go to Closed
-      closed: ['running'], // Closed can go back to Running
+      upcoming: ['running', 'closed'], // Allow Upcoming to go to Running or Closed
+      running: ['closed', 'upcoming'], // Allow Running to go to Closed or back to Upcoming
+      closed: ['running', 'upcoming'], // Closed can go back to Running or Upcoming
     };
 
     if (!allowedMoves[sourceColumn].includes(destColumn)) {

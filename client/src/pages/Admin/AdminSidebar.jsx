@@ -236,63 +236,77 @@ const AdminSidebar = ({ activeSection, setActiveSection, isSidebarOpen, setIsSid
             )}
           </div>
             
-          {/* Batches */}
-          <button
-            onClick={() => handleSectionChange('batches')}
-            className={`w-full text-left px-4 lg:px-5 py-3 lg:py-4 rounded-2xl transition-all duration-300 flex items-center space-x-3 lg:space-x-4 group ${
-              activeSection === 'batches'
-                ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-200'
-                : 'bg-white text-gray-700 hover:bg-blue-50 hover:shadow-md border border-indigo-100'
-            }`}
-          >
-            <div className={`text-lg lg:text-xl ${activeSection === 'batches' ? 'scale-110' : 'group-hover:scale-110'} transition-transform`}>
-              📚
-            </div>
-            <span className="font-semibold text-sm lg:text-base">Batches</span>
-          </button>
-
-          {/* Batches */}
-          <button
-            onClick={() => setActiveSection('batches')}
-            className={`w-full text-left px-5 py-4 rounded-2xl transition-all duration-300 flex items-center space-x-4 group ${
-              activeSection === 'batches'
-                ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-200'
-                : 'bg-white text-gray-700 hover:bg-blue-50 hover:shadow-md border border-indigo-100'
-            }`}
-          >
-            <div className={`text-xl ${activeSection === 'batches' ? 'scale-110' : 'group-hover:scale-110'} transition-transform`}>
-              📚
-            </div>
-            <span className="font-semibold">Batches</span>
-          </button>
+          {/* Batches Section */}
+          <div className="bg-white rounded-2xl border border-indigo-100 overflow-hidden">
+            <button
+              onClick={() => setIsBatchesOpen(!isBatchesOpen)}
+              className="w-full text-left px-4 lg:px-5 py-3 lg:py-4 transition-all duration-300 flex items-center justify-between group hover:bg-indigo-50"
+            >
+              <div className="flex items-center space-x-3 lg:space-x-4">
+                <span className="text-lg lg:text-xl">📚</span>
+                <span className="font-semibold text-gray-700 text-sm lg:text-base">Batches</span>
+              </div>
+              <div className={`transform transition-transform duration-300 ${isBatchesOpen ? 'rotate-180' : ''}`}>
+                <span className="text-gray-400 text-sm">▼</span>
+              </div>
+            </button>
+            
+            {isBatchesOpen && (
+              <div className="px-2 lg:px-3 pb-2 lg:pb-3 space-y-1 lg:space-y-2">
+                <button
+                  onClick={() => handleSectionChange('closed-batch')}
+                  className={`w-full text-left px-3 lg:px-4 py-2 lg:py-3 rounded-xl transition-all duration-300 flex items-center space-x-2 lg:space-x-3 group ${
+                    activeSection === 'closed-batch' 
+                      ? 'bg-gray-100 text-gray-700 border border-gray-200 shadow-sm' 
+                      : 'text-gray-600 hover:bg-gray-50 hover:shadow-sm'
+                  }`}
+                >
+                  <div className="w-1.5 h-1.5 lg:w-2 lg:h-2 rounded-full bg-gray-400"></div>
+                  <span className="text-xs lg:text-sm font-medium">Closed Batch</span>
+                </button>
+                <button
+                  onClick={() => handleSectionChange('running-batch')}
+                  className={`w-full text-left px-3 lg:px-4 py-2 lg:py-3 rounded-xl transition-all duration-300 flex items-center space-x-2 lg:space-x-3 group ${
+                    activeSection === 'running-batch' 
+                      ? 'bg-green-100 text-green-700 border border-green-200 shadow-sm' 
+                      : 'text-gray-600 hover:bg-gray-50 hover:shadow-sm'
+                  }`}
+                >
+                  <div className="w-1.5 h-1.5 lg:w-2 lg:h-2 rounded-full bg-green-400"></div>
+                  <span className="text-xs lg:text-sm font-medium">Running Batch</span>
+                </button>
+                <button
+                  onClick={() => handleSectionChange('upcoming-batch')}
+                  className={`w-full text-left px-3 lg:px-4 py-2 lg:py-3 rounded-xl transition-all duration-300 flex items-center space-x-2 lg:space-x-3 group ${
+                    activeSection === 'upcoming-batch' 
+                      ? 'bg-blue-100 text-blue-700 border border-blue-200 shadow-sm' 
+                      : 'text-gray-600 hover:bg-gray-50 hover:shadow-sm'
+                  }`}
+                >
+                  <div className="w-1.5 h-1.5 lg:w-2 lg:h-2 rounded-full bg-blue-400"></div>
+                  <span className="text-xs lg:text-sm font-medium">Upcoming Batch</span>
+                </button>
+              </div>
+            )}
+          </div>
 
           {/* Trainer */}
           <button
-            onClick={() => setActiveSection('trainer-management')}
-            className={`w-full text-left px-5 py-4 rounded-2xl transition-all duration-300 flex items-center space-x-4 group ${
+            onClick={() => handleSectionChange('trainer-management')}
+            className={`w-full text-left px-4 lg:px-5 py-3 lg:py-4 rounded-2xl transition-all duration-300 flex items-center space-x-3 lg:space-x-4 group ${
               activeSection === 'trainer-management'
                 ? 'bg-gradient-to-r from-green-500 to-green-600 text-white shadow-lg shadow-green-200'
                 : 'bg-white text-gray-700 hover:bg-green-50 hover:shadow-md border border-indigo-100'
             }`}
           >
-            <div className={`text-xl ${activeSection === 'trainer-management' ? 'scale-110' : 'group-hover:scale-110'} transition-transform`}>
+            <div className={`text-lg lg:text-xl ${activeSection === 'trainer-management' ? 'scale-110' : 'group-hover:scale-110'} transition-transform`}>
               👨‍🏫
             </div>
-            <span className="font-semibold">Trainer</span>
+            <span className="font-semibold text-sm lg:text-base">Trainer</span>
           </button>
 
-          {/* Expandable Sections */}
+          {/* Expandable Sections - Demo, Admission, Complaint */}
           {[
-            {
-              title: "📚 Batches",
-              isOpen: isBatchesOpen,
-              setIsOpen: setIsBatchesOpen,
-              items: [
-                { key: 'closed-batch', label: 'Closed Batch', color: 'gray' },
-                { key: 'running-batch', label: 'Running Batch', color: 'green' },
-                { key: 'upcoming-batch', label: 'Upcoming Batch', color: 'blue' }
-              ]
-            },
             {
               title: "🎯 Demo",
               isOpen: isDemoOpen,
@@ -364,22 +378,6 @@ const AdminSidebar = ({ activeSection, setActiveSection, isSidebarOpen, setIsSid
             </div>
           ))}
           
-          {/* Trainer */}
-          <button
-            onClick={() => handleSectionChange('trainer-management')}
-            className={`w-full text-left px-4 lg:px-5 py-3 lg:py-4 rounded-2xl transition-all duration-300 flex items-center space-x-3 lg:space-x-4 group ${
-              activeSection === 'trainer-management'
-                ? 'bg-gradient-to-r from-green-500 to-green-600 text-white shadow-lg shadow-green-200'
-                : 'bg-white text-gray-700 hover:bg-green-50 hover:shadow-md border border-indigo-100'
-            }`}
-          >
-            <div className={`text-lg lg:text-xl ${activeSection === 'trainer-management' ? 'scale-110' : 'group-hover:scale-110'} transition-transform`}>
-              👨‍🏫
-            </div>
-            <span className="font-semibold text-sm lg:text-base">Trainer</span>
-          </button>
-
-
           {/* MIS Reports */}
           <button
             onClick={() => handleSectionChange('mis')}
@@ -421,7 +419,7 @@ const AdminSidebar = ({ activeSection, setActiveSection, isSidebarOpen, setIsSid
                   }`}
                 >
                   <div className="w-1.5 h-1.5 lg:w-2 lg:h-2 rounded-full bg-blue-400"></div>
-                  <span className="text-xs lg:text-sm font-medium">Performance Reports</span>
+                  <span className="text-xs lg:text-sm font-medium">Batch Report</span>
                 </button>
                 <button
                   onClick={() => handleSectionChange('admission-reports')}
@@ -432,7 +430,7 @@ const AdminSidebar = ({ activeSection, setActiveSection, isSidebarOpen, setIsSid
                   }`}
                 >
                   <div className="w-1.5 h-1.5 lg:w-2 lg:h-2 rounded-full bg-green-400"></div>
-                  <span className="text-xs lg:text-sm font-medium">Admission Reports</span>
+                  <span className="text-xs lg:text-sm font-medium">Admission Report</span>
                 </button>
                 <button
                   onClick={() => handleSectionChange('financial-reports')}
@@ -443,7 +441,18 @@ const AdminSidebar = ({ activeSection, setActiveSection, isSidebarOpen, setIsSid
                   }`}
                 >
                   <div className="w-1.5 h-1.5 lg:w-2 lg:h-2 rounded-full bg-amber-400"></div>
-                  <span className="text-xs lg:text-sm font-medium">Financial Reports</span>
+                  <span className="text-xs lg:text-sm font-medium">Demo Report</span>
+                </button>
+                <button
+                  onClick={() => handleSectionChange('')}
+                  className={`w-full text-left px-3 lg:px-4 py-2 lg:py-3 rounded-xl transition-all duration-300 flex items-center space-x-2 lg:space-x-3 group ${
+                    activeSection === '' 
+                      ? 'bg-amber-100 text-amber-700 border border-amber-200 shadow-sm' 
+                      : 'text-gray-600 hover:bg-gray-50 hover:shadow-sm'
+                  }`}
+                >
+                  <div className="w-1.5 h-1.5 lg:w-2 lg:h-2 rounded-full bg-amber-400"></div>
+                  <span className="text-xs lg:text-sm font-medium">Course Report</span>
                 </button>
               </div>
             )}
