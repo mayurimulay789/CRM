@@ -383,6 +383,9 @@
 
 // export default CampusGrievance;
 
+
+
+
 import React, { useEffect, useState, useRef } from "react";
 import Swal from "sweetalert2";
 import {
@@ -529,12 +532,17 @@ const CampusGrievance = () => {
     return matchesSearch && matchesFilter;
   });
 
+  // Sort grievances by creation date (newest first)
+  const sortedGrievances = [...filteredGrievances].sort((a, b) => {
+    return new Date(b.createdAt) - new Date(a.createdAt);
+  });
+
   // Pagination logic
-  const totalItems = filteredGrievances.length;
+  const totalItems = sortedGrievances.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const currentGrievances = [...filteredGrievances].reverse().slice(startIndex, endIndex);
+  const currentGrievances = sortedGrievances.slice(startIndex, endIndex);
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -551,7 +559,16 @@ const CampusGrievance = () => {
   };
 
   const formatStatusText = (status) => {
-    return status.replace(/([A-Z])/g, " $1").replace(/^./, str => str.toUpperCase());
+    // Handle different status formats properly
+    const statusMap = {
+      "submittedToAdmin": "Submitted to Admin",
+      "pending": "Pending",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "all": "All Status"
+    };
+    
+    return statusMap[status] || status.replace(/([A-Z])/g, " $1").replace(/^./, str => str.toUpperCase());
   };
 
   // Pagination controls
@@ -1155,7 +1172,7 @@ const CampusGrievance = () => {
 
                       <td className="px-6 py-4">
                         {(g.status === "submittedToAdmin" || g.status === "pending") ? (
-                          <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                          <div className="flex gap-2 transition-opacity duration-200">
                             <button
                               onClick={() => handleEdit(g)}
                               className="px-3 py-1.5 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 font-medium flex items-center gap-1"

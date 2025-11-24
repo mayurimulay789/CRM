@@ -611,7 +611,15 @@ const StudentGrievance = () => {
   };
 
   const formatStatusText = (status) => {
-    return status.replace(/([A-Z])/g, " $1").trim();
+    // Handle different status formats properly
+    const statusMap = {
+      "submittedToAdmin": "Submitted to Admin",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "all": "All Status"
+    };
+    
+    return statusMap[status] || status.replace(/([A-Z])/g, " $1").trim();
   };
 
   // Pagination controls
@@ -789,7 +797,6 @@ const StudentGrievance = () => {
                 setFormData({
                   studentName: "",
                   studentEmail: "",
-                  title: "",
                   complaint: "",
                 });
               }}
@@ -866,7 +873,6 @@ const StudentGrievance = () => {
                   setFormData({
                     studentName: "",
                     studentEmail: "",
-                    title: "",
                     complaint: "",
                   });
                 }}
@@ -953,7 +959,7 @@ const StudentGrievance = () => {
                                 className="text-blue-600 focus:ring-blue-500"
                               />
                               <span className="capitalize text-sm font-medium">
-                                {s === "all" ? "All Status" : formatStatusText(s)}
+                                {formatStatusText(s)}
                               </span>
                             </label>
                           )
@@ -1246,7 +1252,7 @@ const StudentGrievance = () => {
 
                       <td className="px-6 py-4">
                         {g.status === "submittedToAdmin" ? (
-                          <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                          <div className="flex gap-2 transition-opacity duration-200">
                             <button
                               onClick={() => handleEdit(g)}
                               className="px-3 py-1.5 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 font-medium flex items-center gap-1"

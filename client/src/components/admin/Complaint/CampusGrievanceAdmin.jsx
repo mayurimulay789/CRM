@@ -520,12 +520,17 @@ const CampusGrievanceAdmin = () => {
     return matchesSearch && matchesFilter;
   });
 
+  // Sort grievances by creation date (newest first)
+  const sortedGrievances = [...filteredGrievances].sort((a, b) => {
+    return new Date(b.createdAt) - new Date(a.createdAt);
+  });
+
   // Pagination calculations
-  const totalItems = filteredGrievances.length;
+  const totalItems = sortedGrievances.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const currentGrievances = [...filteredGrievances].reverse().slice(startIndex, endIndex);
+  const currentGrievances = sortedGrievances.slice(startIndex, endIndex);
 
   const getStatusColor = (status) => {
     switch (status) {
