@@ -4,8 +4,10 @@ import axiosInstance from '../../utils/axios';
 // Async thunk to fetch all demo data for reports
 export const fetchAllDemoReports = createAsyncThunk(
   'demoReports/fetchAll',
-  async (_, { rejectWithValue }) => {
+  async (_, { rejectWithValue, getState }) => {
     try {
+      const { user } = getState().auth;
+      
       // Fetch data from all demo endpoints
       const [onlineDemos, offlineDemos, oneToOneDemos, liveClasses] = await Promise.all([
         axiosInstance.get('/onlineDemos'),
@@ -14,16 +16,68 @@ export const fetchAllDemoReports = createAsyncThunk(
         axiosInstance.get('/liveclasses')
       ]);
 
-      // Combine all demo data into one array
+      // Process and combine all demo data
+      const processDemoData = (demos, type) => {
+        return demos.data?.data || demos.data || [];
+      };
+
       const allDemos = [
-        ...(onlineDemos.data?.data || onlineDemos.data || []),
-        ...(offlineDemos.data?.data || offlineDemos.data || []),
-        ...(oneToOneDemos.data?.data || oneToOneDemos.data || []),
-        ...(liveClasses.data?.data || liveClasses.data || [])
+        ...processDemoData(onlineDemos, 'online').map(demo => ({
+          ...demo,
+          demoType: 'online',
+          type: 'online',
+          // Map common fields
+          title: demo.title || demo.courseName || 'Online Demo',
+          registeredStudents: demo.students || demo.attendees || [],
+          convertedStudents: demo.conversions || [],
+          createdAt: demo.createdAt || demo.date || demo.scheduledAt,
+          status: demo.status || 'completed'
+        })),
+        ...processDemoData(offlineDemos, 'offline').map(demo => ({
+          ...demo,
+          demoType: 'offline',
+          type: 'offline',
+          title: demo.title || demo.courseName || 'Offline Demo',
+          registeredStudents: demo.students || demo.attendees || [],
+          convertedStudents: demo.conversions || [],
+          createdAt: demo.createdAt || demo.date || demo.scheduledAt,
+          status: demo.status || 'completed'
+        })),
+        ...processDemoData(oneToOneDemos, 'one-to-one').map(demo => ({
+          ...demo,
+          demoType: 'one-to-one',
+          type: 'one-to-one',
+          title: demo.title || `One-on-One with ${demo.studentName}` || 'One-to-One Demo',
+          registeredStudents: demo.student ? [demo.student] : [],
+          convertedStudents: demo.converted ? [demo.student] : [],
+          createdAt: demo.createdAt || demo.date || demo.scheduledAt,
+          status: demo.status || 'completed'
+        })),
+        ...processDemoData(liveClasses, 'live').map(demo => ({
+          ...demo,
+          demoType: 'live',
+          type: 'live',
+          title: demo.title || demo.courseName || 'Live Class Demo',
+          registeredStudents: demo.enrolledStudents || demo.students || [],
+          convertedStudents: demo.conversions || [],
+          createdAt: demo.createdAt || demo.date || demo.startTime,
+          status: demo.status || 'completed'
+        }))
       ];
 
-      return allDemos;
+      // Filter data based on user role
+      let filteredDemos = allDemos;
+      if (user?.role === 'counsellor') {
+        filteredDemos = allDemos.filter(demo => 
+          demo.counsellorId === user._id || 
+          demo.assignedCounsellor === user._id ||
+          demo.createdBy === user._id
+        );
+      }
+
+      return filteredDemos;
     } catch (error) {
+      console.error('Error fetching demo reports:', error);
       return rejectWithValue(
         error.response?.data?.message || 'Failed to fetch demo reports'
       );
@@ -37,10 +91,18 @@ const demoReportSlice = createSlice({
     demos: [],
     loading: false,
     error: null,
+    lastFetch: null,
   },
   reducers: {
     clearDemoReportError: (state) => {
       state.error = null;
+    },
+    updateDemoStatus: (state, action) => {
+      const { demoId, status } = action.payload;
+      const demo = state.demos.find(d => d._id === demoId || d.id === demoId);
+      if (demo) {
+        demo.status = status;
+      }
     },
   },
   extraReducers: (builder) => {
@@ -53,6 +115,7 @@ const demoReportSlice = createSlice({
         state.loading = false;
         state.demos = action.payload;
         state.error = null;
+        state.lastFetch = new Date().toISOString();
       })
       .addCase(fetchAllDemoReports.rejected, (state, action) => {
         state.loading = false;
@@ -62,5 +125,5 @@ const demoReportSlice = createSlice({
   },
 });
 
-export const { clearDemoReportError } = demoReportSlice.actions;
+export const { clearDemoReportError, updateDemoStatus } = demoReportSlice.actions;
 export default demoReportSlice.reducer;

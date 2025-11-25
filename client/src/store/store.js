@@ -12,7 +12,7 @@ import studentReducer from './slices/studentSlice';
 import enrollmentRducer from './slices/enrollmentSlice';
 import paymentReducer from './slices/paymentSlice';
 import studentGrievanceReducer from "./slices/studentGrievanceSlice";
-import demoReportSlice from './slices/demoReportSlice';
+import demoReportReducer from './slices/demoReportSlice';
 
 export const store = configureStore({
   reducer: {
@@ -23,20 +23,13 @@ export const store = configureStore({
     liveClasses: liveClassesReducer,
     batch: batchReducer,
     trainer: trainerReducer,
-    admissions: admissionReducer, // Added admission reducer
+    admissions: admissionReducer,
     courses: courseReducer,
     students: studentReducer,
-    //trainer: trainerReducer,
-    //batch: batchReducer,
     enrollments: enrollmentRducer,
     payments: paymentReducer,
-
-    //admissions: admissionReducer, // Added admission reducer
-    //courses: courseReducer,
-    //students: studentReducer,
     studentGrievance: studentGrievanceReducer, 
-    demoReports: demoReportSlice,
-
+    demoReports: demoReportReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
