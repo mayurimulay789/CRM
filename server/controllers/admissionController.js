@@ -805,7 +805,7 @@ async function sendAdmissionConfirmationEmail(admission) {
           <div class="content">
             <div class="congrats">
               <h2>Congratulations, ${student.name}! 🎉</h2>
-              <p>Your admission has been successfully approved. Welcome to our institution!</p>
+              <p>Your admission has been successfully approved. Welcome to our Ryma Academy!</p>
               <span class="badge">Admission No: ${admission.admissionNo}</span>
             </div>
 
@@ -870,13 +870,12 @@ async function sendAdmissionConfirmationEmail(admission) {
             </div>
 
             <p style="text-align: center; color: #6c757d; font-style: italic;">
-              We're excited to have you join our learning community! 🚀
+              We're excited to have you join our Ryma Academy! 🚀
             </p>
           </div>
 
           <div class="footer">
-            <p>This is an automated email. Please do not reply to this message.</p>
-            <p>&copy; ${new Date().getFullYear()} Your Institution Name. All rights reserved.</p>
+            <p>&copy; ${new Date().getFullYear()} Ryma Academy. All rights reserved.</p>
           </div>
         </div>
       </body>
