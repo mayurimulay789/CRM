@@ -236,58 +236,21 @@ const AdminSidebar = ({ activeSection, setActiveSection, isSidebarOpen, setIsSid
             )}
           </div>
             
-          {/* Batches Section */}
+          {/* Batches Section - simplified to a single Batch Management link */}
           <div className="bg-white rounded-2xl border border-indigo-100 overflow-hidden">
             <button
-              onClick={() => setIsBatchesOpen(!isBatchesOpen)}
-              className="w-full text-left px-4 lg:px-5 py-3 lg:py-4 transition-all duration-300 flex items-center justify-between group hover:bg-indigo-50"
+              onClick={() => handleSectionChange('batch-management')}
+              className={`w-full text-left px-4 lg:px-5 py-3 lg:py-4 transition-all duration-300 flex items-center space-x-3 lg:space-x-4 group ${
+                activeSection === 'batch-management'
+                  ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-200'
+                  : 'bg-white text-gray-700 hover:bg-blue-50 hover:shadow-md border border-indigo-100'
+              }`}
             >
-              <div className="flex items-center space-x-3 lg:space-x-4">
-                <span className="text-lg lg:text-xl">📚</span>
-                <span className="font-semibold text-gray-700 text-sm lg:text-base">Batches</span>
+              <div className={`text-lg lg:text-xl ${activeSection === 'batch-management' ? 'scale-110' : 'group-hover:scale-110'} transition-transform`}>
+                📚
               </div>
-              <div className={`transform transition-transform duration-300 ${isBatchesOpen ? 'rotate-180' : ''}`}>
-                <span className="text-gray-400 text-sm">▼</span>
-              </div>
+              <span className="font-semibold text-sm lg:text-base">Batch Management</span>
             </button>
-            
-            {isBatchesOpen && (
-              <div className="px-2 lg:px-3 pb-2 lg:pb-3 space-y-1 lg:space-y-2">
-                <button
-                  onClick={() => handleSectionChange('closed-batch')}
-                  className={`w-full text-left px-3 lg:px-4 py-2 lg:py-3 rounded-xl transition-all duration-300 flex items-center space-x-2 lg:space-x-3 group ${
-                    activeSection === 'closed-batch' 
-                      ? 'bg-gray-100 text-gray-700 border border-gray-200 shadow-sm' 
-                      : 'text-gray-600 hover:bg-gray-50 hover:shadow-sm'
-                  }`}
-                >
-                  <div className="w-1.5 h-1.5 lg:w-2 lg:h-2 rounded-full bg-gray-400"></div>
-                  <span className="text-xs lg:text-sm font-medium">Closed Batch</span>
-                </button>
-                <button
-                  onClick={() => handleSectionChange('running-batch')}
-                  className={`w-full text-left px-3 lg:px-4 py-2 lg:py-3 rounded-xl transition-all duration-300 flex items-center space-x-2 lg:space-x-3 group ${
-                    activeSection === 'running-batch' 
-                      ? 'bg-green-100 text-green-700 border border-green-200 shadow-sm' 
-                      : 'text-gray-600 hover:bg-gray-50 hover:shadow-sm'
-                  }`}
-                >
-                  <div className="w-1.5 h-1.5 lg:w-2 lg:h-2 rounded-full bg-green-400"></div>
-                  <span className="text-xs lg:text-sm font-medium">Running Batch</span>
-                </button>
-                <button
-                  onClick={() => handleSectionChange('upcoming-batch')}
-                  className={`w-full text-left px-3 lg:px-4 py-2 lg:py-3 rounded-xl transition-all duration-300 flex items-center space-x-2 lg:space-x-3 group ${
-                    activeSection === 'upcoming-batch' 
-                      ? 'bg-blue-100 text-blue-700 border border-blue-200 shadow-sm' 
-                      : 'text-gray-600 hover:bg-gray-50 hover:shadow-sm'
-                  }`}
-                >
-                  <div className="w-1.5 h-1.5 lg:w-2 lg:h-2 rounded-full bg-blue-400"></div>
-                  <span className="text-xs lg:text-sm font-medium">Upcoming Batch</span>
-                </button>
-              </div>
-            )}
           </div>
 
           {/* Trainer */}
@@ -324,8 +287,8 @@ const AdminSidebar = ({ activeSection, setActiveSection, isSidebarOpen, setIsSid
               setIsOpen: setIsAdmissionOpen,
               items: [
                 { key: 'admission-form', label: 'Admission Form', color: 'indigo' },
-                { key: 'enrolled-student', label: 'Enrolled Student', color: 'teal' },
-                { key: 'payment-invoice-sheet', label: 'Payment Invoice', color: 'amber' }
+                { key: 'enrollment-management', label: 'Enrollments', color: 'teal' },
+                { key: 'payment-management', label: 'Payments', color: 'amber' },
               ]
             },
             {
@@ -444,14 +407,14 @@ const AdminSidebar = ({ activeSection, setActiveSection, isSidebarOpen, setIsSid
                   <span className="text-xs lg:text-sm font-medium">Demo Report</span>
                 </button>
                 <button
-                  onClick={() => handleSectionChange('')}
+                  onClick={() => handleSectionChange('course-report')}
                   className={`w-full text-left px-3 lg:px-4 py-2 lg:py-3 rounded-xl transition-all duration-300 flex items-center space-x-2 lg:space-x-3 group ${
-                    activeSection === '' 
-                      ? 'bg-amber-100 text-amber-700 border border-amber-200 shadow-sm' 
+                    activeSection === 'course-report' 
+                      ? 'bg-teal-100 text-teal-700 border border-teal-200 shadow-sm' 
                       : 'text-gray-600 hover:bg-gray-50 hover:shadow-sm'
                   }`}
                 >
-                  <div className="w-1.5 h-1.5 lg:w-2 lg:h-2 rounded-full bg-amber-400"></div>
+                  <div className="w-1.5 h-1.5 lg:w-2 lg:h-2 rounded-full bg-teal-400"></div>
                   <span className="text-xs lg:text-sm font-medium">Course Report</span>
                 </button>
               </div>

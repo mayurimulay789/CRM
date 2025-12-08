@@ -26,6 +26,7 @@ import PaymentManagement from '../../components/admin/Payment/PaymentManagement.
 import PerformanceReports from '../../components/admin/Reports & Analytics/BatchReports.jsx';
 import AdmissionReports from '../../components/admin/Reports & Analytics/AdmissionReport.jsx'; // Fixed path
 import FinancialReports from '../../components/admin/Reports & Analytics/DemoReport.jsx';
+import CourseReport from '../../components/admin/Reports & Analytics/CourseReport.jsx';
 // import SystemSettings from '../../components/admin/SystemSettings/SystemSettings.jsx';
 
 const AdminDashboardComponent = ({ activeSection }) => {
@@ -43,6 +44,8 @@ const AdminDashboardComponent = ({ activeSection }) => {
       
       // Batches
       case 'batches':
+        return <BatchManagement />;
+      case 'batch-management':
         return <BatchManagement />;
 
       // Trainer
@@ -93,17 +96,15 @@ const AdminDashboardComponent = ({ activeSection }) => {
       // Reports - FIXED: Using correct component names
       case 'performance-reports':
         return <PerformanceReports />;
-      
       case 'admission-reports':
-        return <AdmissionReports />; // This should now work
-      
+        return <AdmissionReports />;
       case 'financial-reports':
         return <FinancialReports />;
-      
+      case 'course-report':
+        return <CourseReport />;
       // System Settings
       case 'system-settings':
         return <SystemSettings />;
-
       default:
         return <AdminDashboard />;
     }

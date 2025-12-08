@@ -116,8 +116,8 @@ const ClosedBatch = () => {
   
     return (
       <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 min-h-screen">
-        <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-6 border-b-4 border-indigo-600 pb-2 inline-block">
-          <span className="mr-3 text-indigo-600">✅</span> Completed Batches
+        <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 mb-6 border-b-4 border-blue-600 pb-2 inline-block">
+          <span className="mr-3 text-blue-600">✅</span> Closed Batches
         </h1>
   
         {batches.length === 0 ? (
@@ -130,7 +130,7 @@ const ClosedBatch = () => {
           <div className="mt-8">
             <div className="overflow-x-auto shadow-2xl rounded-xl border border-gray-200">
               <table className="min-w-max divide-y divide-gray-200 w-full">
-                <thead className="bg-indigo-700 sticky top-0 z-10">
+                <thead className="bg-blue-600 sticky top-0 z-10">
                   <tr>
                     {[
                       'Batch Name', 'Description', 'Course', 'Trainer', 'Branch',

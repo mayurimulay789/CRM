@@ -138,27 +138,21 @@ const UpcomingBatch = () => {
   // --- Main Content UI ---
   return (
     <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 min-h-screen">
-      {/* Page Header: Indigo themed and visually strong */}
-      <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-6 border-b-4 border-indigo-600 pb-2 inline-block">
-        <span className="mr-3 text-indigo-600">📅</span> Upcoming Batches
+      <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 mb-6 border-b-4 border-blue-600 pb-2 inline-block">
+        <span className="mr-3 text-blue-600">📅</span> Upcoming Batches
       </h1>
 
       {batches.length === 0 ? (
-        // --- Empty State UI (Professional Look) ---
         <div className="text-center bg-white p-16 rounded-xl shadow-lg border border-gray-200 mt-8">
           <div className="text-8xl mb-4 text-gray-400">🗓️</div>
           <p className="text-2xl font-semibold text-gray-700">No Upcoming Batches Found</p>
           <p className="mt-2 text-gray-500">There are no batches scheduled to start in the near future.</p>
         </div>
       ) : (
-        // --- Batches Table UI (Enhanced Professional Look with Horizontal Scroll Fix) ---
         <div className="mt-8">
-          {/* Table Container: overflow-x-auto ensures horizontal scrolling is contained here */}
           <div className="overflow-x-auto shadow-2xl rounded-xl border border-gray-200">
-            {/* IMPORTANT: min-w-max allows the table to be as wide as its content, enabling the container scroll */}
-            <table className="min-w-max divide-y divide-gray-200">
-              {/* Table Header: Deep Indigo background for theme matching */}
-              <thead className="bg-indigo-700 sticky top-0 z-10">
+            <table className="min-w-max divide-y divide-gray-200 w-full">
+              <thead className="bg-blue-600 sticky top-0 z-10">
                 <tr>
                   {[
                     'Batch Name', 'Description', 'Course', 'Trainer', 'Branch',

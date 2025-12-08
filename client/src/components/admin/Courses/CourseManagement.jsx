@@ -529,7 +529,7 @@ const CourseManagement = () => {
                               );
                             case 'isActive':
                               return (
-                                <td key={column.key} className={`${baseCellClasses} text-center`}>
+                                <td key={column.key} className={`${baseCellClasses} `}>
                                   {getStatusBadge(course.isActive)}
                                 </td>
                               );
@@ -547,8 +547,8 @@ const CourseManagement = () => {
                               );
                             case 'actions':
                               return (
-                                <td key={column.key} className={`${baseCellClasses} text-center whitespace-nowrap`}>
-                                  <div className="flex flex-row lg:flex-row items-center justify-center space-y-2 lg:space-y-0 lg:space-x-1">
+                                <td key={column.key} className={`${baseCellClasses}  whitespace-nowrap`}>
+                                  <div className="flex flex-row lg:flex-row  space-y-2 lg:space-y-0 lg:space-x-1">
                                     <button 
                                       onClick={() => handleEdit(course)} 
                                       className="text-blue-600 hover:text-blue-900 px-1 lg:px-2 py-1 rounded hover:bg-blue-50 transition-colors border border-blue-200 text-xs w-full lg:w-auto" 

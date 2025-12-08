@@ -1071,7 +1071,7 @@ const ComplaintManagement = () => {
             </div>
 
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Admin Response (Optional)
+              Admin Response (*)
             </label>
             <textarea
               rows={4}

@@ -74,59 +74,65 @@ const RunningBatch = () => {
   }
 
   return (
-    <div className="p-6 bg-white">
-      <div className="overflow-x-auto shadow-lg rounded-lg border border-gray-200">
-        <table className="w-full divide-y divide-gray-200">
-          <thead className="bg-red-600">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-bold text-white uppercase tracking-wider">
-                Name
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-bold text-white uppercase tracking-wider">
-                Course
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-bold text-white uppercase tracking-wider">
-                Trainer
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-bold text-white uppercase tracking-wider">
-                Branch
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-bold text-white uppercase tracking-wider">
-                Code
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-bold text-white uppercase tracking-wider">
-                Timing
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-bold text-white uppercase tracking-wider">
-                Mode
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-bold text-white uppercase tracking-wider">
-                Class Room
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-bold text-white uppercase tracking-wider">
-                Start Date
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-bold text-white uppercase tracking-wider">
-                End Date
-              </th>
-              <th className="px-6 py-3 text-center text-xs font-bold text-white uppercase tracking-wider">
-                Total
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-100">
-            {batches.length === 0 ? (
-              <tr>
-                <td colSpan="11" className="px-6 py-8 text-center text-gray-500">
-                  No running batches found
-                </td>
-              </tr>
-            ) : (
-              tableRows
-            )}
-          </tbody>
-        </table>
-      </div>
+    <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 min-h-screen">
+      <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 mb-6 border-b-4 border-blue-600 pb-2 inline-block">
+        <span className="mr-3 text-blue-600">🚀</span> Running Batches
+      </h1>
+
+      {batches.length === 0 ? (
+        <div className="text-center bg-white p-16 rounded-xl shadow-lg border border-gray-200 mt-8">
+          <div className="text-8xl mb-4 text-gray-400">🏃</div>
+          <p className="text-2xl font-semibold text-gray-700">No Running Batches Found</p>
+          <p className="mt-2 text-gray-500">There are no batches currently running.</p>
+        </div>
+      ) : (
+        <div className="mt-8">
+          <div className="overflow-x-auto shadow-2xl rounded-xl border border-gray-200">
+            <table className="min-w-max divide-y divide-gray-200 w-full">
+              <thead className="bg-blue-600 sticky top-0 z-10">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-white uppercase tracking-wider">
+                    Name
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-white uppercase tracking-wider">
+                    Course
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-white uppercase tracking-wider">
+                    Trainer
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-white uppercase tracking-wider">
+                    Branch
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-white uppercase tracking-wider">
+                    Code
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-white uppercase tracking-wider">
+                    Timing
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-white uppercase tracking-wider">
+                    Mode
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-white uppercase tracking-wider">
+                    Class Room
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-white uppercase tracking-wider">
+                    Start Date
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-white uppercase tracking-wider">
+                    End Date
+                  </th>
+                  <th className="px-6 py-3 text-center text-xs font-bold text-white uppercase tracking-wider">
+                    Total
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-100">
+                {tableRows}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

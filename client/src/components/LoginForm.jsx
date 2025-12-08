@@ -9,7 +9,7 @@ const LoginForm = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   
-  const { loading, error, success, isAuthenticated } = useSelector((state) => state.auth);
+  const { loading, error, success, isAuthenticated, user } = useSelector((state) => state.auth);
   
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
@@ -28,10 +28,18 @@ const LoginForm = () => {
   }, [dispatch]);
 
   useEffect(() => {
-    if (isAuthenticated) {
-      navigate('/');
+    if (isAuthenticated && user) {
+      const role = (user.role || '').toString().toLowerCase();
+
+      if (role === 'admin') {
+        navigate('/admin-panel');
+      } else if (role === 'counsellor' || role === 'counselor') {
+        navigate('/counsellor-panel');
+      } else {
+        navigate('/');
+      }
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, user, navigate]);
 
   const onSubmit = async (e) => {
     e.preventDefault();

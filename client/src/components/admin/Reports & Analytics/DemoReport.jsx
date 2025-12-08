@@ -21,6 +21,8 @@ import {
   BarChart,
   Bar,
   CartesianGrid,
+  AreaChart,
+  Area,
   XAxis,
   YAxis,
   Tooltip,
@@ -30,6 +32,8 @@ import {
   Pie,
   Cell,
 } from 'recharts';
+import { fetchAdmissions } from '../../../store/slices/admissionSlice';
+import { getBatches } from '../../../store/slices/batchSlice';
 import { fetchAllDemoReports, clearDemoReportError } from '../../../store/slices/demoReportSlice';
 
 const DEMO_COLORS = {
@@ -48,6 +52,10 @@ const DemoReport = () => {
   const dispatch = useDispatch();
   const { demos, loading, error } = useSelector((state) => state.demoReports);
   const { user } = useSelector((state) => state.auth);
+  const admissionsState = useSelector((state) => state.admissions || { admissions: [] });
+  const batchState = useSelector((state) => state.batch || { batches: [] });
+  const admissions = admissionsState.admissions || [];
+  const batches = batchState.batches || [];
   
   const [dateRange, setDateRange] = useState('month');
   const [chartData, setChartData] = useState([]);
@@ -67,6 +75,16 @@ const DemoReport = () => {
     await dispatch(fetchAllDemoReports());
     setIsRefreshing(false);
   };
+
+  // Ensure admissions and batches are loaded so the copied charts work
+  useEffect(() => {
+    if ((!admissions || admissions.length === 0) && !loading) {
+      try { dispatch(fetchAdmissions()); } catch (e) { /* ignore */ }
+    }
+    if ((!batches || batches.length === 0) && !loading) {
+      try { dispatch(getBatches()); } catch (e) { /* ignore */ }
+    }
+  }, [dispatch, admissions, batches, loading]);
 
   // Clear error on unmount
   useEffect(() => {
@@ -713,6 +731,76 @@ const DemoReport = () => {
                 No demo enrollment data available
               </div>
             )}
+          </div>
+        </div>
+
+        {/* Additional Trends: Admission & Batch Trends (copied/adapted) */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          {/* Admission Trend (copied from AdmissionReport) */}
+          <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+              <svg className="w-4 h-4 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 3v18h18" /></svg>
+              Admission Trend (Month)
+            </h3>
+            <ResponsiveContainer width="100%" height={260}>
+              <AreaChart data={(() => {
+                // Build a simple month-based dataset using admissions in redux if available
+                const admissions = (window.__reduxState__ && window.__reduxState__.admissions && window.__reduxState__.admissions.admissions) || [];
+                if (!admissions || admissions.length === 0) return [];
+                const now = new Date();
+                const data = [];
+                for (let i = 11; i >= 0; i--) {
+                  const monthStart = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                  const monthEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0);
+                  monthEnd.setHours(23,59,59,999);
+                  const monthAdmissions = admissions.filter(a => {
+                    const d = new Date(a.admissionDate || a.createdAt || a.date);
+                    return d >= monthStart && d <= monthEnd;
+                  });
+                  data.push({ month: monthStart.toLocaleDateString('en-US', { month: 'short' }), total: monthAdmissions.length });
+                }
+                return data;
+              })()}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis dataKey="month" />
+                <YAxis />
+                <Tooltip />
+                <Area type="monotone" dataKey="total" stroke="#0d9488" fill="#0d9488" fillOpacity={0.4} />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Batch Trend (copied from BatchReports) */}
+          <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+              <svg className="w-4 h-4 text-purple-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 3v18h18" /></svg>
+              Batch Creation Trend (Month)
+            </h3>
+            <ResponsiveContainer width="100%" height={260}>
+              <AreaChart data={(() => {
+                const batches = (window.__reduxState__ && window.__reduxState__.batch && window.__reduxState__.batch.batches) || [];
+                if (!batches || batches.length === 0) return [];
+                const now = new Date();
+                const data = [];
+                for (let i = 11; i >= 0; i--) {
+                  const monthStart = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                  const monthEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0);
+                  monthEnd.setHours(23,59,59,999);
+                  const monthBatches = batches.filter(b => {
+                    const d = new Date(b.createdAt || b.startDate);
+                    return d >= monthStart && d <= monthEnd;
+                  });
+                  data.push({ month: monthStart.toLocaleDateString('en-US', { month: 'short' }), total: monthBatches.length });
+                }
+                return data;
+              })()}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis dataKey="month" />
+                <YAxis />
+                <Tooltip />
+                <Area type="monotone" dataKey="total" stroke="#8b5cf6" fill="#8b5cf6" fillOpacity={0.4} />
+              </AreaChart>
+            </ResponsiveContainer>
           </div>
         </div>
 

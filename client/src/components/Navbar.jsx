@@ -43,7 +43,7 @@ const Navbar = () => {
             to="/" 
             className="text-2xl font-bold text-amber-600 hover:text-amber-700 transition"
           >
-            CRM Application
+            RYMA ACADEMY
           </Link>
 
           {/* HAMBURGER (MOBILE ONLY) */}
@@ -89,7 +89,7 @@ const Navbar = () => {
               </>
             ) : (
               <>
-                <Link
+                {/* <Link
                   to="/login"
                   className="text-gray-700 hover:text-amber-600 px-4 py-2 transition"
                 >
@@ -101,7 +101,7 @@ const Navbar = () => {
                   className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-md transition"
                 >
                   Register
-                </Link>
+                </Link> */}
               </>
             )}
           </div>

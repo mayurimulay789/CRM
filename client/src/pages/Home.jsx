@@ -1,8 +1,12 @@
 import React from 'react'
+import RegistrationForm from '../components/RegistrationForm.jsx'
 
 const Home = () => {
   return (
-    <div>This is home Component</div>
+    <div > 
+      <RegistrationForm />
+    
+    </div>
   )
 }
 

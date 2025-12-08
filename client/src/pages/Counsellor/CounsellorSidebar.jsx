@@ -175,16 +175,9 @@ const CounsellorSidebar = ({ activeSection, setActiveSection, isSidebarOpen, set
               isOpen: isAdmissionOpen,
               setIsOpen: setIsAdmissionOpen,
               items: [
-
-                { key: 'admission-form', label: 'Admission Form', color: 'indigo' },
-
                 { key: 'admission-management', label: 'Admission Status', color: 'indigo' },
                 { key: 'enrollment-management', label: 'Enrollments', color: 'teal' },
-                { key: 'payment-management', label: 'Payments', color: 'amber' },
-
-                { key: 'enrolled-student', label: 'Enrolled Student', color: 'teal' },
-                { key: 'payment-invoice-sheet', label: 'Payment Invoice', color: 'amber' }
-
+                { key: 'payment-management', label: 'Payments', color: 'amber' }
               ]
             },
             {
@@ -234,25 +227,7 @@ const CounsellorSidebar = ({ activeSection, setActiveSection, isSidebarOpen, set
             </div>
           ))}
 
-          {/* Single Action Items */}
-          {[
-            { key: 'mis', label: '📈 MIS', color: 'purple' },
-          ].map((item) => (
-            <button
-              key={item.key}
-              onClick={() => handleSectionChange(item.key)}
-              className={`w-full text-left px-4 lg:px-5 py-3 lg:py-4 rounded-2xl transition-all duration-300 flex items-center space-x-3 lg:space-x-4 group ${
-                activeSection === item.key 
-                  ? `bg-gradient-to-r from-${item.color}-500 to-${item.color}-600 text-white shadow-lg shadow-${item.color}-200` 
-                  : 'bg-white text-gray-700 hover:shadow-md border border-blue-100 hover:transform hover:-translate-y-0.5'
-              }`}
-            >
-              <div className={`text-lg lg:text-xl ${activeSection === item.key ? 'scale-110' : 'group-hover:scale-110'} transition-transform`}>
-                {item.label.split(' ')[0]}
-              </div>
-              <span className="font-semibold text-sm lg:text-base">{item.label.split(' ').slice(1).join(' ')}</span>
-            </button>
-          ))}
+          {/* Single Action Items (none for counsellor) */}
         </nav>
       </div>
 
