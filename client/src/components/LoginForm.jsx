@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import toast from 'react-hot-toast';
 import { loginUser, clearError, clearSuccess } from '../store/slices/authSlice';
 import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
 
@@ -14,6 +13,8 @@ const LoginForm = () => {
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [localMessage, setLocalMessage] = useState('');
+  const [invalidCredentials, setInvalidCredentials] = useState(false);
+  const [isRegistrationSuccess, setIsRegistrationSuccess] = useState(false);
 
   const { email, password } = formData;
 
@@ -25,12 +26,24 @@ const LoginForm = () => {
   useEffect(() => {
     dispatch(clearError());
     dispatch(clearSuccess());
+    setInvalidCredentials(false);
+    setIsRegistrationSuccess(false);
   }, [dispatch]);
 
+  // Handle navigation based on authentication status
   useEffect(() => {
     if (isAuthenticated && user) {
       const role = (user.role || '').toString().toLowerCase();
+      
+      // Check if this is coming from registration success
+      const fromRegistration = isRegistrationSuccess;
+      
+      // Clear registration success flag
+      if (fromRegistration) {
+        setIsRegistrationSuccess(false);
+      }
 
+      // Navigate based on role
       if (role === 'admin') {
         navigate('/admin-panel');
       } else if (role === 'counsellor' || role === 'counselor') {
@@ -39,13 +52,49 @@ const LoginForm = () => {
         navigate('/');
       }
     }
-  }, [isAuthenticated, user, navigate]);
+  }, [isAuthenticated, user, navigate, isRegistrationSuccess]);
+
+  // Check if success message is from registration
+  useEffect(() => {
+    if (success && !isAuthenticated) {
+      // Check if this is a registration success message
+      const successLower = success.toLowerCase();
+      if (successLower.includes('register') || 
+          successLower.includes('account created') || 
+          successLower.includes('successfully registered') ||
+          successLower.includes('registration successful')) {
+        setIsRegistrationSuccess(true);
+      }
+    }
+  }, [success, isAuthenticated]);
+
+  // Handle error changes specifically for invalid credentials
+  useEffect(() => {
+    if (error) {
+      const errorLower = error.toLowerCase();
+      if (
+        errorLower.includes('invalid') || 
+        errorLower.includes('credentials') || 
+        errorLower.includes('unauthorized') || 
+        errorLower.includes('incorrect') ||
+        errorLower.includes('401')
+      ) {
+        setInvalidCredentials(true);
+      } else {
+        setInvalidCredentials(false);
+      }
+    } else {
+      setInvalidCredentials(false);
+    }
+  }, [error]);
 
   const onSubmit = async (e) => {
     e.preventDefault();
     
     setLocalMessage('');
     dispatch(clearError());
+    setInvalidCredentials(false);
+    setIsRegistrationSuccess(false);
     
     if (!validateEmail(email)) {
       setLocalMessage('Please enter a valid email');
@@ -57,9 +106,9 @@ const LoginForm = () => {
     }
 
     dispatch(loginUser(formData));
-    toast.success('Login successful!');
   };
 
+  // Use error directly for display when it exists
   const displayMessage = localMessage || error || success;
 
   return (
@@ -137,11 +186,26 @@ const LoginForm = () => {
             </div>
           </form>
 
-          {displayMessage && (
+          {/* Show specific invalid credentials message */}
+          {invalidCredentials && (
+            <p className="mt-4 text-center text-red-500">
+              Invalid credentials. Please check your email and password.
+            </p>
+          )}
+
+          {/* Show other messages (but not if we're showing invalid credentials) */}
+          {!invalidCredentials && displayMessage && (
             <p className={`mt-4 text-center ${
               localMessage || error ? 'text-red-500' : 'text-green-500'
             }`}>
               {displayMessage}
+            </p>
+          )}
+
+          {/* Special message for registration success */}
+          {isRegistrationSuccess && !isAuthenticated && (
+            <p className="mt-4 text-center text-green-500">
+              Registration successful! Auto-logging you in...
             </p>
           )}
 

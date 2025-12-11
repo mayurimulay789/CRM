@@ -83,26 +83,26 @@ const CounsellorSidebar = ({ activeSection, setActiveSection, isSidebarOpen, set
       <div className="flex-1 p-4 lg:p-6 space-y-3 overflow-y-auto">
         {/* Top Actions - Hidden on mobile, visible on desktop */}
         <div className="hidden lg:grid grid-cols-2 gap-3 mb-6">
-          <button
+          {/* <button
             onClick={() => handleSectionChange('search')}
             className="bg-white border border-blue-200 rounded-xl p-3 text-blue-600 hover:bg-blue-50 hover:shadow-md transition-all duration-300 group"
           >
             <div className="text-lg mb-1">🔍</div>
             <div className="text-xs font-medium">Search</div>
-          </button>
-          <button
+          {/* </button> */}
+          {/* <button
             onClick={() => handleSectionChange('overview')}
             className="bg-white border border-blue-200 rounded-xl p-3 text-purple-600 hover:bg-purple-50 hover:shadow-md transition-all duration-300 group"
           >
             <div className="text-lg mb-1">📊</div>
             <div className="text-xs font-medium">Overview</div>
-          </button>
+          </button>  */}
         </div>
 
         {/* Main Navigation */}
         <nav className="space-y-2">
           {/* Dashboard */}
-          <button
+          {/* <button
             onClick={() => handleSectionChange('dashboard')}
             className={`w-full text-left px-4 lg:px-5 py-3 lg:py-4 rounded-2xl transition-all duration-300 flex items-center space-x-3 lg:space-x-4 group ${
               activeSection === 'dashboard' 
@@ -114,7 +114,7 @@ const CounsellorSidebar = ({ activeSection, setActiveSection, isSidebarOpen, set
               🏠
             </div>
             <span className="font-semibold text-sm lg:text-base">Dashboard</span>
-          </button>
+          </button> */}
 
           {/* Student Management */}
           <button
@@ -133,7 +133,7 @@ const CounsellorSidebar = ({ activeSection, setActiveSection, isSidebarOpen, set
 
 
           {/* My Works */}
-          <button
+          {/* <button
             onClick={() => handleSectionChange('my-works')}
             className={`w-full text-left px-4 lg:px-5 py-3 lg:py-4 rounded-2xl transition-all duration-300 flex items-center space-x-3 lg:space-x-4 group ${
               activeSection === 'my-works' 
@@ -145,7 +145,7 @@ const CounsellorSidebar = ({ activeSection, setActiveSection, isSidebarOpen, set
               💼
             </div>
             <span className="font-semibold text-sm lg:text-base">My Works</span>
-          </button>
+          </button> */}
 
           {/* Expandable Sections */}
           {[

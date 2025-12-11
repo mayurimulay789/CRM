@@ -26,7 +26,7 @@ import CounsellorSidebar from './Counsellor/CounsellorSidebar';
 import CounsellorDashboard from './Counsellor/CounsellorDashboard';
 
 const CounsellorDashboardPage = () => {
-  const [activeSection, setActiveSection] = useState('dashboard');
+  const [activeSection, setActiveSection] = useState('student-management');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   return (

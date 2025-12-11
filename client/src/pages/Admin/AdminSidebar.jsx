@@ -145,7 +145,7 @@ const AdminSidebar = ({ activeSection, setActiveSection, isSidebarOpen, setIsSid
       <div className="flex-1 p-4 lg:p-6 space-y-3 overflow-y-auto">
         {/* Top Admin Actions - Hidden on mobile, visible on desktop */}
         <div className="hidden lg:grid grid-cols-2 gap-3 mb-6">
-          <button
+          {/* <button
             onClick={() => handleSectionChange('dashboard')}
             className="bg-white border border-indigo-200 rounded-xl p-3 text-indigo-600 hover:bg-indigo-50 hover:shadow-md transition-all duration-300 group"
           >
@@ -158,7 +158,7 @@ const AdminSidebar = ({ activeSection, setActiveSection, isSidebarOpen, setIsSid
           >
             <div className="text-lg mb-1">🔍</div>
             <div className="text-xs font-medium">Search</div>
-          </button>
+          </button> */}
         </div>
 
         {/* Main Navigation */}
@@ -422,7 +422,7 @@ const AdminSidebar = ({ activeSection, setActiveSection, isSidebarOpen, setIsSid
           </div>
 
           {/* System Settings */}
-          <button
+          {/* <button
             onClick={() => handleSectionChange('system-settings')}
             className={`w-full text-left px-4 lg:px-5 py-3 lg:py-4 rounded-2xl transition-all duration-300 flex items-center space-x-3 lg:space-x-4 group ${
               activeSection === 'system-settings' 
@@ -434,7 +434,7 @@ const AdminSidebar = ({ activeSection, setActiveSection, isSidebarOpen, setIsSid
               ⚙️
             </div>
             <span className="font-semibold text-sm lg:text-base">System Settings</span>
-          </button>
+          </button> */}
         </nav>
       </div>
 

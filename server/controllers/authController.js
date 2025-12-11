@@ -5,6 +5,7 @@ const {generateToken} = require('../middleware/jwtToken');
 
 const registerUser = async (req, res) => {
   const { FullName, email, password, role } = req.body;
+  console.log("Registering user with data:", req.body);
 
   try {
     // Validation
