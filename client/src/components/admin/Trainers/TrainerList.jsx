@@ -7,7 +7,7 @@ const TrainerList = ({ onEdit }) => {
   const dispatch = useDispatch();
   const { trainers, loading, error, pagination } = useSelector((state) => state.trainer);
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  const itemsPerPage = 7;
 
   useEffect(() => {
     dispatch(getTrainers({ page: currentPage, limit: itemsPerPage }));
@@ -123,23 +123,39 @@ const TrainerList = ({ onEdit }) => {
       
       {/* Pagination Controls */}
       {pagination && pagination.totalPages > 1 && (
-        <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex items-center justify-between">
-          <div className="text-sm text-gray-700">
+        <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
+          <div className="text-sm text-gray-700 text-center mb-3">
             Showing page {pagination.currentPage} of {pagination.totalPages} 
             {pagination.totalTrainers && ` (${pagination.totalTrainers} total trainers)`}
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-1 items-center justify-center">
             <button
               onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
               disabled={!pagination.hasPrev}
-              className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+              className="px-3 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors text-sm"
             >
               Previous
             </button>
+            
+            {/* Page Numbers */}
+            {Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map((pageNum) => (
+              <button
+                key={pageNum}
+                onClick={() => setCurrentPage(pageNum)}
+                className={`px-3 py-2 rounded-md text-sm transition-colors ${
+                  pageNum === pagination.currentPage
+                    ? 'bg-indigo-600 text-white font-semibold'
+                    : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
+                }`}
+              >
+                {pageNum}
+              </button>
+            ))}
+            
             <button
               onClick={() => setCurrentPage(prev => prev + 1)}
               disabled={!pagination.hasNext}
-              className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+              className="px-3 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors text-sm"
             >
               Next
             </button>
