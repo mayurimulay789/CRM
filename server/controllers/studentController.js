@@ -130,6 +130,8 @@ const createStudent = async (req, res) => {
       idProof
     } = req.body;
 
+    let createBy = req.user ? req.user._id : null;
+
     // Check if student with email already exists
     const existingStudent = await Student.findOne({ 
       $or: [
@@ -254,7 +256,8 @@ const createStudent = async (req, res) => {
         photo: idProofPhotoUrl || idProofData?.photo || ''
       },
       studentPhoto: studentPhotoUrl || undefined,
-      studentSignature: studentSignatureUrl || undefined
+      studentSignature: studentSignatureUrl || undefined,
+      createdBy: createBy
     };
 
     console.log('📦 Final student data to save:', {

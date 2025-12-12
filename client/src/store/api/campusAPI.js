@@ -1,7 +1,11 @@
 import axios from "axios";
 
 // const API_URL = "http://localhost:5000/api/campus-grievances";
-const API_URL = "https://admin.rymaacademy.cloud/api/campus-grievances";
+const API_URL = `${import.meta.env.VITE_API_URL}/campus-grievances`;
+
+// const enrollmentApi = axios.create({
+//   baseURL: `${API_URL}/enrollments`,
+// });
 
 // ✅ Helper: attach token for protected routes
 const getAuthConfig = () => {

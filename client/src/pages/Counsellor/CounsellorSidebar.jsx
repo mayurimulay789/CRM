@@ -102,7 +102,7 @@ const CounsellorSidebar = ({ activeSection, setActiveSection, isSidebarOpen, set
         {/* Main Navigation */}
         <nav className="space-y-2">
           {/* Dashboard */}
-          {/* <button
+          <button
             onClick={() => handleSectionChange('dashboard')}
             className={`w-full text-left px-4 lg:px-5 py-3 lg:py-4 rounded-2xl transition-all duration-300 flex items-center space-x-3 lg:space-x-4 group ${
               activeSection === 'dashboard' 
@@ -114,7 +114,7 @@ const CounsellorSidebar = ({ activeSection, setActiveSection, isSidebarOpen, set
               🏠
             </div>
             <span className="font-semibold text-sm lg:text-base">Dashboard</span>
-          </button> */}
+          </button>
 
           {/* Student Management */}
           <button

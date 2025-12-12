@@ -9,6 +9,7 @@ export const fetchStudents = createAsyncThunk(
   async (params = {}, { rejectWithValue }) => {
     try {
       const response = await studentAPI.getAllStudents(params);
+      console.log('Fetched Students *************************************:', response.data);
       return response.data;
     } catch (error) {
       return rejectWithValue(
