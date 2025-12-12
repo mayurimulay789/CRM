@@ -21,7 +21,8 @@ const trainerAPI = {
 
   // Update trainer
   updateTrainer: async (id, trainerData) => {
-    const response = await axiosInstance.put(`/trainers/${id}, trainerData`);
+    // correct path + payload
+    const response = await axiosInstance.put(`/trainers/${id}`, trainerData);
     return response;
   },
 

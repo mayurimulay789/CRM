@@ -15,11 +15,6 @@ const TrainerManagement = ({ activeSection }) => {
     }
   }, [dispatch, showAddForm]);
 
-  useEffect(() => {
-    // Scroll to top when switching views
-    window.scrollTo(0, 0);
-  }, [showAddForm]);
-
   const handleAddTrainer = () => {
     setShowAddForm(true);
   };
