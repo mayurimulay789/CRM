@@ -6,9 +6,15 @@ import {
   deleteOfflineDemo,
   setSearchQuery,
 } from "../../../store/slices/offlineDemoSlice";
+import { 
+  fetchOnlineDemos,
+  addOnlineDemo,
+  deleteOnlineDemo as deleteFromOnline
+} from "../../../store/slices/onlineDemoSlice";
 import { getTrainers } from "../../../store/slices/trainerSlice";
 import { fetchCourses } from "../../../store/slices/courseSlice";
 import { useDispatch, useSelector } from "react-redux";
+import axiosInstance from "../../../utils/axios";
 import {
   FiSearch,
   FiRefreshCw,
@@ -97,9 +103,46 @@ const OfflineDemo = () => {
 
   useEffect(() => {
     dispatch(fetchOfflineDemos());
+    dispatch(fetchOnlineDemos()); // Fetch both to ensure sync
     dispatch(getTrainers());
     dispatch(fetchCourses());
   }, [dispatch]);
+
+  // Cleanup effect: Move misplaced demos to correct collection
+  useEffect(() => {
+    const cleanupMisplacedDemos = async () => {
+      const onlineDemosInOfflineCollection = rows.filter(r => r.mode?.toLowerCase() === "online");
+      
+      for (const demo of onlineDemosInOfflineCollection) {
+        try {
+          // Create in online collection
+          await axiosInstance.post("/onlineDemos", {
+            course: demo.course,
+            date: demo.date,
+            time: demo.time,
+            mode: demo.mode,
+            medium: demo.medium,
+            trainer: demo.trainer,
+          });
+          
+          // Delete from offline collection
+          await axiosInstance.delete(`/offlineDemos/${demo._id}`);
+        } catch (error) {
+          console.error("Error moving demo:", error);
+        }
+      }
+      
+      // Refresh both collections after cleanup
+      if (onlineDemosInOfflineCollection.length > 0) {
+        dispatch(fetchOfflineDemos());
+        dispatch(fetchOnlineDemos());
+      }
+    };
+    
+    if (rows.length > 0) {
+      cleanupMisplacedDemos();
+    }
+  }, [rows.length]); // Only run when rows are first loaded
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -141,6 +184,10 @@ const OfflineDemo = () => {
   };
 
   const filteredRows = rows.filter((r) => {
+    // CRITICAL: Only show demos with "offline" mode on this page
+    const isOfflineMode = r.mode?.toLowerCase() === "offline";
+    if (!isOfflineMode) return false;
+
     const matchesSearch =
       r.course?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       r.trainer?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -227,9 +274,15 @@ const OfflineDemo = () => {
       };
 
       if (editingRow) {
-        await dispatch(updateOfflineDemo({ id: editingRow._id, data: submissionData }));
+        await dispatch(updateOfflineDemo({ id: editingRow._id, data: submissionData })).unwrap();
+        // After updating, fetch both offline and online demos to reflect mode changes
+        await Promise.all([
+          dispatch(fetchOfflineDemos()).unwrap(),
+          dispatch(fetchOnlineDemos()).unwrap()
+        ]);
       } else {
-        await dispatch(addOfflineDemo(submissionData));
+        await dispatch(addOfflineDemo(submissionData)).unwrap();
+        await dispatch(fetchOfflineDemos()).unwrap();
       }
 
       setIsFormOpen(false);
@@ -245,7 +298,6 @@ const OfflineDemo = () => {
         mode: "",
       });
       setErrors({});
-      dispatch(fetchOfflineDemos());
     } catch (error) {
       console.error("Error submitting form:", error);
     }

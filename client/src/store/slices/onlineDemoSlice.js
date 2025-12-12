@@ -22,7 +22,7 @@ export const updateOnlineDemo = createAsyncThunk(
   "onlineDemo/update",
   async ({ id, data }) => {
     const response = await axiosInstance.put(`/onlineDemos/${id}`, data);
-    return response.data;
+    return { ...response.data, originalId: id }; // Include original ID for tracking
   }
 );
 
@@ -57,8 +57,15 @@ const onlineDemoSlice = createSlice({
         state.rows.push(action.payload);
       })
       .addCase(updateOnlineDemo.fulfilled, (state, action) => {
-        const index = state.rows.findIndex((r) => r._id === action.payload._id);
-        if (index !== -1) state.rows[index] = action.payload;
+        // Check if demo was moved to another collection (message indicates mode change)
+        if (action.payload.message && action.payload.message.includes("moved to offline")) {
+          // Remove from online collection since it was moved to offline
+          state.rows = state.rows.filter((r) => r._id !== action.payload.originalId);
+        } else {
+          // Normal update - demo stayed in online collection
+          const index = state.rows.findIndex((r) => r._id === action.payload._id || r._id === action.payload.originalId);
+          if (index !== -1) state.rows[index] = action.payload.demo || action.payload;
+        }
       })
       .addCase(deleteOnlineDemo.fulfilled, (state, action) => {
         state.rows = state.rows.filter((r) => r._id !== action.payload);
