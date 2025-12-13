@@ -24,7 +24,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { getBatches, updateBatch } from '../../../store/slices/batchSlice';
 
-const KanbanColumn = ({ id, title, items, onEditBatch }) => {
+const KanbanColumn = ({ id, title, items, onEditBatch, onDeleteBatch }) => {
   const { setNodeRef, isOver } = useDroppable({
     id,
   });
@@ -68,7 +68,7 @@ const KanbanColumn = ({ id, title, items, onEditBatch }) => {
       <SortableContext items={items.map(item => item._id)} strategy={verticalListSortingStrategy}>
         <div className="space-y-3">
           {items.map((batch) => (
-            <BatchCard key={batch._id} batch={batch} onEditBatch={onEditBatch} />
+            <BatchCard key={batch._id} batch={batch} onEditBatch={onEditBatch} onDeleteBatch={onDeleteBatch} />
           ))}
         </div>
       </SortableContext>
@@ -76,7 +76,7 @@ const KanbanColumn = ({ id, title, items, onEditBatch }) => {
   );
 };
 
-const BatchCard = ({ batch, onEditBatch }) => {
+const BatchCard = ({ batch, onEditBatch, onDeleteBatch }) => {
   const {
     attributes,
     listeners,
@@ -114,8 +114,8 @@ const BatchCard = ({ batch, onEditBatch }) => {
         isDragging ? 'opacity-50 rotate-2 scale-105' : ''
       }`}
     >
-      {batch.status !== 'Closed' && (
-        <div className="absolute bottom-3 right-3">
+      <div className="absolute bottom-3 right-3 flex gap-2">
+        {batch.status !== 'Closed' && (
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -126,8 +126,21 @@ const BatchCard = ({ batch, onEditBatch }) => {
           >
             📝
           </button>
-        </div>
-      )}
+        )}
+        {/* Delete: allowed for Closed always; for Upcoming only if no students; never for Running */}
+        {((batch.status === 'Closed') || (batch.status === 'Upcoming' && Number(batch.studentsActive) === 0)) && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onDeleteBatch(batch);
+            }}
+            className="text-red-500 hover:text-red-700 text-lg"
+            title="Delete Batch"
+          >
+            🗑️
+          </button>
+        )}
+      </div>
       <div className={`absolute top-3 right-3 px-3 py-1 rounded-full text-xs font-semibold shadow-sm ${getStatusColor(batch.status)}`}>
         {batch.status}
       </div>
@@ -145,7 +158,7 @@ const BatchCard = ({ batch, onEditBatch }) => {
   );
 };
 
-const KanbanBoard = ({ onEditBatch }) => {
+const KanbanBoard = ({ onEditBatch, onDeleteBatch }) => {
   const dispatch = useDispatch();
   const { batches, loading, error } = useSelector((state) => state.batch);
   const [activeId, setActiveId] = useState(null);
@@ -226,14 +239,14 @@ const KanbanBoard = ({ onEditBatch }) => {
       return;
     }
 
-    // Check if move is allowed
+    // Check if move is allowed per business rules
     const allowedMoves = {
-      upcoming: ['running', 'closed'], // Allow Upcoming to go to Running or Closed
-      running: ['closed', 'upcoming'], // Allow Running to go to Closed or back to Upcoming
-      closed: ['running', 'upcoming'], // Closed can go back to Running or Upcoming
+      upcoming: ['running'],      // Upcoming -> Running only
+      running: ['closed'],        // Running -> Closed only
+      closed: [],                 // Closed cannot move
     };
 
-    if (!allowedMoves[sourceColumn].includes(destColumn)) {
+    if (!allowedMoves[sourceColumn]?.includes(destColumn)) {
       setActiveId(null);
       return; // Move not allowed
     }
@@ -285,23 +298,26 @@ const KanbanBoard = ({ onEditBatch }) => {
             title="📅 Upcoming"
             items={columns.upcoming}
             onEditBatch={onEditBatch}
+            onDeleteBatch={onDeleteBatch}
           />
           <KanbanColumn
             id="running"
             title="🚀 Running"
             items={columns.running}
             onEditBatch={onEditBatch}
+            onDeleteBatch={onDeleteBatch}
           />
           <KanbanColumn
             id="closed"
             title="✅ Closed"
             items={columns.closed}
             onEditBatch={onEditBatch}
+            onDeleteBatch={onDeleteBatch}
           />
         </div>
       </div>
       <DragOverlay>
-        {activeBatch ? <BatchCard batch={activeBatch} /> : null}
+        {activeBatch ? <BatchCard batch={activeBatch} onDeleteBatch={onDeleteBatch} /> : null}
       </DragOverlay>
     </DndContext>
   );

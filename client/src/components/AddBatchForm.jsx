@@ -1,13 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import toast from 'react-hot-toast';
-import { createBatch, updateBatch, clearError, clearSuccess, setError } from '../store/slices/batchSlice';
+import { createBatch, updateBatch,  clearError, clearSuccess, setError } from '../store/slices/batchSlice';
 import { getTrainers } from '../store/slices/trainerSlice';
+import { fetchCourses } from '../store/slices/courseSlice';
 
 const AddBatchForm = ({ onBack, isEdit = false, batchData = null, onEditSubmit = null }) => {
   const dispatch = useDispatch();
   const { loading, error, success } = useSelector((state) => state.batch);
   const { trainers, loading: trainersLoading } = useSelector((state) => state.trainer);
+  const { courses } = useSelector((state) => state.courses);
 
   const [trainerSearch, setTrainerSearch] = useState('');
   const [showTrainerDropdown, setShowTrainerDropdown] = useState(false);
@@ -15,6 +17,7 @@ const AddBatchForm = ({ onBack, isEdit = false, batchData = null, onEditSubmit =
   // Fetch trainers on component mount
   useEffect(() => {
     dispatch(getTrainers({ status: 'Active' }));
+    dispatch(fetchCourses(true)); // fetch active courses
   }, [dispatch]);
 
   // Filter trainers based on search
@@ -54,6 +57,28 @@ const AddBatchForm = ({ onBack, isEdit = false, batchData = null, onEditSubmit =
     batchExtenApproval: '',
     approvalStatus: '',
   });
+
+  // Allowed status options based on current status when editing
+  const statusOptions = useMemo(() => {
+    if (!isEdit || !batchData) return ['Upcoming', 'Running', 'Closed'];
+
+    switch (batchData.status) {
+      case 'Upcoming':
+        return ['Upcoming', 'Running'];
+      case 'Running':
+        return ['Running', 'Closed'];
+      case 'Closed':
+      default:
+        return ['Closed'];
+    }
+  }, [isEdit, batchData]);
+
+  const courseOptions = useMemo(() => {
+    return (courses || []).map((c) => {
+      const label = c.name || c.title || c.courseName || 'Untitled Course';
+      return { id: c._id || label, label };
+    });
+  }, [courses]);
 
   const [formErrors, setFormErrors] = useState({});
 
@@ -288,9 +313,9 @@ const AddBatchForm = ({ onBack, isEdit = false, batchData = null, onEditSubmit =
                 onChange={handleChange}
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
               >
-                <option value="Upcoming">Upcoming</option>
-                <option value="Running">Running</option>
-                <option value="Closed">Closed</option>
+                {statusOptions.map((opt) => (
+                  <option key={opt} value={opt}>{opt}</option>
+                ))}
               </select>
             </div>
             <div>
@@ -407,14 +432,18 @@ const AddBatchForm = ({ onBack, isEdit = false, batchData = null, onEditSubmit =
               <label htmlFor="course" className="block text-sm font-medium text-gray-700">
                 Course
               </label>
-              <input
-                type="text"
+              <select
                 id="course"
                 name="course"
                 value={formData.course}
                 onChange={handleChange}
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-              />
+              >
+                <option value="">Select Course</option>
+                {courseOptions.map((c) => (
+                  <option key={c.id} value={c.label}>{c.label}</option>
+                ))}
+              </select>
             </div>
             <div>
               <label htmlFor="studentsActive" className="block text-sm font-medium text-gray-700">
@@ -541,7 +570,7 @@ const AddBatchForm = ({ onBack, isEdit = false, batchData = null, onEditSubmit =
                 {error}
               </div>
             )}
-            <div className="md:col-span-2 flex gap-4 pt-6 justify-center">
+             <div className="md:col-span-2 flex gap-4 pt-6 justify-center">
               <button
                 type="submit"
                 disabled={loading}

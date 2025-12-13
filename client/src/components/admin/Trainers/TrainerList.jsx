@@ -1,19 +1,23 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { getTrainers, deleteTrainer } from '../../../store/slices/trainerSlice';
 
 const TrainerList = ({ onEdit }) => {
   const dispatch = useDispatch();
-  const { trainers, loading, error } = useSelector((state) => state.trainer);
+  const { trainers, loading, error, pagination } = useSelector((state) => state.trainer);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 7;
 
   useEffect(() => {
-    dispatch(getTrainers());
-  }, [dispatch]);
+    dispatch(getTrainers({ page: currentPage, limit: itemsPerPage }));
+  }, [dispatch, currentPage]);
 
   const handleDelete = (id) => {
     if (window.confirm('Are you sure you want to delete this trainer?')) {
-      dispatch(deleteTrainer(id));
+      dispatch(deleteTrainer(id)).then(() => {
+        dispatch(getTrainers({ page: currentPage, limit: itemsPerPage }));
+      });
     }
   };
 
@@ -76,7 +80,7 @@ const TrainerList = ({ onEdit }) => {
               trainers.map((trainer, index) => (
                 <tr key={trainer._id} className="hover:bg-blue-50 transition-colors duration-200">
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 text-center bg-blue-100 rounded-md mx-2 my-1">
-                    {index + 1}
+                    {(currentPage - 1) * itemsPerPage + index + 1}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     {trainer.name}
@@ -116,6 +120,48 @@ const TrainerList = ({ onEdit }) => {
           </tbody>
         </table>
       </div>
+      
+      {/* Pagination Controls */}
+      {pagination && pagination.totalPages > 1 && (
+        <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
+          <div className="text-sm text-gray-700 text-center mb-3">
+            Showing page {pagination.currentPage} of {pagination.totalPages} 
+            {pagination.totalTrainers && ` (${pagination.totalTrainers} total trainers)`}
+          </div>
+          <div className="flex gap-1 items-center justify-center">
+            <button
+              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+              disabled={!pagination.hasPrev}
+              className="px-3 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors text-sm"
+            >
+              Previous
+            </button>
+            
+            {/* Page Numbers */}
+            {Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map((pageNum) => (
+              <button
+                key={pageNum}
+                onClick={() => setCurrentPage(pageNum)}
+                className={`px-3 py-2 rounded-md text-sm transition-colors ${
+                  pageNum === pagination.currentPage
+                    ? 'bg-indigo-600 text-white font-semibold'
+                    : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
+                }`}
+              >
+                {pageNum}
+              </button>
+            ))}
+            
+            <button
+              onClick={() => setCurrentPage(prev => prev + 1)}
+              disabled={!pagination.hasNext}
+              className="px-3 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors text-sm"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import AddBatchForm from '../../AddBatchForm';
 import KanbanBoard from './KanbanBoard';
-import { getBatches } from '../../../store/slices/batchSlice';
+import { getBatches, deleteBatch } from '../../../store/slices/batchSlice';
 
 const BatchManagement = ({ activeSection }) => {
   const dispatch = useDispatch();
@@ -18,11 +18,6 @@ const BatchManagement = ({ activeSection }) => {
     }
   }, [dispatch, batches.length, loading]);
 
-  useEffect(() => {
-    // Scroll to top when switching views
-    window.scrollTo(0, 0);
-  }, [showAddForm]);
-
   const handleAddBatch = () => {
     setShowAddForm(true);
   };
@@ -30,6 +25,18 @@ const BatchManagement = ({ activeSection }) => {
   const handleEditBatch = (batch) => {
     setEditingBatch(batch);
     setShowEditForm(true);
+  };
+
+  const handleDeleteBatch = async (batch) => {
+    const ok = window.confirm(`Delete batch "${batch.name}"? This cannot be undone.`);
+    if (!ok) return;
+    try {
+      await dispatch(deleteBatch(batch._id)).unwrap();
+      // refresh lists
+      dispatch(getBatches());
+    } catch (err) {
+      console.error('Delete batch failed', err);
+    }
   };
 
   const handleBack = () => {
@@ -53,7 +60,7 @@ const BatchManagement = ({ activeSection }) => {
       return <AddBatchForm onBack={handleBack} isEdit={true} batchData={editingBatch} onEditSubmit={handleEditSubmit} />;
     }
 
-    return <KanbanBoard onEditBatch={handleEditBatch} />;
+    return <KanbanBoard onEditBatch={handleEditBatch} onDeleteBatch={handleDeleteBatch} />;
   };
 
   return (
