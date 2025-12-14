@@ -48,14 +48,11 @@ const AddBatchForm = ({ onBack, isEdit = false, batchData = null, onEditSubmit =
     completionDate: '',
     timing: '',
     course: '',
-    studentsActive: 0,
     batchType: 'weekday',
     mode: '',
     country: '',
     mergingStatus: '',
     mergingTill: '',
-    batchExtenApproval: '',
-    approvalStatus: '',
   });
 
   // Allowed status options based on current status when editing
@@ -98,14 +95,11 @@ const AddBatchForm = ({ onBack, isEdit = false, batchData = null, onEditSubmit =
         completionDate: batchData.completionDate ? new Date(batchData.completionDate).toISOString().split('T')[0] : '',
         timing: batchData.timing || '',
         course: batchData.course || '',
-        studentsActive: batchData.studentsActive || 0,
         batchType: batchData.batchType || 'weekday',
         mode: batchData.mode || '',
         country: batchData.country || '',
         mergingStatus: batchData.mergingStatus || '',
         mergingTill: batchData.mergingTill ? new Date(batchData.mergingTill).toISOString().split('T')[0] : '',
-        batchExtenApproval: batchData.batchExtenApproval || '',
-        approvalStatus: batchData.approvalStatus || '',
       });
       setTrainerSearch(batchData.trainer || '');
     }
@@ -168,10 +162,6 @@ const AddBatchForm = ({ onBack, isEdit = false, batchData = null, onEditSubmit =
       errors.country = 'Country is required.';
     }
 
-    if (formData.studentsActive < 0) {
-      errors.studentsActive = 'Students active cannot be negative.';
-    }
-
     if (formData.classRoom < 0) {
       errors.classRoom = 'Class room number cannot be negative.';
     }
@@ -214,14 +204,11 @@ const AddBatchForm = ({ onBack, isEdit = false, batchData = null, onEditSubmit =
           completionDate: '',
           timing: '',
           course: '',
-          studentsActive: 0,
           batchType: 'weekday',
           mode: '',
           country: '',
           mergingStatus: '',
           mergingTill: '',
-          batchExtenApproval: '',
-          approvalStatus: '',
         });
         setTrainerSearch('');
       }
@@ -446,19 +433,6 @@ const AddBatchForm = ({ onBack, isEdit = false, batchData = null, onEditSubmit =
               </select>
             </div>
             <div>
-              <label htmlFor="studentsActive" className="block text-sm font-medium text-gray-700">
-                Students Active
-              </label>
-              <input
-                type="number"
-                id="studentsActive"
-                name="studentsActive"
-                value={formData.studentsActive}
-                onChange={handleChange}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-              />
-            </div>
-            <div>
               <label htmlFor="batchType" className="block text-sm font-medium text-gray-700">
                 Batch Type
               </label>
@@ -534,36 +508,6 @@ const AddBatchForm = ({ onBack, isEdit = false, batchData = null, onEditSubmit =
                 onChange={handleChange}
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
               />
-            </div>
-            <div>
-              <label htmlFor="batchExtenApproval" className="block text-sm font-medium text-gray-700">
-                Batch Extension Approval
-              </label>
-              <input
-                type="text"
-                id="batchExtenApproval"
-                name="batchExtenApproval"
-                value={formData.batchExtenApproval}
-                onChange={handleChange}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-              />
-            </div>
-            <div>
-              <label htmlFor="approvalStatus" className="block text-sm font-medium text-gray-700">
-                Approval Status
-              </label>
-              <select
-                id="approvalStatus"
-                name="approvalStatus"
-                value={formData.approvalStatus}
-                onChange={handleChange}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-              >
-                <option value="">Select Status</option>
-                <option value="Pending">Pending</option>
-                <option value="Approved">Approved</option>
-                <option value="Rejected">Rejected</option>
-              </select>
             </div>
             {error && (
               <div className="md:col-span-2 p-3 bg-red-100 border border-red-400 text-red-700 rounded">

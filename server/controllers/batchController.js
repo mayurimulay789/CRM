@@ -1,4 +1,5 @@
 const Batch = require('../models/Batch');
+const Enrollment = require('../models/Enrollment');
 
 // @desc    Create a new batch
 // @route   POST /api/batches
@@ -50,13 +51,38 @@ const getBatches = async (req, res) => {
       .sort({ createdAt: -1 })
       .limit(limit * 1)
       .skip((page - 1) * limit)
-      .exec();
+      .lean();
+
+    // Compute dynamic enrollment counts per batch (all statuses, not just active)
+    const batchIds = batches.map((b) => b._id);
+    console.log('🔍 Counting enrollments for batches:', batchIds.map(id => id.toString()));
+    
+    const enrollmentCounts = await Enrollment.aggregate([
+      { $match: { batch: { $in: batchIds } } },
+      { $group: { _id: '$batch', count: { $sum: 1 } } },
+    ]);
+
+    console.log('📊 Enrollment counts by batch (all statuses):', enrollmentCounts);
+
+    const countMap = enrollmentCounts.reduce((acc, curr) => {
+      acc[curr._id.toString()] = curr.count;
+      return acc;
+    }, {});
+
+    const batchesWithCounts = batches.map((b) => {
+      const enrolledCount = countMap[b._id.toString()] || 0;
+      console.log(`Batch ${b.name} (${b._id}): ${enrolledCount} enrolled students`);
+      return {
+        ...b,
+        enrolledCount,
+      };
+    });
 
     const total = await Batch.countDocuments(query);
 
     res.status(200).json({
       success: true,
-      data: batches,
+        data: batchesWithCounts,
       pagination: {
         currentPage: parseInt(page),
         totalPages: Math.ceil(total / limit),

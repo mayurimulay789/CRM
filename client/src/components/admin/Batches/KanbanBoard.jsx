@@ -67,6 +67,11 @@ const KanbanColumn = ({ id, title, items, onEditBatch, onDeleteBatch }) => {
       <h3 className={`text-lg font-bold mb-4 text-center ${getHeaderColor(id)}`}>{title}</h3>
       <SortableContext items={items.map(item => item._id)} strategy={verticalListSortingStrategy}>
         <div className="space-y-3">
+          {items.length === 0 && (
+            <div className="text-center text-gray-500 text-sm py-10 bg-white/60 border border-dashed border-gray-300 rounded-md">
+              No batches here yet
+            </div>
+          )}
           {items.map((batch) => (
             <BatchCard key={batch._id} batch={batch} onEditBatch={onEditBatch} onDeleteBatch={onDeleteBatch} />
           ))}
@@ -128,7 +133,7 @@ const BatchCard = ({ batch, onEditBatch, onDeleteBatch }) => {
           </button>
         )}
         {/* Delete: allowed for Closed always; for Upcoming only if no students; never for Running */}
-        {((batch.status === 'Closed') || (batch.status === 'Upcoming' && Number(batch.studentsActive) === 0)) && (
+        {((batch.status === 'Closed') || (batch.status === 'Upcoming' && Number(batch.enrolledCount ?? batch.studentsActive ?? 0) === 0)) && (
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -151,7 +156,7 @@ const BatchCard = ({ batch, onEditBatch, onDeleteBatch }) => {
           📅 {batch.startDate ? new Date(batch.startDate).toLocaleDateString() : 'No start date'}
         </p>
         <p className="text-xs text-gray-600">
-          👥 Students: {batch.studentsActive || 0}
+          👥 Students: {batch.enrolledCount ?? batch.studentsActive ?? 0}
         </p>
       </div>
     </div>
@@ -268,14 +273,6 @@ const KanbanBoard = ({ onEditBatch, onDeleteBatch }) => {
 
   const activeBatch = activeId ? batches.find(batch => batch._id === activeId) : null;
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
-      </div>
-    );
-  }
-
   if (error) {
     return (
       <div className="text-center text-red-600 p-4">
@@ -291,7 +288,12 @@ const KanbanBoard = ({ onEditBatch, onDeleteBatch }) => {
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div className="bg-gradient-to-br from-slate-50 to-gray-100 min-h-screen p-8">
+      <div className="bg-gradient-to-br from-slate-50 to-gray-100 min-h-screen p-8 relative">
+        {loading && (
+          <div className="absolute inset-0 flex items-center justify-center bg-white/60 backdrop-blur-sm z-10">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+          </div>
+        )}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <KanbanColumn
             id="upcoming"

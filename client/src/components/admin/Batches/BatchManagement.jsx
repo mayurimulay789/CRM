@@ -12,11 +12,9 @@ const BatchManagement = ({ activeSection }) => {
   const [editingBatch, setEditingBatch] = useState(null);
 
   useEffect(() => {
-    // Preload batches when component mounts
-    if (batches.length === 0 && !loading) {
-      dispatch(getBatches());
-    }
-  }, [dispatch, batches.length, loading]);
+    // Fetch once on mount to avoid re-request loops when the board is empty
+    dispatch(getBatches());
+  }, [dispatch]);
 
   const handleAddBatch = () => {
     setShowAddForm(true);
