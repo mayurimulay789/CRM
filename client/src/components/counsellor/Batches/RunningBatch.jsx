@@ -47,7 +47,7 @@ const RunningBatch = () => {
           {batch.endDate ? new Date(batch.endDate).toLocaleDateString() : 'N/A'}
         </td>
         <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-indigo-600 text-center">
-          {batch.studentsActive || 0}
+          {batch.enrolledCount ?? batch.studentsActive ?? 0}
         </td>
       </tr>
     ));

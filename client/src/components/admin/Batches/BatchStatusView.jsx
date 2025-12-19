@@ -173,7 +173,7 @@ const BatchStatusView = ({ status }) => {
                       <div className="text-sm text-gray-900">{batch.batchType || 'N/A'}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center">
-                      <div className="text-sm text-gray-900">{batch.studentsActive || 0}</div>
+                      <div className="text-sm text-gray-900">{batch.enrolledCount ?? batch.studentsActive ?? 0}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">{batch.batchDays || 'N/A'}</div>

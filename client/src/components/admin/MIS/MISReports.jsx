@@ -62,22 +62,24 @@ const MISReports = () => {
     const filteredOfflineDemos = filterByDate(offlineDemos, ['demoDate', 'scheduledDate', 'createdAt', 'date']);
     const filteredBatches = filterByDate(batches, ['startDate', 'createdAt', 'date']);
     const filteredStudents = filterByDate(students, ['registrationDate', 'createdAt', 'date']);
+    const filteredCourses = filterByDate(courses, ['createdAt']);
+    const filteredTrainers = filterByDate(trainers, ['createdAt']);
 
     return {
       totalAdmissions: filteredAdmissions.length,
       approvedAdmissions: filteredAdmissions.filter(a => a.status?.toLowerCase() === 'approved').length,
       totalPayment: filteredPayments.length,
-      totalCourses: courses.length, // Total courses (not filtered by date)
-      totalBatches: batches.length, // Total batches (not filtered by date)
-      totalStudents: students.length, // Total students (not filtered by date)
-      todayStudents: filteredStudents.length, // Students registered today
-      totalTrainers: trainers.length, // Total trainers (not filtered by date)
+      totalCourses: filteredCourses.length,
+      totalBatches: filteredBatches.length,
+      totalStudents: filteredStudents.length,
+      todayStudents: filteredStudents.length,
+      totalTrainers: filteredTrainers.length,
       totalOnlineDemo: filteredOnlineDemos.length,
       totalOfflineDemo: filteredOfflineDemos.length,
       totalDemo: filteredOnlineDemos.length + filteredOfflineDemos.length,
-      runningBatch: batches.filter(b => b.status?.toLowerCase() === 'running').length,
-      upcomingBatch: batches.filter(b => b.status?.toLowerCase() === 'upcoming').length,
-      closedBatch: batches.filter(b => b.status?.toLowerCase() === 'closed').length,
+      runningBatch: filteredBatches.filter(b => b.status?.toLowerCase() === 'running').length,
+      upcomingBatch: filteredBatches.filter(b => b.status?.toLowerCase() === 'upcoming').length,
+      closedBatch: filteredBatches.filter(b => b.status?.toLowerCase() === 'closed').length,
     };
   }, [admissions, payments, courses, batches, onlineDemos, offlineDemos, students, trainers, selectedDate]);
 
