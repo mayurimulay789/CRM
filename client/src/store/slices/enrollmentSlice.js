@@ -123,7 +123,6 @@ const enrollmentSlice = createSlice({
         console.log('✅ fetchEnrollments fulfilled with payload:', action.payload);
         state.loading = false;
         state.enrollments = Array.isArray(action.payload) ? action.payload : [];
-        state.success = 'Enrollments fetched successfully';
         console.log('💾 Updated enrollments in state:', state.enrollments.length);
       })
       .addCase(fetchEnrollments.rejected, (state, action) => {

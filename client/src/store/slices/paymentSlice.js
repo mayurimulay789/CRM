@@ -99,7 +99,6 @@ const paymentSlice = createSlice({
       .addCase(fetchPayments.fulfilled, (state, action) => {
         state.loading = false;
         state.payments = action.payload.data || [];
-        state.success = 'Payments fetched successfully';
       })
       .addCase(fetchPayments.rejected, (state, action) => {
         state.loading = false;
