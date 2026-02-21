@@ -201,25 +201,12 @@ const LoginForm = () => {
               {displayMessage}
             </p>
           )}
-
           {/* Special message for registration success */}
           {isRegistrationSuccess && !isAuthenticated && (
             <p className="mt-4 text-center text-green-500">
               Registration successful! Auto-logging you in...
             </p>
           )}
-
-          <p className="mt-4 text-center text-gray-600">
-            Don't have an account?{' '}
-            <span
-              onClick={() => !loading && navigate('/register')}
-              className={`text-amber-500 font-semibold cursor-pointer hover:underline ${
-                loading ? 'opacity-50 cursor-not-allowed' : ''
-              }`}
-            >
-              Register
-            </span>
-          </p>
         </div>
       </div>
     </div>

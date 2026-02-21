@@ -27,6 +27,7 @@ import PerformanceReports from '../../components/admin/Reports & Analytics/Batch
 import AdmissionReports from '../../components/admin/Reports & Analytics/AdmissionReport.jsx'; // Fixed path
 import FinancialReports from '../../components/admin/Reports & Analytics/DemoReport.jsx';
 import CourseReport from '../../components/admin/Reports & Analytics/CourseReport.jsx';
+import RegistrationForm from '../../components/admin/RegisterCounsellor/registercounsellor.jsx';
 // import SystemSettings from '../../components/admin/SystemSettings/SystemSettings.jsx';
 
 const AdminDashboardComponent = ({ activeSection }) => {
@@ -92,6 +93,8 @@ const AdminDashboardComponent = ({ activeSection }) => {
       // MIS
       case 'mis':
         return <MISReports />;
+      case 'registerform':
+        return <RegistrationForm activeSection={activeSection}/>;
       
       // Reports - FIXED: Using correct component names
       case 'performance-reports':

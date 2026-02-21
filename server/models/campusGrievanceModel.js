@@ -1,22 +1,3 @@
-// const mongoose = require("mongoose");
-
-// const campusGrievanceSchema = new mongoose.Schema(
-//   {
-//     name: { type: String, required: true },
-//     complaint: { type: String, required: true },
-//     status: {
-//       type: String,
-//       enum: ["submitted", "approved", "rejected"],
-//       default: "submitted",
-//     },
-//   },
-//   { timestamps: true }
-// );
-
-// module.exports = mongoose.model("CampusGrievance", campusGrievanceSchema);
-
-
-
 const mongoose = require("mongoose");
 
 const campusGrievanceSchema = new mongoose.Schema(

@@ -4,28 +4,27 @@ const bcrypt = require('bcryptjs');
 const {generateToken} = require('../middleware/jwtToken');
 
 const registerUser = async (req, res) => {
-  const { FullName, email, password, role } = req.body;
+  const { FullName, email, password,education,phone, role } = req.body;
   console.log("Registering user with data:", req.body);
-
   try {
     // Validation
-    if (!FullName || !email || !password) {
+    if (!FullName || !email || !password || !education || !phone) {
       return res.status(400).json({ 
-        message: 'Please provide FullName, email, and password' 
+        message: 'Please provide FullName, email, password, education and phone' 
       });
     }
-
     // Check if user exists
     const userExists = await User.findOne({ email });
     if (userExists) {
       return res.status(400).json({ message: 'User already exists' });
     }
-
     // Create user
     const user = await User.create({
       FullName,
       email,
       password,
+      education,
+      phone,
       role:'Counsellor',
     });
 
@@ -41,6 +40,7 @@ const registerUser = async (req, res) => {
         FullName: user.FullName,
         email: user.email,
         role: user.role,
+        phone: user.phone,
       },
       token: token,
       message: 'User registered successfully'
@@ -207,8 +207,6 @@ const getAllCounsellor = async (req, res) => {
     const counsellors = await User.find(searchQuery)
       .select('-password')
       .sort({ FullName: 1 })
-      .skip(skip)
-      .limit(limit);
 
     // Calculate pagination info
     const totalPages = Math.ceil(totalCounsellors / limit);
@@ -223,6 +221,7 @@ const getAllCounsellor = async (req, res) => {
         email: counsellor.email,
         role: counsellor.role,
         phone: counsellor.phone || null,
+         education: counsellor.education, 
         createdAt: counsellor.createdAt,
         updatedAt: counsellor.updatedAt
       })),

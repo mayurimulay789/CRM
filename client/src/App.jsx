@@ -12,7 +12,6 @@ import Footer from "./components/Footer.jsx";
 
 // Public Pages
 import Home from "./pages/Home.jsx";
-import RegistrationForm from "./components/RegistrationForm.jsx";
 import LoginForm from "./components/LoginForm.jsx";
 
 // Protected Pages
@@ -20,6 +19,7 @@ import AdminDashboardPage from "./pages/AdminDashboardPage.jsx";
 import CounsellorDashboardPage from "./pages/CounsellorDashboardPage.jsx";
 import AddBatchForm from "./components/AddBatchForm.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
+import RegistrationForm from "./components/admin/RegisterCounsellor/registercounsellor.jsx";
 // --------------------
 // AppContent Component
 // --------------------
@@ -48,8 +48,10 @@ function AppContent() {
         <Routes>
           {/* 🌐 Public Routes */}
           <Route path="/" element={<Home />} />
-          <Route path="/register" element={<RegistrationForm />} />
           <Route path="/login" element={<LoginForm />} />
+          <Route path="/register" element={
+              <RegistrationForm />
+            } />
 
           {/* 🧑‍💼 Protected Routes */}
           <Route

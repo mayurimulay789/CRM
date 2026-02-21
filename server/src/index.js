@@ -68,10 +68,10 @@ app.use("/api/onlineDemos", onlineDemoRoutes);
 app.use("/api/offlineDemos", offlineDemoRoutes);
 app.use("/api/oneToOneDemos", oneToOneRoutes);
 app.use("/api/liveclasses", liveClassRoutes);
-app.use('/api/trainers', trainerRoutes);
-app.use('/api/batches', batchRoutes);
-app.use("/api/student-grievances", studentGrievanceRoutes);
-app.use("/api/campus-grievances", campusGrievanceRoutes);
+app.use('/api/trainers', trainerRoutes); // error
+app.use('/api/batches', batchRoutes); //error
+app.use("/api/student-grievances", studentGrievanceRoutes); //error
+app.use("/api/campus-grievances", campusGrievanceRoutes); //error
 app.use("/api/auth", authRoutes);
 app.use('/api/admissions', admissionRoutes);
 app.use('/api/courses', courseRoutes);

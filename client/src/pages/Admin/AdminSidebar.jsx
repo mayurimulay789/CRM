@@ -8,7 +8,6 @@ const AdminSidebar = ({ activeSection, setActiveSection, isSidebarOpen, setIsSid
   const navigate = useNavigate();
   const { user } = useSelector(state => state.auth);
 
-  const [isBatchesOpen, setIsBatchesOpen] = useState(false);
   const [isDemoOpen, setIsDemoOpen] = useState(false);
   const [isAdmissionOpen, setIsAdmissionOpen] = useState(false);
   const [isComplaintOpen, setIsComplaintOpen] = useState(false);
@@ -68,49 +67,6 @@ const AdminSidebar = ({ activeSection, setActiveSection, isSidebarOpen, setIsSid
     cyan: { bg: 'bg-cyan-100', text: 'text-cyan-700', border: 'border-cyan-200', dot: 'bg-cyan-400' }
   };
 
-  const expandableSections = [
-    {
-      title: "📚 Batches",
-      isOpen: isBatchesOpen,
-      setIsOpen: setIsBatchesOpen,
-      items: [
-        { key: 'closed-batch', label: 'Closed Batch', color: 'gray' },
-        { key: 'running-batch', label: 'Running Batch', color: 'green' },
-        { key: 'upcoming-batch', label: 'Upcoming Batch', color: 'blue' }
-      ]
-    },
-    {
-      title: "🎯 Demo",
-      isOpen: isDemoOpen,
-      setIsOpen: setIsDemoOpen,
-      items: [
-        { key: 'online-demo', label: 'Online', color: 'purple' },
-        { key: 'offline-demo', label: 'Offline', color: 'orange' },
-        { key: 'one-to-one-demo', label: '1-2-1', color: 'pink' },
-        { key: 'live-class-demo', label: 'Live Class', color: 'red' }
-      ]
-    },
-    {
-      title: "🎓 Admission",
-      isOpen: isAdmissionOpen,
-      setIsOpen: setIsAdmissionOpen,
-      items: [
-        { key: 'admission-form', label: 'Admission Form', color: 'indigo' },
-        { key: 'enrollment-management', label: 'Enrollments', color: 'teal' },
-        { key: 'payment-management', label: 'Payments', color: 'amber' },
-      ]
-    },
-    {
-      title: "📋 Complaint",
-      isOpen: isComplaintOpen,
-      setIsOpen: setIsComplaintOpen,
-      items: [
-        { key: 'student-grievance', label: 'Student Grievance', color: 'rose' },
-        { key: 'campus-grievance', label: 'Campus Grievance', color: 'cyan' }
-      ]
-    }
-  ];
-
   const sidebarContent = (
     <>
       {/* Premium Admin Header */}
@@ -128,7 +84,7 @@ const AdminSidebar = ({ activeSection, setActiveSection, isSidebarOpen, setIsSid
               <p className="text-indigo-200 text-xs truncate">{user?.email}</p>
             </div>
           </div>
-          
+
           {/* Mobile Close Button */}
           <button
             onClick={() => setIsSidebarOpen(false)}
@@ -143,34 +99,15 @@ const AdminSidebar = ({ activeSection, setActiveSection, isSidebarOpen, setIsSid
 
       {/* Navigation Menu */}
       <div className="flex-1 p-4 lg:p-6 space-y-3 overflow-y-auto">
-        {/* Top Admin Actions - Hidden on mobile, visible on desktop */}
-        <div className="hidden lg:grid grid-cols-2 gap-3 mb-6">
-          {/* <button
-            onClick={() => handleSectionChange('dashboard')}
-            className="bg-white border border-indigo-200 rounded-xl p-3 text-indigo-600 hover:bg-indigo-50 hover:shadow-md transition-all duration-300 group"
-          >
-            <div className="text-lg mb-1">📊</div>
-            <div className="text-xs font-medium">Analytics</div>
-          </button>
-          <button
-            onClick={() => handleSectionChange('search')}
-            className="bg-white border border-purple-200 rounded-xl p-3 text-purple-600 hover:bg-purple-50 hover:shadow-md transition-all duration-300 group"
-          >
-            <div className="text-lg mb-1">🔍</div>
-            <div className="text-xs font-medium">Search</div>
-          </button> */}
-        </div>
-
         {/* Main Navigation */}
         <nav className="space-y-2">
           {/* Admin Dashboard */}
           <button
             onClick={() => handleSectionChange('dashboard')}
-            className={`w-full text-left px-4 lg:px-5 py-3 lg:py-4 rounded-2xl transition-all duration-300 flex items-center space-x-3 lg:space-x-4 group ${
-              activeSection === 'dashboard' 
-                ? 'bg-gradient-to-r from-indigo-500 to-indigo-600 text-white shadow-lg shadow-indigo-200' 
-                : 'bg-white text-gray-700 hover:bg-indigo-50 hover:shadow-md border border-indigo-100'
-            }`}
+            className={`w-full text-left px-4 lg:px-5 py-3 lg:py-4 rounded-2xl transition-all duration-300 flex items-center space-x-3 lg:space-x-4 group ${activeSection === 'dashboard'
+              ? 'bg-gradient-to-r from-indigo-500 to-indigo-600 text-white shadow-lg shadow-indigo-200'
+              : 'bg-white text-gray-700 hover:bg-indigo-50 hover:shadow-md border border-indigo-100'
+              }`}
           >
             <div className={`text-lg lg:text-xl ${activeSection === 'dashboard' ? 'scale-110' : 'group-hover:scale-110'} transition-transform`}>
               🏠
@@ -181,11 +118,10 @@ const AdminSidebar = ({ activeSection, setActiveSection, isSidebarOpen, setIsSid
           {/* Course Management */}
           <button
             onClick={() => handleSectionChange('course-management')}
-            className={`w-full text-left px-4 lg:px-5 py-3 lg:py-4 rounded-2xl transition-all duration-300 flex items-center space-x-3 lg:space-x-4 group ${
-              activeSection === 'course-management' 
-                ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-lg shadow-purple-200' 
-                : 'bg-white text-gray-700 hover:shadow-md border border-indigo-100 hover:transform hover:-translate-y-0.5'
-            }`}
+            className={`w-full text-left px-4 lg:px-5 py-3 lg:py-4 rounded-2xl transition-all duration-300 flex items-center space-x-3 lg:space-x-4 group ${activeSection === 'course-management'
+              ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-lg shadow-purple-200'
+              : 'bg-white text-gray-700 hover:shadow-md border border-indigo-100 hover:transform hover:-translate-y-0.5'
+              }`}
           >
             <div className={`text-lg lg:text-xl ${activeSection === 'course-management' ? 'scale-110' : 'group-hover:scale-110'} transition-transform`}>
               📚
@@ -207,27 +143,25 @@ const AdminSidebar = ({ activeSection, setActiveSection, isSidebarOpen, setIsSid
                 <span className="text-gray-400 text-sm">▼</span>
               </div>
             </button>
-            
+
             {isManagementOpen && (
               <div className="px-2 lg:px-3 pb-2 lg:pb-3 space-y-1 lg:space-y-2">
                 <button
                   onClick={() => handleSectionChange('counsellor-management')}
-                  className={`w-full text-left px-3 lg:px-4 py-2 lg:py-3 rounded-xl transition-all duration-300 flex items-center space-x-2 lg:space-x-3 group ${
-                    activeSection === 'counsellor-management' 
-                      ? 'bg-blue-100 text-blue-700 border border-blue-200 shadow-sm' 
-                      : 'text-gray-600 hover:bg-gray-50 hover:shadow-sm'
-                  }`}
+                  className={`w-full text-left px-3 lg:px-4 py-2 lg:py-3 rounded-xl transition-all duration-300 flex items-center space-x-2 lg:space-x-3 group ${activeSection === 'counsellor-management'
+                    ? 'bg-blue-100 text-blue-700 border border-blue-200 shadow-sm'
+                    : 'text-gray-600 hover:bg-gray-50 hover:shadow-sm'
+                    }`}
                 >
                   <div className="w-1.5 h-1.5 lg:w-2 lg:h-2 rounded-full bg-blue-400"></div>
                   <span className="text-xs lg:text-sm font-medium">Counsellor Management</span>
                 </button>
                 <button
                   onClick={() => handleSectionChange('student-management')}
-                  className={`w-full text-left px-3 lg:px-4 py-2 lg:py-3 rounded-xl transition-all duration-300 flex items-center space-x-2 lg:space-x-3 group ${
-                    activeSection === 'student-management' 
-                      ? 'bg-green-100 text-green-700 border border-green-200 shadow-sm' 
-                      : 'text-gray-600 hover:bg-gray-50 hover:shadow-sm'
-                  }`}
+                  className={`w-full text-left px-3 lg:px-4 py-2 lg:py-3 rounded-xl transition-all duration-300 flex items-center space-x-2 lg:space-x-3 group ${activeSection === 'student-management'
+                    ? 'bg-green-100 text-green-700 border border-green-200 shadow-sm'
+                    : 'text-gray-600 hover:bg-gray-50 hover:shadow-sm'
+                    }`}
                 >
                   <div className="w-1.5 h-1.5 lg:w-2 lg:h-2 rounded-full bg-green-400"></div>
                   <span className="text-xs lg:text-sm font-medium">Student Management</span>
@@ -235,32 +169,28 @@ const AdminSidebar = ({ activeSection, setActiveSection, isSidebarOpen, setIsSid
               </div>
             )}
           </div>
-            
-          {/* Batches Section - simplified to a single Batch Management link */}
-          <div className="bg-white rounded-2xl border border-indigo-100 overflow-hidden">
-            <button
-              onClick={() => handleSectionChange('batch-management')}
-              className={`w-full text-left px-4 lg:px-5 py-3 lg:py-4 transition-all duration-300 flex items-center space-x-3 lg:space-x-4 group ${
-                activeSection === 'batch-management'
-                  ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-200'
-                  : 'bg-white text-gray-700 hover:bg-blue-50 hover:shadow-md border border-indigo-100'
+
+          {/* Batch Management (simplified) */}
+          <button
+            onClick={() => handleSectionChange('batch-management')}
+            className={`w-full text-left px-4 lg:px-5 py-3 lg:py-4 rounded-2xl transition-all duration-300 flex items-center space-x-3 lg:space-x-4 group ${activeSection === 'batch-management'
+              ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-200'
+              : 'bg-white text-gray-700 hover:bg-blue-50 hover:shadow-md border border-indigo-100'
               }`}
-            >
-              <div className={`text-lg lg:text-xl ${activeSection === 'batch-management' ? 'scale-110' : 'group-hover:scale-110'} transition-transform`}>
-                📚
-              </div>
-              <span className="font-semibold text-sm lg:text-base">Batch Management</span>
-            </button>
-          </div>
+          >
+            <div className={`text-lg lg:text-xl ${activeSection === 'batch-management' ? 'scale-110' : 'group-hover:scale-110'} transition-transform`}>
+              📚
+            </div>
+            <span className="font-semibold text-sm lg:text-base">Batch Management</span>
+          </button>
 
           {/* Trainer */}
           <button
             onClick={() => handleSectionChange('trainer-management')}
-            className={`w-full text-left px-4 lg:px-5 py-3 lg:py-4 rounded-2xl transition-all duration-300 flex items-center space-x-3 lg:space-x-4 group ${
-              activeSection === 'trainer-management'
-                ? 'bg-gradient-to-r from-green-500 to-green-600 text-white shadow-lg shadow-green-200'
-                : 'bg-white text-gray-700 hover:bg-green-50 hover:shadow-md border border-indigo-100'
-            }`}
+            className={`w-full text-left px-4 lg:px-5 py-3 lg:py-4 rounded-2xl transition-all duration-300 flex items-center space-x-3 lg:space-x-4 group ${activeSection === 'trainer-management'
+              ? 'bg-gradient-to-r from-green-500 to-green-600 text-white shadow-lg shadow-green-200'
+              : 'bg-white text-gray-700 hover:bg-green-50 hover:shadow-md border border-indigo-100'
+              }`}
           >
             <div className={`text-lg lg:text-xl ${activeSection === 'trainer-management' ? 'scale-110' : 'group-hover:scale-110'} transition-transform`}>
               👨‍🏫
@@ -288,7 +218,7 @@ const AdminSidebar = ({ activeSection, setActiveSection, isSidebarOpen, setIsSid
               items: [
                 { key: 'admission-form', label: 'Admission Form', color: 'indigo' },
                 { key: 'enrollment-management', label: 'Enrollments', color: 'teal' },
-                { key: 'payment-management', label: 'Payments', color: 'amber' },
+                { key: 'payment-management', label: 'Payments', color: 'amber' }
               ]
             },
             {
@@ -316,7 +246,7 @@ const AdminSidebar = ({ activeSection, setActiveSection, isSidebarOpen, setIsSid
                   <span className="text-gray-400 text-sm">▼</span>
                 </div>
               </button>
-              
+
               {section.isOpen && (
                 <div className="px-2 lg:px-3 pb-2 lg:pb-3 space-y-1 lg:space-y-2">
                   {section.items.map((item) => {
@@ -325,11 +255,10 @@ const AdminSidebar = ({ activeSection, setActiveSection, isSidebarOpen, setIsSid
                       <button
                         key={item.key}
                         onClick={() => handleSectionChange(item.key)}
-                        className={`w-full text-left px-3 lg:px-4 py-2 lg:py-3 rounded-xl transition-all duration-300 flex items-center space-x-2 lg:space-x-3 group ${
-                          activeSection === item.key 
-                            ? `${colorClass.bg} ${colorClass.text} ${colorClass.border} shadow-sm` 
-                            : 'text-gray-600 hover:bg-gray-50 hover:shadow-sm'
-                        }`}
+                        className={`w-full text-left px-3 lg:px-4 py-2 lg:py-3 rounded-xl transition-all duration-300 flex items-center space-x-2 lg:space-x-3 group ${activeSection === item.key
+                          ? `${colorClass.bg} ${colorClass.text} ${colorClass.border} shadow-sm`
+                          : 'text-gray-600 hover:bg-gray-50 hover:shadow-sm'
+                          }`}
                       >
                         <div className={`w-1.5 h-1.5 lg:w-2 lg:h-2 rounded-full ${colorClass.dot}`}></div>
                         <span className="text-xs lg:text-sm font-medium">{item.label}</span>
@@ -340,15 +269,14 @@ const AdminSidebar = ({ activeSection, setActiveSection, isSidebarOpen, setIsSid
               )}
             </div>
           ))}
-          
+
           {/* MIS Reports */}
           <button
             onClick={() => handleSectionChange('mis')}
-            className={`w-full text-left px-4 lg:px-5 py-3 lg:py-4 rounded-2xl transition-all duration-300 flex items-center space-x-3 lg:space-x-4 group ${
-              activeSection === 'mis' 
-                ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-lg shadow-purple-200' 
-                : 'bg-white text-gray-700 hover:shadow-md border border-indigo-100 hover:transform hover:-translate-y-0.5'
-            }`}
+            className={`w-full text-left px-4 lg:px-5 py-3 lg:py-4 rounded-2xl transition-all duration-300 flex items-center space-x-3 lg:space-x-4 group ${activeSection === 'mis'
+              ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-lg shadow-purple-200'
+              : 'bg-white text-gray-700 hover:shadow-md border border-indigo-100 hover:transform hover:-translate-y-0.5'
+              }`}
           >
             <div className={`text-lg lg:text-xl ${activeSection === 'mis' ? 'scale-110' : 'group-hover:scale-110'} transition-transform`}>
               📈
@@ -370,49 +298,45 @@ const AdminSidebar = ({ activeSection, setActiveSection, isSidebarOpen, setIsSid
                 <span className="text-gray-400 text-sm">▼</span>
               </div>
             </button>
-            
+
             {isReportsOpen && (
               <div className="px-2 lg:px-3 pb-2 lg:pb-3 space-y-1 lg:space-y-2">
                 <button
                   onClick={() => handleSectionChange('performance-reports')}
-                  className={`w-full text-left px-3 lg:px-4 py-2 lg:py-3 rounded-xl transition-all duration-300 flex items-center space-x-2 lg:space-x-3 group ${
-                    activeSection === 'performance-reports' 
-                      ? 'bg-blue-100 text-blue-700 border border-blue-200 shadow-sm' 
-                      : 'text-gray-600 hover:bg-gray-50 hover:shadow-sm'
-                  }`}
+                  className={`w-full text-left px-3 lg:px-4 py-2 lg:py-3 rounded-xl transition-all duration-300 flex items-center space-x-2 lg:space-x-3 group ${activeSection === 'performance-reports'
+                    ? 'bg-blue-100 text-blue-700 border border-blue-200 shadow-sm'
+                    : 'text-gray-600 hover:bg-gray-50 hover:shadow-sm'
+                    }`}
                 >
                   <div className="w-1.5 h-1.5 lg:w-2 lg:h-2 rounded-full bg-blue-400"></div>
                   <span className="text-xs lg:text-sm font-medium">Batch Report</span>
                 </button>
                 <button
                   onClick={() => handleSectionChange('admission-reports')}
-                  className={`w-full text-left px-3 lg:px-4 py-2 lg:py-3 rounded-xl transition-all duration-300 flex items-center space-x-2 lg:space-x-3 group ${
-                    activeSection === 'admission-reports' 
-                      ? 'bg-green-100 text-green-700 border border-green-200 shadow-sm' 
-                      : 'text-gray-600 hover:bg-gray-50 hover:shadow-sm'
-                  }`}
+                  className={`w-full text-left px-3 lg:px-4 py-2 lg:py-3 rounded-xl transition-all duration-300 flex items-center space-x-2 lg:space-x-3 group ${activeSection === 'admission-reports'
+                    ? 'bg-green-100 text-green-700 border border-green-200 shadow-sm'
+                    : 'text-gray-600 hover:bg-gray-50 hover:shadow-sm'
+                    }`}
                 >
                   <div className="w-1.5 h-1.5 lg:w-2 lg:h-2 rounded-full bg-green-400"></div>
                   <span className="text-xs lg:text-sm font-medium">Admission Report</span>
                 </button>
                 <button
                   onClick={() => handleSectionChange('financial-reports')}
-                  className={`w-full text-left px-3 lg:px-4 py-2 lg:py-3 rounded-xl transition-all duration-300 flex items-center space-x-2 lg:space-x-3 group ${
-                    activeSection === 'financial-reports' 
-                      ? 'bg-amber-100 text-amber-700 border border-amber-200 shadow-sm' 
-                      : 'text-gray-600 hover:bg-gray-50 hover:shadow-sm'
-                  }`}
+                  className={`w-full text-left px-3 lg:px-4 py-2 lg:py-3 rounded-xl transition-all duration-300 flex items-center space-x-2 lg:space-x-3 group ${activeSection === 'financial-reports'
+                    ? 'bg-amber-100 text-amber-700 border border-amber-200 shadow-sm'
+                    : 'text-gray-600 hover:bg-gray-50 hover:shadow-sm'
+                    }`}
                 >
                   <div className="w-1.5 h-1.5 lg:w-2 lg:h-2 rounded-full bg-amber-400"></div>
                   <span className="text-xs lg:text-sm font-medium">Demo Report</span>
                 </button>
                 <button
                   onClick={() => handleSectionChange('course-report')}
-                  className={`w-full text-left px-3 lg:px-4 py-2 lg:py-3 rounded-xl transition-all duration-300 flex items-center space-x-2 lg:space-x-3 group ${
-                    activeSection === 'course-report' 
-                      ? 'bg-teal-100 text-teal-700 border border-teal-200 shadow-sm' 
-                      : 'text-gray-600 hover:bg-gray-50 hover:shadow-sm'
-                  }`}
+                  className={`w-full text-left px-3 lg:px-4 py-2 lg:py-3 rounded-xl transition-all duration-300 flex items-center space-x-2 lg:space-x-3 group ${activeSection === 'course-report'
+                    ? 'bg-teal-100 text-teal-700 border border-teal-200 shadow-sm'
+                    : 'text-gray-600 hover:bg-gray-50 hover:shadow-sm'
+                    }`}
                 >
                   <div className="w-1.5 h-1.5 lg:w-2 lg:h-2 rounded-full bg-teal-400"></div>
                   <span className="text-xs lg:text-sm font-medium">Course Report</span>
@@ -420,21 +344,6 @@ const AdminSidebar = ({ activeSection, setActiveSection, isSidebarOpen, setIsSid
               </div>
             )}
           </div>
-
-          {/* System Settings */}
-          {/* <button
-            onClick={() => handleSectionChange('system-settings')}
-            className={`w-full text-left px-4 lg:px-5 py-3 lg:py-4 rounded-2xl transition-all duration-300 flex items-center space-x-3 lg:space-x-4 group ${
-              activeSection === 'system-settings' 
-                ? 'bg-gradient-to-r from-gray-500 to-gray-600 text-white shadow-lg shadow-gray-200' 
-                : 'bg-white text-gray-700 hover:shadow-md border border-indigo-100 hover:transform hover:-translate-y-0.5'
-            }`}
-          >
-            <div className={`text-lg lg:text-xl ${activeSection === 'system-settings' ? 'scale-110' : 'group-hover:scale-110'} transition-transform`}>
-              ⚙️
-            </div>
-            <span className="font-semibold text-sm lg:text-base">System Settings</span>
-          </button> */}
         </nav>
       </div>
 
@@ -476,7 +385,6 @@ const AdminSidebar = ({ activeSection, setActiveSection, isSidebarOpen, setIsSid
       <div className="hidden lg:flex lg:w-80 bg-gradient-to-b from-white to-indigo-50 shadow-2xl min-h-screen flex-col border-r border-indigo-100">
         {sidebarContent}
       </div>
-
       {/* Mobile Sidebar */}
       <div className={`
         lg:hidden fixed inset-y-0 left-0 z-50 w-80 bg-gradient-to-b from-white to-indigo-50 shadow-2xl transform transition-transform duration-300 ease-in-out flex flex-col border-r border-indigo-100
@@ -487,5 +395,4 @@ const AdminSidebar = ({ activeSection, setActiveSection, isSidebarOpen, setIsSid
     </>
   );
 };
-
 export default AdminSidebar;

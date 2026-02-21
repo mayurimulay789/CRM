@@ -15,6 +15,15 @@ const userSchema = new mongoose.Schema({
       'Please add a valid email',
     ],
   },
+  phone:{
+    type:Number,
+    required:[true,'Please add a phone number'],
+    unique:true,
+  },
+  education: {
+    type: String,
+    required: [true, 'Please add education details'],
+  },
   password: {
     type: String,
     required: [true, 'Please add a password'],
@@ -25,8 +34,7 @@ const userSchema = new mongoose.Schema({
     type: String,
     enum: ['Counsellor', 'admin'],
     default: 'Counsellor',
-  },
-  phone: { type: String },
+  }
 }, {
   timestamps: true,
 });
