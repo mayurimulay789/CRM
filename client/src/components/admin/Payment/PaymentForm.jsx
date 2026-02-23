@@ -283,9 +283,9 @@ const PaymentForm = ({ onClose, isCounsellor = false }) => {
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="registration">Registration Fee</option>
-                <option value="tuition">Tuition Fee</option>
-                <option value="exam">Exam Fee</option>
-                <option value="other">Other</option>
+                <option value="admission">Admission fees</option>
+                <option value="emi1">EMI 1</option>
+                <option value="emi2">EMI 2</option>
               </select>
             </div>
 

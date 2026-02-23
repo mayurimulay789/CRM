@@ -29,7 +29,6 @@ const LoginForm = () => {
 
   const validateEmail = (email) => /\S+@\S+\.\S+/.test(email);
 
-  // Clear errors on load
   useEffect(() => {
     dispatch(clearError());
     dispatch(clearSuccess());
@@ -37,22 +36,17 @@ const LoginForm = () => {
     setIsRegistrationSuccess(false);
   }, [dispatch]);
 
-  // Handle redirect after login
   useEffect(() => {
     if (isAuthenticated && user) {
       const role = (user.role || "").toLowerCase();
 
-      if (role === "admin") {
-        navigate("/admin-panel");
-      } else if (role === "counsellor" || role === "counselor") {
+      if (role === "admin") navigate("/admin-panel");
+      else if (role === "counsellor" || role === "counselor")
         navigate("/counsellor-panel");
-      } else {
-        navigate("/");
-      }
+      else navigate("/");
     }
   }, [isAuthenticated, user, navigate]);
 
-  // Detect registration success
   useEffect(() => {
     if (success && !isAuthenticated) {
       const successLower = success.toLowerCase();
@@ -66,7 +60,6 @@ const LoginForm = () => {
     }
   }, [success, isAuthenticated]);
 
-  // Detect invalid credentials
   useEffect(() => {
     if (error) {
       const err = error.toLowerCase();
@@ -86,7 +79,6 @@ const LoginForm = () => {
 
   const onSubmit = (e) => {
     e.preventDefault();
-
     setLocalMessage("");
     dispatch(clearError());
     setInvalidCredentials(false);
@@ -107,128 +99,115 @@ const LoginForm = () => {
   const displayMessage = localMessage || error || success;
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-blue-800 via-blue-600 to-blue-300 px-4">
-      <div className="w-full max-w-7xl flex flex-col md:flex-row items-center justify-between">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#890c25] via-[#7a0b21] to-[#5f0819] px-4">
 
-        {/* LEFT SIDE BRAND SECTION */}
-        <div className="md:w-1/2 text-white text-center md:text-left mb-10 md:mb-0">
-          <div className="flex flex-col items-center md:items-start">
-            
-            {/* LOGO */}
-            <img
-              src="../public/logo.png"  // Put your Rankmize logo here
-              alt="Rankmize Logo"
-              className="w-100 md:w-120 mb-4"
-            />
+      {/* Centered Card Container */}
+      <div className="w-full max-w-md">
 
+        {/* Card */}
+        <div className="bg-white p-10 rounded-3xl shadow-2xl transition-all duration-500">
+
+          {/* Header */}
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-bold text-[#890c25] tracking-tight">
+              RYMA
+            </h1>
+            <p className="text-gray-500 mt-2 text-sm">
+              Sign in to continue to your dashboard
+            </p>
           </div>
 
-          <p className="text-lg italic opacity-90">
-            "कर्मण्येवाधिकारस्ते मा फलेषु कदाचन"
-          </p>
-        </div>
+          {/* Form */}
+          <form onSubmit={onSubmit} className="space-y-6">
 
-        {/* RIGHT SIDE LOGIN CARD */}
-        <div className="w-full md:w-1/2 flex justify-center">
-          <div className="bg-white w-full max-w-md p-8 rounded-2xl shadow-2xl">
-
-            <h2 className="text-2xl font-bold text-center mb-6">
-              Welcome to <span className="text-blue-700">RANKMIZE</span>
-            </h2>
-
-            <form onSubmit={onSubmit} className="space-y-5">
-
-              {/* EMAIL */}
-              <div>
-                <label className="block text-gray-700 mb-2 font-medium">
-                  Email address :
-                </label>
-                <input
-                  type="email"
-                  name="email"
-                  value={email}
-                  onChange={onChange}
-                  placeholder="Your@gmail.com"
-                  className="w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 outline-none"
-                  disabled={loading}
-                  required
-                />
-              </div>
-
-              {/* PASSWORD */}
-              <div className="relative">
-                <label className="block text-gray-700 mb-2 font-medium">
-                  Password :
-                </label>
-                <input
-                  type={showPassword ? "text" : "password"}
-                  name="password"
-                  value={password}
-                  onChange={onChange}
-                  placeholder="Enter your password"
-                  className="w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 outline-none pr-10"
-                  disabled={loading}
-                  required
-                />
-
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-10 text-gray-500"
-                >
-                  {showPassword ? (
-                    <EyeSlashIcon className="h-5 w-5" />
-                  ) : (
-                    <EyeIcon className="h-5 w-5" />
-                  )}
-                </button>
-              </div>
-
-              {/* FORGOT PASSWORD */}
-              <div className="text-right">
-                <a
-                  href="/forgot-password"
-                  className="text-blue-600 text-sm hover:underline"
-                >
-                  Forgot Password?
-                </a>
-              </div>
-
-              {/* LOGIN BUTTON */}
-              <button
-                type="submit"
+            {/* EMAIL */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700">
+                Email Address
+              </label>
+              <input
+                type="email"
+                name="email"
+                value={email}
+                onChange={onChange}
+                placeholder="you@example.com"
                 disabled={loading}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-md font-semibold transition duration-300 disabled:opacity-60"
+                className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-[#890c25] focus:ring-2 focus:ring-[#890c25]/20 outline-none transition-all duration-200"
+                required
+              />
+            </div>
+
+            {/* PASSWORD */}
+            <div className="relative space-y-2">
+              <label className="text-sm font-medium text-gray-700">
+                Password
+              </label>
+              <input
+                type={showPassword ? "text" : "password"}
+                name="password"
+                value={password}
+                onChange={onChange}
+                placeholder="Enter your password"
+                disabled={loading}
+                className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-[#890c25] focus:ring-2 focus:ring-[#890c25]/20 outline-none pr-12 transition-all duration-200"
+                required
+              />
+
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-4 top-11 text-gray-400 hover:text-[#890c25] transition"
               >
-                {loading ? "Signing in..." : "Sign in"}
+                {showPassword ? (
+                  <EyeSlashIcon className="h-5 w-5" />
+                ) : (
+                  <EyeIcon className="h-5 w-5" />
+                )}
               </button>
-            </form>
+            </div>
 
-            {/* ERROR MESSAGES */}
-            {invalidCredentials && (
-              <p className="mt-4 text-center text-red-500">
-                Invalid credentials. Please check your email and password.
-              </p>
-            )}
-
-            {!invalidCredentials && displayMessage && (
-              <p
-                className={`mt-4 text-center ${
-                  localMessage || error
-                    ? "text-red-500"
-                    : "text-green-500"
-                }`}
+            {/* Forgot Password */}
+            <div className="text-right">
+              <a
+                href="/forgot-password"
+                className="text-sm font-medium text-[#890c25] hover:underline"
               >
-                {displayMessage}
-              </p>
-            )}
+                Forgot Password?
+              </a>
+            </div>
 
-            {isRegistrationSuccess && !isAuthenticated && (
-              <p className="mt-4 text-center text-green-500">
-                Registration successful! Auto-logging you in...
-              </p>
-            )}
-          </div>
+            {/* Button */}
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-[#890c25] hover:bg-[#6e091d] text-white py-3 rounded-xl font-semibold shadow-md hover:shadow-lg transition-all duration-300 disabled:opacity-60"
+            >
+              {loading ? "Signing in..." : "Sign in"}
+            </button>
+          </form>
+
+          {/* Messages */}
+          {invalidCredentials && (
+            <p className="mt-6 text-center text-red-500 text-sm font-medium">
+              Invalid credentials. Please check your email and password.
+            </p>
+          )}
+
+          {!invalidCredentials && displayMessage && (
+            <p
+              className={`mt-6 text-center text-sm font-medium ${
+                localMessage || error ? "text-red-500" : "text-green-500"
+              }`}
+            >
+              {displayMessage}
+            </p>
+          )}
+
+          {isRegistrationSuccess && !isAuthenticated && (
+            <p className="mt-6 text-center text-green-500 text-sm font-medium">
+              Registration successful! Auto-logging you in...
+            </p>
+          )}
         </div>
       </div>
     </div>
