@@ -32,7 +32,7 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="fixed top-0 left-0 right-0 bg-white shadow-md z-50">
+    <nav className="fixed top-0 left-0 right-0 bg-blue-700 shadow-md z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
         {/* MAIN NAV BAR */}
@@ -41,9 +41,13 @@ const Navbar = () => {
           {/* LOGO */}
           <Link 
             to="/" 
-            className="text-2xl font-bold text-amber-600 hover:text-amber-700 transition"
+            className="text-2xl font-bold text-blue-600 hover:text-blue-700 transition"
           >
-            RYMA ACADEMY
+            <img
+              src="../public/logo.png"  // Put your Rankmize logo here
+              alt="Rankmize Logo"
+              className="w-45 md:w-50"
+            />
           </Link>
 
           {/* HAMBURGER (MOBILE ONLY) */}
@@ -150,13 +154,7 @@ const Navbar = () => {
                   Login
                 </Link>
 
-                <Link
-                  to="/register"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="block px-4 py-3 text-gray-700 hover:text-amber-600 hover:bg-gray-50"
-                >
-                  Register
-                </Link>
+                
               </>
             )}
           </div>
