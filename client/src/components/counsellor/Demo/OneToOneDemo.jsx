@@ -569,7 +569,7 @@ const OneToOneDemo = () => {
         <div className="flex items-center gap-2 md:gap-4">
           <button
             onClick={() => navigate(-1)}
-            className="flex items-center gap-1 md:gap-2 bg-blue-600 text-white px-3 md:px-4 py-1.5 rounded-md hover:bg-blue-700 transition text-sm md:text-base"
+            className="flex items-center gap-1 md:gap-2 bg-[#890c25] text-white px-3 md:px-4 py-1.5 rounded-md hover:bg-[#890c25] transition text-sm md:text-base"
           >
             <FiArrowLeft className="text-sm md:text-base" /> 
             <span className="hidden sm:inline">Go Back</span>
@@ -626,7 +626,7 @@ const OneToOneDemo = () => {
           {isCounsellor && (
             <button
               onClick={openCreateForm}
-              className="flex items-center justify-center gap-2 bg-blue-600 text-white px-3 md:px-4 py-2 rounded-md hover:bg-blue-700 transition text-sm md:text-base w-full sm:w-auto"
+              className="flex items-center justify-center gap-2 bg-[#890c25] text-white px-3 md:px-4 py-2 rounded-md hover:bg-[#890c25] transition text-sm md:text-base w-full sm:w-auto"
             >
               <FiPlus /> Add 1-1 Demo
             </button>
@@ -691,7 +691,7 @@ const OneToOneDemo = () => {
                   <div className="flex flex-wrap gap-2 mt-2">
                     <button
                       onClick={() => setVisibleColumns(defaultColumns)}
-                      className="bg-green-500 text-white px-2 py-1 rounded text-xs hover:bg-green-600 transition"
+                      className="bg-[#890c25] text-white px-2 py-1 rounded text-xs hover:bg-[#890c25] transition"
                     >
                       Show All
                     </button>
@@ -703,7 +703,7 @@ const OneToOneDemo = () => {
                     </button>
                     <button
                       onClick={() => setVisibleColumns(defaultColumns)}
-                      className="bg-blue-500 text-white px-2 py-1 rounded text-xs hover:bg-blue-700 transition"
+                      className="bg-[#890c25] text-white px-2 py-1 rounded text-xs hover:bg-[#890c25] transition"
                     >
                       Reset
                     </button>
@@ -1218,7 +1218,7 @@ const OneToOneDemo = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 md:px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition font-medium text-sm md:text-base"
+                  className="px-4 md:px-6 py-2 bg-[#890c25] text-white rounded-md hover:bg-[#890c25] transition font-medium text-sm md:text-base"
                 >  
                   {editingRow ? "Update" : "Create 1-1 Demo"}
                 </button>
@@ -1308,7 +1308,7 @@ const OneToOneDemo = () => {
                 </button>
                 <button
                   onClick={handleFilterApply}
-                  className="px-4 md:px-5 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition text-sm md:text-base"
+                  className="px-4 md:px-5 py-2 bg-[#890c25] text-white rounded-md hover:bg-[#890c25] transition text-sm md:text-base"
                 >
                   Apply Filters
                 </button>

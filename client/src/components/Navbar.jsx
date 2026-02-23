@@ -38,12 +38,13 @@ const Navbar = () => {
         {/* MAIN NAV */}
         <div className="flex justify-between items-center h-16">
 
-          {/* LOGO */}
-          <Link to="/" className="flex items-center">
+          {/* LOGO - Properly sized */}
+          <Link to="/" className="flex items-center py-1">
             <img
               src="/logo1.png"
               alt="RYMA Logo"
-              className="h-15 w-20"
+              className="h-18 w-auto object-contain"
+              // Using h-12 for consistent height, w-auto maintains aspect ratio
             />
           </Link>
 
@@ -142,5 +143,5 @@ const Navbar = () => {
     </nav>
   );
 };
-
+ 
 export default Navbar;

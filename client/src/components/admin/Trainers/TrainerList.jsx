@@ -47,7 +47,7 @@ const TrainerList = ({ onEdit }) => {
     <div className="bg-white shadow-lg rounded-lg overflow-hidden border border-gray-200">
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gradient-to-r from-blue-500 to-indigo-600">
+          <thead className="bg-[#890c25]">
             <tr>
               <th className="px-6 py-4 text-center text-xs font-medium text-white uppercase tracking-wider">
                 Sr. No.
@@ -97,7 +97,7 @@ const TrainerList = ({ onEdit }) => {
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium flex space-x-2">
                     <button
                       onClick={() => handleEdit(trainer)}
-                      className="bg-blue-500 hover:bg-blue-600 text-white p-2 rounded-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
+                      className="bg-[#890c25] hover:bg-[#890c25] text-white p-2 rounded-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
                       title="Edit"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">

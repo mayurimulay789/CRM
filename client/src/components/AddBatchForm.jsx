@@ -518,7 +518,7 @@ const AddBatchForm = ({ onBack, isEdit = false, batchData = null, onEditSubmit =
               <button
                 type="submit"
                 disabled={loading}
-                className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3 px-6 rounded-lg hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-medium"
+                className="bg-[#890c25] text-white py-3 px-6 rounded-lg hover:[#890c25] hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-medium"
               >
                 {loading ? (isEdit ? 'Updating Batch...' : 'Adding Batch...') : (isEdit ? 'Update Batch' : 'Add Batch')}
               </button>

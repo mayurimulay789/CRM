@@ -214,11 +214,11 @@ const CourseManagement = () => {
 
   const getStatusBadge = (isActive) => {
     return isActive ? (
-      <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+      <span className="px-2 py-1 text-xs font-semibold rounded-full bg-white text-green-800">
         Active
       </span>
     ) : (
-      <span className="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">
+      <span className="px-2 py-1 text-xs font-semibold rounded-full bg-[#890c25] text-red-800">
         Inactive
       </span>
     );
@@ -262,7 +262,7 @@ const CourseManagement = () => {
             {/* Add New Course Button */}
             <button
               onClick={() => setShowForm(true)}
-              className="bg-gradient-to-r from-green-500 to-green-600 text-white px-4 lg:px-6 py-2 lg:py-3 rounded-lg font-semibold hover:from-green-600 hover:to-green-700 transition-all duration-300 shadow-lg hover:shadow-xl flex items-center space-x-2 w-full sm:w-auto justify-center"
+              className="bg-[#890c25] text-white px-4 lg:px-6 py-2 lg:py-3 rounded-lg font-semibold hover:from-green-600 hover:to-green-700 transition-all duration-300 shadow-lg hover:shadow-xl flex items-center space-x-2 w-full sm:w-auto justify-center"
             >
               <span>+</span>
               <span>New Course</span>
@@ -346,7 +346,7 @@ const CourseManagement = () => {
                       </button>
                       <button
                         onClick={() => setShowFilterMenu(false)}
-                        className="px-4 py-2 bg-blue-500 text-white text-sm rounded-lg hover:bg-blue-600"
+                        className="px-4 py-2 bg-[#890c25] text-white text-sm rounded-lg hover:bg-[#890c25]"
                       >
                         Apply
                       </button>
@@ -414,7 +414,7 @@ const CourseManagement = () => {
                     <div className="mt-4 pt-3 border-t border-gray-200 flex justify-end">
                       <button
                         onClick={() => setShowColumnsMenu(false)}
-                        className="px-4 py-2 bg-blue-500 text-white text-sm rounded-lg hover:bg-blue-600"
+                        className="px-4 py-2 bg-[#890c25] text-white text-sm rounded-lg hover:bg-[#890c25]"
                       >
                         Apply
                       </button>
@@ -428,7 +428,7 @@ const CourseManagement = () => {
 
         {/* Success Message */}
         {operationSuccess && (
-          <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg mt-4 flex items-center justify-between">
+          <div className="bg-[#890c25] border border-green-200 text-green-700 px-4 py-3 rounded-lg mt-4 flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <span>✅</span>
               <span className="text-sm">{operationSuccess}</span>
@@ -441,7 +441,7 @@ const CourseManagement = () => {
 
         {/* Error Message */}
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mt-4 flex items-center justify-between">
+          <div className="bg-[#890c25] border border-red-200 text-red-700 px-4 py-3 rounded-lg mt-4 flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <span>❌</span>
               <span className="text-sm">{error}</span>
@@ -628,7 +628,7 @@ const CourseManagement = () => {
                         onClick={() => paginate(number)}
                         className={`px-2 lg:px-3 py-1 lg:py-2 rounded-lg border text-xs lg:text-sm font-medium transition-colors duration-200 ${
                           currentPage === number
-                            ? 'bg-blue-500 text-white border-blue-500'
+                            ? 'bg-[#890c25] text-white border-blue-500'
                             : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50 hover:border-gray-400'
                         }`}
                       >

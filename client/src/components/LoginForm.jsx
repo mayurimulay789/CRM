@@ -99,7 +99,7 @@ const LoginForm = () => {
   const displayMessage = localMessage || error || success;
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#890c25] via-[#7a0b21] to-[#5f0819] px-4">
+    <div className="min-h-screen flex items-center justify-center bg-white px-4">
 
       {/* Centered Card Container */}
       <div className="w-full max-w-md">
@@ -110,7 +110,7 @@ const LoginForm = () => {
           {/* Header */}
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-[#890c25] tracking-tight">
-              RYMA
+              RYMA Academy
             </h1>
             <p className="text-gray-500 mt-2 text-sm">
               Sign in to continue to your dashboard
@@ -180,7 +180,7 @@ const LoginForm = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-[#890c25] hover:bg-[#6e091d] text-white py-3 rounded-xl font-semibold shadow-md hover:shadow-lg transition-all duration-300 disabled:opacity-60"
+              className="w-full bg-[#890c25] text-white py-3 rounded-xl font-semibold shadow-md hover:shadow-lg transition-all duration-300 disabled:opacity-60"
             >
               {loading ? "Signing in..." : "Sign in"}
             </button>

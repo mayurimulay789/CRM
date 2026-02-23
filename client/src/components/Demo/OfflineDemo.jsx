@@ -188,7 +188,7 @@ const OfflineDemo = () => {
       <div className="bg-gray-100 px-6 py-3 flex justify-between items-center shadow-sm border-b">
         <button
           onClick={() => navigate(-1)}
-          className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition"
+          className="flex items-center gap-2 bg-[#890c25] text-white px-4 py-2 rounded-md hover:bg-[#890c25] transition"
         >
           <FiArrowLeft /> Go Back
         </button>
@@ -219,7 +219,7 @@ const OfflineDemo = () => {
                 mode: "",
               });
             }}
-            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition shadow"
+            className="flex items-center gap-2 bg-[#890c25] text-white px-4 py-2 rounded-md hover:bg-[#890c25] transition shadow"
           >
             <FiPlus /> Add Offline Demo
           </button>
@@ -281,7 +281,7 @@ const OfflineDemo = () => {
                 <div className="flex justify-between mt-3">
                   <button
                     onClick={() => setVisibleColumns(defaultColumns)}
-                    className="bg-green-500 text-white text-sm px-3 py-1 rounded hover:bg-green-600"
+                    className="bg-[#890c25] text-white text-sm px-3 py-1 rounded hover:bg-[#890c25]"
                   >
                     Show All
                   </button>
@@ -293,7 +293,7 @@ const OfflineDemo = () => {
                   </button>
                   <button
                     onClick={() => setVisibleColumns(defaultColumns)}
-                    className="bg-blue-500 text-white text-sm px-3 py-1 rounded hover:bg-blue-600"
+                    className="bg-[#890c25] text-white text-sm px-3 py-1 rounded hover:bg-[#890c25]"
                   >
                     Reset
                   </button>
@@ -524,7 +524,7 @@ const OfflineDemo = () => {
                 <button
                   type="button"
                   onClick={handleFilterApply}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm"
+                  className="px-4 py-2 bg-[#890c25] text-white rounded-md hover:bg-[#890c25] text-sm"
                 >
                   Apply
                 </button>
@@ -653,7 +653,7 @@ const OfflineDemo = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm"
+                  className="px-4 py-2 bg-[#890c25] text-white rounded-md hover:bg-[#890c25] text-sm"
                 >
                   {editingRow ? "Update" : "Submit"}
                 </button>

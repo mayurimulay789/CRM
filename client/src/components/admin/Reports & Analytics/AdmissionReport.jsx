@@ -358,7 +358,7 @@ const AdmissionReport = () => {
             </p>
             <button
               onClick={handleRetry}
-              className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white px-6 py-3 rounded-lg font-medium hover:from-blue-600 hover:to-purple-600 transition-all duration-200 shadow-lg hover:shadow-xl"
+              className="inline-flex items-center gap-2 bg-[#890c25] text-white px-6 py-3 rounded-lg font-medium hover:from-blue-600 hover:to-purple-600 transition-all duration-200 shadow-lg hover:shadow-xl"
             >
               <RefreshCw className="w-5 h-5" />
               Retry
@@ -436,7 +436,7 @@ const AdmissionReport = () => {
             <p className="text-gray-400 text-sm mb-6">Create some admissions to see analytics and reports here.</p>
             <button
               onClick={handleRetry}
-              className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white px-6 py-3 rounded-lg font-medium hover:from-blue-600 hover:to-purple-600 transition-all duration-200 shadow-lg hover:shadow-xl"
+              className="inline-flex items-center gap-2 bg-[#890c25] text-white px-6 py-3 rounded-lg font-medium hover:from-blue-600 hover:to-purple-600 transition-all duration-200 shadow-lg hover:shadow-xl"
             >
               <RefreshCw className="w-5 h-5" />
               Check for New Data
@@ -455,7 +455,7 @@ const AdmissionReport = () => {
         <div className="mb-8">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-gray-800 mb-2">
+              <h1 className="text-3xl font-bold text-[#890c25] mb-2">
                 Admission Report
               </h1>
               <p className="text-gray-600 flex items-center gap-2">
@@ -474,7 +474,7 @@ const AdmissionReport = () => {
                 data={csvData}
                 headers={csvHeaders}
                 filename={`admission-reports-${new Date().toISOString().split('T')[0]}.csv`}
-                className="inline-flex items-center gap-2 bg-green-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-green-600 transition-all duration-200 shadow hover:shadow-md"
+                className="inline-flex items-center gap-2 bg-[#890c25] text-white px-4 py-2 rounded-lg font-medium hover:bg-[#890c25] transition-all duration-200 shadow hover:shadow-md"
               >
                 <Download className="w-4 h-4" />
                 Export CSV
@@ -498,7 +498,7 @@ const AdmissionReport = () => {
                   onClick={() => setFilter(period)}
                   className={`px-4 py-2 rounded-md font-medium transition-all duration-200 text-sm ${
                     filter === period
-                      ? 'bg-blue-500 text-white shadow-sm'
+                      ? 'bg-[#890c25] text-white shadow-sm'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200'
                   }`}
                 >

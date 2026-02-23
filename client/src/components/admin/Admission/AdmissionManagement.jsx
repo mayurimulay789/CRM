@@ -526,7 +526,7 @@ const AdmissionManagement = () => {
                       </button>
                       <button
                         onClick={() => setShowFilterMenu(false)}
-                        className="px-4 py-2 bg-blue-500 text-white text-sm rounded-lg hover:bg-blue-600"
+                        className="px-4 py-2 bg-[#890c25] text-white text-sm rounded-lg hover:bg-[#890c25]"
                       >
                         Apply
                       </button>
@@ -594,7 +594,7 @@ const AdmissionManagement = () => {
                     <div className="mt-4 pt-3 border-t border-gray-200 flex justify-end">
                       <button
                         onClick={() => setShowColumnsMenu(false)}
-                        className="px-4 py-2 bg-blue-500 text-white text-sm rounded-lg hover:bg-blue-600"
+                        className="px-4 py-2 bg-[#890c25] text-white text-sm rounded-lg hover:bg-[#890c25]"
                       >
                         Apply
                       </button>
@@ -899,7 +899,7 @@ const AdmissionManagement = () => {
                         onClick={() => paginate(number)}
                         className={`px-2 lg:px-3 py-1 lg:py-2 rounded-lg border text-xs lg:text-sm font-medium transition-colors duration-200 ${
                           currentPage === number
-                            ? 'bg-blue-500 text-white border-blue-500'
+                            ? 'bg-[#890c25] text-white border-blue-500'
                             : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50 hover:border-gray-400'
                         }`}
                       >
@@ -1160,7 +1160,7 @@ const AdmissionManagement = () => {
                       href={selectedImage}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center px-3 lg:px-4 py-2 bg-blue-600 text-black rounded-lg hover:bg-blue-700 transition-colors duration-200 text-sm lg:text-base"
+                      className="inline-flex items-center px-3 lg:px-4 py-2 bg-[#890c25] text-black rounded-lg hover:bg-[#890c25] transition-colors duration-200 text-sm lg:text-base"
                     >
                       <svg className="w-3 h-3 lg:w-4 lg:h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
