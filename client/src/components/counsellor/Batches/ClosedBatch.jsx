@@ -86,7 +86,7 @@ const ClosedBatch = () => {
         </td>
         <td className="px-6 py-4 whitespace-nowrap">
           <span className="inline-flex items-center px-3 py-1 text-xs font-bold leading-5 rounded-full bg-green-100 text-green-800 border border-green-300">
-            <span className="w-2 h-2 mr-2 bg-green-500 rounded-full"></span>
+            <span className="w-2 h-2 mr-2 bg-[#890c25] rounded-full"></span>
             Closed
           </span>
         </td>
@@ -130,7 +130,7 @@ const ClosedBatch = () => {
           <div className="mt-8">
             <div className="overflow-x-auto shadow-2xl rounded-xl border border-gray-200">
               <table className="min-w-max divide-y divide-gray-200 w-full">
-                <thead className="bg-blue-600 sticky top-0 z-10">
+                <thead className="bg-[#890c25] sticky top-0 z-10">
                   <tr>
                     {[
                       'Batch Name', 'Description', 'Course', 'Trainer', 'Branch',

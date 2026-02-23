@@ -211,7 +211,7 @@ const BatchReports = () => {
         <div className="mb-8">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
+              <h1 className="text-3xl font-bold bg-[#890c25] bg-clip-text text-transparent mb-2">
                 Batch Reports
               </h1>
               <p className="text-gray-600 flex items-center gap-2">
@@ -223,7 +223,7 @@ const BatchReports = () => {
               data={csvData}
               headers={csvHeaders}
               filename={`batch-reports-${new Date().toISOString().split('T')[0]}.csv`}
-              className="inline-flex items-center gap-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white px-6 py-3 rounded-lg font-medium hover:from-green-600 hover:to-emerald-600 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+              className="inline-flex items-center gap-2 bg-[#890c25] text-white px-6 py-3 rounded-lg font-medium hover:from-green-600 hover:to-emerald-600 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
             >
               <Download className="w-5 h-5" />
               Export CSV
@@ -245,7 +245,7 @@ const BatchReports = () => {
                   onClick={() => setFilter(period)}
                   className={`px-6 py-2 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 ${
                     filter === period
-                      ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg'
+                      ? 'bg-[#890c25] text-white shadow-lg'
                       : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200 hover:border-gray-300'
                   }`}
                 >

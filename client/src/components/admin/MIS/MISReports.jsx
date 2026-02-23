@@ -120,8 +120,8 @@ const MISReports = () => {
           <div className="overflow-hidden">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-red-700 text-white">
-                  <th className="px-4 py-2 text-left font-semibold border-r border-red-600">Name</th>
+                <tr className="bg-[#890c25] text-white">
+                  <th className="px-4 py-2 text-left font-semibold border-r border-[#890c25]">Name</th>
                   <th className="px-4 py-2 text-left font-semibold">Total</th>
                 </tr>
               </thead>

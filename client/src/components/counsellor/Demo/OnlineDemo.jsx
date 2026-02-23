@@ -409,7 +409,7 @@ const OnlineDemo = () => {
       <div className="lg:hidden bg-gray-100 px-4 py-3 flex justify-between items-center shadow-sm border-b">
         <button
           onClick={() => navigate(-1)}
-          className="flex items-center gap-2 bg-blue-600 text-white px-3 py-2 rounded-md hover:bg-blue-700 transition text-sm"
+          className="flex items-center gap-2 bg-[#890c25] text-white px-3 py-2 rounded-md hover:bg-[#890c25] transition text-sm"
         >
           <FiArrowLeft className="text-sm" />
         </button>
@@ -464,7 +464,7 @@ const OnlineDemo = () => {
               {isCounsellor && (
                 <button
                   onClick={openCreateForm}
-                  className="flex items-center gap-1 bg-blue-600 text-white px-3 py-2 rounded-md hover:bg-blue-700 transition text-sm"
+                  className="flex items-center gap-1 bg-[#890c25] text-white px-3 py-2 rounded-md hover:bg-[#890c25] transition text-sm"
                 >
                   <FiPlus className="text-sm" />
                   <span>Add</span>
@@ -479,7 +479,7 @@ const OnlineDemo = () => {
       <div className="hidden lg:flex bg-gray-100 px-6 py-3 justify-between items-center shadow-sm border-b">
         <button
           onClick={() => navigate(-1)}
-          className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition"
+          className="flex items-center gap-2 bg-[#890c25] text-white px-4 py-2 rounded-md hover:bg-[#890c25] transition"
         >
           <FiArrowLeft /> Go Back
         </button>
@@ -525,7 +525,7 @@ const OnlineDemo = () => {
           {isCounsellor && (
             <button
               onClick={openCreateForm}
-              className="hidden lg:flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition shadow"
+              className="hidden lg:flex items-center gap-2 bg-[#890c25] text-white px-4 py-2 rounded-md hover:bg-[#890c25] transition shadow"
             >
               <FiPlus /> Add Online Demo
             </button>
@@ -586,7 +586,7 @@ const OnlineDemo = () => {
                 <div className="flex gap-2 mt-2 flex-wrap">
                   <button
                     onClick={() => setVisibleColumns(defaultColumns)}
-                    className="bg-green-500 text-white px-2 py-1 rounded text-xs hover:bg-green-600 transition flex-1 lg:flex-none"
+                    className="bg-[#890c25] text-white px-2 py-1 rounded text-xs hover:bg-[#890c25] transition flex-1 lg:flex-none"
                   >
                     Show All
                   </button>
@@ -598,7 +598,7 @@ const OnlineDemo = () => {
                   </button>
                   <button
                     onClick={() => setVisibleColumns(defaultColumns)}
-                    className="bg-blue-500 text-white px-2 py-1 rounded text-xs hover:bg-blue-700 transition flex-1 lg:flex-none"
+                    className="bg-[#890c25] text-white px-2 py-1 rounded text-xs hover:bg-[#890c25] transition flex-1 lg:flex-none"
                   >
                     Reset
                   </button>
@@ -1057,7 +1057,7 @@ const OnlineDemo = () => {
                   </button>
                   <button
                     type="submit"
-                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm transition-colors flex-1 lg:flex-none"
+                    className="px-4 py-2 bg-[#890c25] text-white rounded-md hover:bg-[#890c25] text-sm transition-colors flex-1 lg:flex-none"
                   > 
                     {editingRow ? "Update" : "Create Online Demo"}
                   </button>
@@ -1170,7 +1170,7 @@ const OnlineDemo = () => {
                   </button>
                   <button
                     onClick={handleFilterApply}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm flex-1 lg:flex-none"
+                    className="px-4 py-2 bg-[#890c25] text-white rounded-md hover:bg-[#890c25] text-sm flex-1 lg:flex-none"
                   >
                     Apply Filters
                   </button>

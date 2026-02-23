@@ -152,7 +152,7 @@ const UpcomingBatch = () => {
         <div className="mt-8">
           <div className="overflow-x-auto shadow-2xl rounded-xl border border-gray-200">
             <table className="min-w-max divide-y divide-gray-200 w-full">
-              <thead className="bg-blue-600 sticky top-0 z-10">
+              <thead className="bg-[#890c25] sticky top-0 z-10">
                 <tr>
                   {[
                     'Batch Name', 'Description', 'Course', 'Trainer', 'Branch',

@@ -491,7 +491,7 @@ const EnrollmentManagement = () => {
             {/* Add New Enrollment Button */}
             <button
               onClick={() => setShowForm(true)}
-              className="bg-gradient-to-r from-green-500 to-green-600 text-white px-4 lg:px-6 py-2 lg:py-3 rounded-lg font-semibold hover:from-green-600 hover:to-green-700 transition-all duration-300 shadow-lg hover:shadow-xl flex items-center space-x-2 w-full sm:w-auto justify-center"
+              className="bg-[#890c25] text-white px-4 lg:px-6 py-2 lg:py-3 rounded-lg font-semibold hover:from-green-600 hover:to-green-700 transition-all duration-300 shadow-lg hover:shadow-xl flex items-center space-x-2 w-full sm:w-auto justify-center"
             >
               <span>+</span>
               <span>New Enrollment</span>
@@ -572,7 +572,7 @@ const EnrollmentManagement = () => {
                       </button>
                       <button
                         onClick={() => setShowFilterMenu(false)}
-                        className="px-4 py-2 bg-blue-500 text-white text-sm rounded-lg hover:bg-blue-600"
+                        className="px-4 py-2 bg-[#890c25] text-white text-sm rounded-lg hover:bg-[#890c25]"
                       >
                         Apply
                       </button>
@@ -640,7 +640,7 @@ const EnrollmentManagement = () => {
                     <div className="mt-4 pt-3 border-t border-gray-200 flex justify-end">
                       <button
                         onClick={() => setShowColumnsMenu(false)}
-                        className="px-4 py-2 bg-blue-500 text-white text-sm rounded-lg hover:bg-blue-600"
+                        className="px-4 py-2 bg-[#890c25] text-white text-sm rounded-lg hover:bg-[#890c25]"
                       >
                         Apply
                       </button>
@@ -1123,7 +1123,7 @@ const EnrollmentManagement = () => {
                         onClick={() => paginate(number)}
                         className={`px-2 lg:px-3 py-1 lg:py-2 rounded-lg border text-xs lg:text-sm font-medium transition-colors duration-200 ${
                           currentPage === number
-                            ? 'bg-blue-500 text-white border-blue-500'
+                            ? 'bg-[#890c25] text-white border-blue-500'
                             : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50 hover:border-gray-400'
                         }`}
                       >

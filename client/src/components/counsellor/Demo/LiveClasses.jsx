@@ -194,7 +194,7 @@ const LiveClasses = () => {
       <div className="flex justify-between items-center bg-gray-100 px-6 py-3 border-b">
         <button
           onClick={() => navigate(-1)}
-          className="flex items-center gap-2 bg-blue-600 text-white px-4 py-1.5 rounded-md hover:bg-blue-700 transition"
+          className="flex items-center gap-2 bg-[#890c25] text-white px-4 py-1.5 rounded-md hover:bg-[#890c25] transition"
         >
           <FiArrowLeft /> Go Back
         </button>
@@ -213,7 +213,7 @@ const LiveClasses = () => {
           <h2 className="text-xl font-semibold text-gray-800">Live Classes</h2>
           <button
             onClick={openCreateForm}
-            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition"
+            className="flex items-center gap-2 bg-[#890c25] text-white px-4 py-2 rounded-md hover:bg-[#890c25] transition"
           >
             <FiPlus /> Add Live Class
           </button>
@@ -267,7 +267,7 @@ const LiveClasses = () => {
                 <div className="flex justify-between mt-3">
                   <button
                     onClick={() => setVisibleColumns(defaultColumns)}
-                    className="bg-green-500 text-white text-sm px-3 py-1 rounded-md"
+                    className="bg-[#890c25] text-white text-sm px-3 py-1 rounded-md"
                   >
                     Show All
                   </button>
@@ -282,7 +282,7 @@ const LiveClasses = () => {
                       setVisibleColumns(defaultColumns);
                       setColumnSearch("");
                     }}
-                    className="bg-blue-500 text-white text-sm px-3 py-1 rounded-md"
+                    className="bg-[#890c25] text-white text-sm px-3 py-1 rounded-md"
                   >
                     Reset
                   </button>
@@ -391,7 +391,7 @@ const LiveClasses = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
+                  className="px-5 py-2 bg-[#890c25] text-white rounded-md hover:bg-[#890c25] transition"
                 >
                   {editingRow ? "Update" : "Submit"}
                 </button>

@@ -374,7 +374,7 @@ const StudentForm = ({ student, onClose }) => {
 
       {/* Success Message */}
       {success && (success.includes('created') || success.includes('updated')) && (
-        <div className="mb-6 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg flex items-center justify-between">
+        <div className="mb-6 bg-[#890c25] border border-green-200 text-green-700 px-4 py-3 rounded-lg flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <span>✅</span>
             <span>{success}</span>
@@ -403,7 +403,7 @@ const StudentForm = ({ student, onClose }) => {
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Personal Information Section */}
-        <div className="bg-blue-50 p-4 rounded-lg">
+        <div className="bg-[#890c25] p-4 rounded-lg">
           <h3 className="text-lg font-semibold text-blue-800 mb-4">Personal Information</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Name */}
@@ -784,7 +784,7 @@ const StudentForm = ({ student, onClose }) => {
           <button
             type="submit"
             disabled={operationLoading || !isFormValid()}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+            className="px-6 py-2 bg-[#890c25] text-white rounded-lg hover:bg-[#890c25] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
           >
             {operationLoading ? (
               <>

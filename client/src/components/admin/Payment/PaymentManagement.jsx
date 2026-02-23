@@ -281,13 +281,13 @@ const PaymentManagement = () => {
               />
               <button
                 onClick={handleBulkApprove}
-                className="bg-gradient-to-r from-green-500 to-green-600 text-white px-4 py-2 rounded-lg font-semibold hover:from-green-600 hover:to-green-700 transition-all duration-300"
+                className="bg-[#890c25] text-white px-4 py-2 rounded-lg font-semibold hover:from-green-600 hover:to-green-700 transition-all duration-300"
               >
                 ✅ Approve {selectedPayments.length}
               </button>
               <button
                 onClick={handleBulkReject}
-                className="bg-gradient-to-r from-red-500 to-red-600 text-white px-4 py-2 rounded-lg font-semibold hover:from-red-600 hover:to-red-700 transition-all duration-300"
+                className="bg-[#890c25] text-white px-4 py-2 rounded-lg font-semibold hover:from-red-600 hover:to-red-700 transition-all duration-300"
               >
                 ❌ Reject {selectedPayments.length}
               </button>
@@ -409,7 +409,7 @@ const PaymentManagement = () => {
                       </button>
                       <button
                         onClick={() => setShowFilterMenu(false)}
-                        className="px-4 py-2 bg-blue-500 text-white text-sm rounded-lg hover:bg-blue-600"
+                        className="px-4 py-2 bg-[#890c25] text-white text-sm rounded-lg hover:bg-[#890c25]"
                       >
                         Apply Filters
                       </button>
