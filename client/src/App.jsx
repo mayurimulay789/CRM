@@ -20,6 +20,8 @@ import CounsellorDashboardPage from "./pages/CounsellorDashboardPage.jsx";
 import AddBatchForm from "./components/AddBatchForm.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import RegistrationForm from "./components/admin/RegisterCounsellor/registercounsellor.jsx";
+import UserDetailsforForgetPassword from "./components/ForgetPassword/UserDetailsforForgetPassword.jsx";
+import OtpValidationPage from "./components/ForgetPassword/OtpValidationPage.jsx";
 // --------------------
 // AppContent Component
 // --------------------
@@ -49,9 +51,11 @@ function AppContent() {
           {/* 🌐 Public Routes */}
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<LoginForm />} />
+          <Route path="/userDetailsforForgetPassword" element={<UserDetailsforForgetPassword />} />
+          <Route path="/otpvalidationpage" element={<OtpValidationPage />} />
           <Route path="/register" element={
-              <RegistrationForm />
-            } />
+            <RegistrationForm />
+          } />
 
           {/* 🧑‍💼 Protected Routes */}
           <Route

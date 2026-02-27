@@ -7,9 +7,9 @@ import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
 const LoginForm = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  
+
   const { loading, error, success, isAuthenticated, user } = useSelector((state) => state.auth);
-  
+
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [localMessage, setLocalMessage] = useState('');
@@ -34,10 +34,10 @@ const LoginForm = () => {
   useEffect(() => {
     if (isAuthenticated && user) {
       const role = (user.role || '').toString().toLowerCase();
-      
+
       // Check if this is coming from registration success
       const fromRegistration = isRegistrationSuccess;
-      
+
       // Clear registration success flag
       if (fromRegistration) {
         setIsRegistrationSuccess(false);
@@ -59,10 +59,10 @@ const LoginForm = () => {
     if (success && !isAuthenticated) {
       // Check if this is a registration success message
       const successLower = success.toLowerCase();
-      if (successLower.includes('register') || 
-          successLower.includes('account created') || 
-          successLower.includes('successfully registered') ||
-          successLower.includes('registration successful')) {
+      if (successLower.includes('register') ||
+        successLower.includes('account created') ||
+        successLower.includes('successfully registered') ||
+        successLower.includes('registration successful')) {
         setIsRegistrationSuccess(true);
       }
     }
@@ -73,9 +73,9 @@ const LoginForm = () => {
     if (error) {
       const errorLower = error.toLowerCase();
       if (
-        errorLower.includes('invalid') || 
-        errorLower.includes('credentials') || 
-        errorLower.includes('unauthorized') || 
+        errorLower.includes('invalid') ||
+        errorLower.includes('credentials') ||
+        errorLower.includes('unauthorized') ||
         errorLower.includes('incorrect') ||
         errorLower.includes('401')
       ) {
@@ -90,12 +90,12 @@ const LoginForm = () => {
 
   const onSubmit = async (e) => {
     e.preventDefault();
-    
+
     setLocalMessage('');
     dispatch(clearError());
     setInvalidCredentials(false);
     setIsRegistrationSuccess(false);
-    
+
     if (!validateEmail(email)) {
       setLocalMessage('Please enter a valid email');
       return;
@@ -106,7 +106,11 @@ const LoginForm = () => {
     }
 
     dispatch(loginUser(formData));
+    navigate('/'); // Navigate to home immediately after dispatching login action
   };
+  const handleforgetPassowrd = () => {
+    navigate('/userDetailsforForgetPassword');
+  }
 
   // Use error directly for display when it exists
   const displayMessage = localMessage || error || success;
@@ -162,14 +166,17 @@ const LoginForm = () => {
                 required
                 disabled={loading}
               />
+              <div className='flex w-full justify-right align-right'>
+                <button className="text-sm text-amber-500 hover:text-amber-600 mt-2 text-right" onClick={handleforgetPassowrd}>Forgot Password?</button>
+              </div>
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-2/3 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                className="absolute right-3 top-2/4 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 disabled={loading}
               >
-                {showPassword ? 
-                  <EyeSlashIcon className="h-5 w-5" /> : 
+                {showPassword ?
+                  <EyeSlashIcon className="h-5 w-5" /> :
                   <EyeIcon className="h-5 w-5" />
                 }
               </button>
@@ -195,9 +202,8 @@ const LoginForm = () => {
 
           {/* Show other messages (but not if we're showing invalid credentials) */}
           {!invalidCredentials && displayMessage && (
-            <p className={`mt-4 text-center ${
-              localMessage || error ? 'text-red-500' : 'text-green-500'
-            }`}>
+            <p className={`mt-4 text-center ${localMessage || error ? 'text-red-500' : 'text-green-500'
+              }`}>
               {displayMessage}
             </p>
           )}
