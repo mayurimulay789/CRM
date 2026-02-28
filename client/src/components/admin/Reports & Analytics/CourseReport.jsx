@@ -220,7 +220,7 @@ const CourseReports = () => {
             data={csvData}
             headers={csvHeaders}
             filename={`course-reports-${new Date().toISOString().split('T')[0]}.csv`}
-            className="inline-flex items-center gap-2 bg-teal-600 text-white text-sm px-4 py-2 rounded-lg font-medium hover:bg-teal-700 transition duration-300 shadow-md"
+            className="inline-flex items-center gap-2 bg-[#890c25] text-white text-sm px-4 py-2 rounded-lg font-medium hover:bg-teal-700 transition duration-300 shadow-md"
           >
             <Download className="w-4 h-4" />
             Export CSV

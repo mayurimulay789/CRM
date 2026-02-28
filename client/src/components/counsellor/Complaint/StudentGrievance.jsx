@@ -167,7 +167,7 @@
 //         {!showForm && (
 //           <button
 //             onClick={() => setShowForm(true)}
-//             className="w-full sm:w-auto px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-sm"
+//             className="w-full sm:w-auto px-5 py-2.5 bg-[#890c25] text-white rounded-lg hover:bg-[#890c25] shadow-sm"
 //           >
 //             + Add Grievance
 //           </button>
@@ -256,7 +256,7 @@
 //               <button
 //                 type="submit"
 //                 disabled={loading}
-//                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+//                 className="px-4 py-2 bg-[#890c25] text-white rounded-lg hover:bg-[#890c25]"
 //               >
 //                 {editingGrievance ? "Update" : "Submit"}
 //               </button>
@@ -336,7 +336,7 @@
 //                     </button>
 //                     <button
 //                       onClick={() => setShowFilterMenu(false)}
-//                       className="px-3 py-1.5 bg-blue-500 text-white rounded-md text-sm"
+//                       className="px-3 py-1.5 bg-[#890c25] text-white rounded-md text-sm"
 //                     >
 //                       Apply
 //                     </button>
@@ -682,7 +682,7 @@ const StudentGrievance = () => {
           onClick={() => goToPage(i)}
           className={`px-3 py-2 text-sm border rounded-lg transition-all duration-200 min-w-[40px] ${
             currentPage === i
-              ? "bg-blue-600 text-white border-blue-600 shadow-sm"
+              ? "bg-[#890c25] text-white border-blue-600 shadow-sm"
               : "border-gray-300 hover:bg-gray-50"
           }`}
         >
@@ -770,7 +770,7 @@ const StudentGrievance = () => {
         {!showForm && (
           <button
             onClick={() => setShowForm(true)}
-            className="px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-sm transition-all duration-200 font-medium flex items-center justify-center gap-2 text-sm ml-auto"
+            className="px-4 py-2.5 bg-[#890c25] text-white rounded-lg hover:bg-[#890c25] shadow-sm transition-all duration-200 font-medium flex items-center justify-center gap-2 text-sm ml-auto"
           >
             <span className="text-base">+</span>
             <span>Add Grievance</span>
@@ -884,7 +884,7 @@ const StudentGrievance = () => {
               <button
                 type="submit"
                 disabled={loading}
-                className="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-medium flex items-center justify-center gap-2"
+                className="px-6 py-3 bg-[#890c25] text-white rounded-xl hover:bg-[#890c25] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-medium flex items-center justify-center gap-2"
               >
                 {loading ? (
                   <>
@@ -997,7 +997,7 @@ const StudentGrievance = () => {
                       </button>
                       <button
                         onClick={() => setShowFilterMenu(false)}
-                        className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium transition-colors duration-200"
+                        className="px-6 py-2 bg-[#890c25] text-white rounded-lg hover:bg-[#890c25] text-sm font-medium transition-colors duration-200"
                       >
                         Apply Filters
                       </button>
@@ -1096,7 +1096,7 @@ const StudentGrievance = () => {
                     setFilterStatus("all");
                     setSearchTerm("");
                   }}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium transition-colors duration-200"
+                  className="px-4 py-2 bg-[#890c25] text-white rounded-lg hover:bg-[#890c25] text-sm font-medium transition-colors duration-200"
                 >
                   Clear Filters
                 </button>
@@ -1141,7 +1141,7 @@ const StudentGrievance = () => {
                       <div className="flex gap-2">
                         <button
                           onClick={() => handleEdit(g)}
-                          className="px-3 py-1.5 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 font-medium flex items-center gap-1"
+                          className="px-3 py-1.5 text-xs bg-[#890c25] text-white rounded-lg hover:bg-[#890c25] transition-colors duration-200 font-medium flex items-center gap-1"
                         >
                           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -1203,7 +1203,7 @@ const StudentGrievance = () => {
                             setFilterStatus("all");
                             setSearchTerm("");
                           }}
-                          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium transition-colors duration-200"
+                          className="px-4 py-2 bg-[#890c25] text-white rounded-lg hover:bg-[#890c25] text-sm font-medium transition-colors duration-200"
                         >
                           Clear Filters
                         </button>
@@ -1255,7 +1255,7 @@ const StudentGrievance = () => {
                           <div className="flex gap-2 transition-opacity duration-200">
                             <button
                               onClick={() => handleEdit(g)}
-                              className="px-3 py-1.5 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 font-medium flex items-center gap-1"
+                              className="px-3 py-1.5 text-xs bg-[#890c25] text-white rounded-lg hover:bg-[#890c25] transition-colors duration-200 font-medium flex items-center gap-1"
                             >
                               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />

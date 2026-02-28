@@ -201,7 +201,7 @@ const CampusGrievanceAdmin = () => {
   return (
     <div className="min-h-screen bg-gray-50 p-3 sm:p-4 md:p-6">
       {/* Page Header */}
-      <div className="mb-6 bg-gradient-to-r from-blue-600 via-cyan-500 to-green-500 rounded-xl shadow-md p-4 sm:p-5 md:p-6 text-white">
+      <div className="mb-6  bg-[#890c25] rounded-xl shadow-md p-4 sm:p-5 md:p-6 text-white">
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
           <div className="flex-1">
             <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-wide">
@@ -357,7 +357,7 @@ const CampusGrievanceAdmin = () => {
                     </button>
                     <button
                       onClick={() => setShowFilterMenu(false)}
-                      className="px-4 py-2 bg-blue-500 text-white text-sm rounded-lg hover:bg-blue-600 border border-blue-500"
+                      className="px-4 py-2 bg-[#890c25] text-white text-sm rounded-lg hover:bg-[#890c25] border border-blue-500"
                     >
                       Apply Filters
                     </button>
@@ -547,7 +547,7 @@ const CampusGrievanceAdmin = () => {
                       onClick={() => handlePageChange(page)}
                       className={`px-3 py-1.5 text-sm border rounded-lg min-w-[36px] ${
                         currentPage === page
-                          ? 'bg-blue-500 text-white border-blue-500'
+                          ? 'bg-[#890c25] text-white border-blue-500'
                           : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
                       }`}
                     >
@@ -731,7 +731,7 @@ const CampusGrievanceAdmin = () => {
                 disabled={loading}
                 className={`flex-1 px-4 py-2.5 text-white rounded-lg text-sm font-medium transition-colors ${
                   selectedStatus === 'approved'
-                    ? 'bg-green-600 hover:bg-green-700 disabled:bg-green-400'
+                    ? 'bg-[#890c25] hover:bg-[#890c25] disabled:bg-[#890c25]'
                     : 'bg-red-600 hover:bg-red-700 disabled:bg-red-400'
                 } disabled:cursor-not-allowed`}
               >

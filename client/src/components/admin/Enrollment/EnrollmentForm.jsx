@@ -953,7 +953,7 @@ const EnrollmentForm = ({ enrollment, onClose, isAdmin = true }) => {
           <button
             type="submit"
             disabled={operationLoading || Object.keys(errors).length > 0}
-            className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 flex items-center space-x-2"
+            className="px-6 py-2 bg-[#890c25] text-white rounded-md hover:bg-[#890c25] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 flex items-center space-x-2"
           >
             {operationLoading ? (
               <>

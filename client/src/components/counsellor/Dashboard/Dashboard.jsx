@@ -614,7 +614,7 @@ const Dashboard = () => {
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2">
                 <div 
-                  className="bg-blue-600 h-2 rounded-full" 
+                  className="bg-[#890c25] h-2 rounded-full" 
                   style={{ width: `${Math.min((summary.totalStudentsEnrolled / 50) * 100, 100)}%` }}
                 ></div>
               </div>

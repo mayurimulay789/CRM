@@ -1,28 +1,28 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useSelector, useDispatch } from 'react-redux';
-import { logoutUser } from '../store/slices/authSlice';
+import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useSelector, useDispatch } from "react-redux";
+import { logoutUser } from "../store/slices/authSlice";
 
 const Navbar = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  
+
   const { isAuthenticated, user } = useSelector((state) => state.auth);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const handleLogout = () => {
     dispatch(logoutUser());
-    navigate('/');
+    navigate("/");
     setIsMobileMenuOpen(false);
   };
 
   const handleDashboardNavigation = () => {
-    if (user?.role === 'admin') {
-      navigate('/admin-panel');
-    } else if (user?.role === 'Counsellor') {
-      navigate('/counsellor-panel');
+    if (user?.role === "admin") {
+      navigate("/admin-panel");
+    } else if (user?.role === "Counsellor") {
+      navigate("/counsellor-panel");
     } else {
-      navigate('/dashboard');
+      navigate("/dashboard");
     }
     setIsMobileMenuOpen(false);
   };
@@ -32,94 +32,80 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="fixed top-0 left-0 right-0 bg-white shadow-md z-50">
+    <nav className="fixed top-0 left-0 right-0 bg-[#890c25] shadow-lg z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-        {/* MAIN NAV BAR */}
+        {/* MAIN NAV */}
         <div className="flex justify-between items-center h-16">
 
-          {/* LOGO */}
-          <Link 
-            to="/" 
-            className="text-2xl font-bold text-amber-600 hover:text-amber-700 transition"
-          >
-            RYMA ACADEMY
+          {/* LOGO - Properly sized */}
+          <Link to="/" className="flex items-center py-1">
+            <img
+              src="/logo1.png"
+              alt="RYMA Logo"
+              className="h-18 w-auto object-contain"
+              // Using h-12 for consistent height, w-auto maintains aspect ratio
+            />
           </Link>
 
-          {/* HAMBURGER (MOBILE ONLY) */}
+          {/* HAMBURGER */}
           <button
             onClick={toggleMobileMenu}
-            className="md:hidden p-2 rounded focus:outline-none focus:ring-2 text-gray-700"
+            className="md:hidden p-2 text-white focus:outline-none"
           >
             <div className="w-6 h-6 flex flex-col justify-between">
-              <span className={`w-full h-0.5 bg-current transition ${isMobileMenuOpen ? 'rotate-45 translate-y-2.5' : ''}`} />
-              <span className={`w-full h-0.5 bg-current transition ${isMobileMenuOpen ? 'opacity-0' : 'opacity-100'}`} />
-              <span className={`w-full h-0.5 bg-current transition ${isMobileMenuOpen ? '-rotate-45 -translate-y-2.5' : ''}`} />
+              <span className={`w-full h-0.5 bg-white transition ${isMobileMenuOpen ? "rotate-45 translate-y-2.5" : ""}`} />
+              <span className={`w-full h-0.5 bg-white transition ${isMobileMenuOpen ? "opacity-0" : "opacity-100"}`} />
+              <span className={`w-full h-0.5 bg-white transition ${isMobileMenuOpen ? "-rotate-45 -translate-y-2.5" : ""}`} />
             </div>
           </button>
 
           {/* DESKTOP MENU */}
-          <div className="hidden md:flex items-center gap-4">
+          <div className="hidden md:flex items-center gap-4 text-white">
 
             {isAuthenticated ? (
               <>
                 {/* USER INFO */}
                 <div className="flex items-center gap-2">
-                  <span className="text-gray-700 text-sm">
+                  <span className="text-sm">
                     Welcome, {user?.FullName}
                   </span>
-                  <span className="px-2.5 py-0.5 rounded-full text-xs bg-amber-100 text-amber-800 capitalize">
+                  <span className="px-2.5 py-0.5 rounded-full text-xs bg-white text-[#890c25] capitalize font-medium">
                     {user?.role}
                   </span>
                 </div>
 
                 <button
                   onClick={handleDashboardNavigation}
-                  className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-md transition"
+                  className="bg-white text-[#890c25] px-4 py-2 rounded-md font-medium hover:bg-gray-100 transition"
                 >
                   Dashboard
                 </button>
 
                 <button
                   onClick={handleLogout}
-                  className="border border-gray-300 hover:border-amber-500 text-gray-700 hover:text-amber-600 px-4 py-2 rounded-md transition"
+                  className="border border-white px-4 py-2 rounded-md hover:bg-white hover:text-[#890c25] transition"
                 >
                   Logout
                 </button>
               </>
-            ) : (
-              <>
-                {/* <Link
-                  to="/login"
-                  className="text-gray-700 hover:text-amber-600 px-4 py-2 transition"
-                >
-                  Login
-                </Link>
+            ) : null}
 
-                <Link
-                  to="/register"
-                  className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-md transition"
-                >
-                  Register
-                </Link> */}
-              </>
-            )}
           </div>
         </div>
 
-        {/* MOBILE DROPDOWN */}
+        {/* MOBILE MENU */}
         {isMobileMenuOpen && (
-          <div className="md:hidden bg-white border-t border-gray-200 shadow-lg pb-3">
+          <div className="md:hidden bg-white shadow-lg pb-3">
 
             {isAuthenticated ? (
               <>
-                {/* USER INFO */}
-                <div className="px-4 py-3 border-b border-gray-100">
+                <div className="px-4 py-3 border-b">
                   <div className="flex items-center gap-2">
-                    <span className="text-gray-700 font-medium">
+                    <span className="font-medium text-gray-800">
                       Welcome, {user?.FullName}
                     </span>
-                    <span className="px-2.5 py-0.5 rounded-full text-xs bg-amber-100 text-amber-800 capitalize">
+                    <span className="px-2 py-0.5 rounded-full text-xs bg-[#890c25] text-white capitalize">
                       {user?.role}
                     </span>
                   </div>
@@ -128,37 +114,28 @@ const Navbar = () => {
 
                 <button
                   onClick={handleDashboardNavigation}
-                  className="block w-full text-left px-4 py-3 text-gray-700 hover:text-amber-600 hover:bg-amber-50"
+                  className="block w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-100"
                 >
                   Dashboard
                 </button>
 
                 <button
                   onClick={handleLogout}
-                  className="block w-full text-left px-4 py-3 text-gray-700 hover:text-red-600 hover:bg-red-50"
+                  className="block w-full text-left px-4 py-3 text-red-600 hover:bg-red-50"
                 >
                   Logout
                 </button>
               </>
             ) : (
-              <>
-                <Link
-                  to="/login"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="block px-4 py-3 text-gray-700 hover:text-amber-600 hover:bg-gray-50"
-                >
-                  Login
-                </Link>
-
-                <Link
-                  to="/register"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="block px-4 py-3 text-gray-700 hover:text-amber-600 hover:bg-gray-50"
-                >
-                  Register
-                </Link>
-              </>
+              <Link
+                to="/login"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="block px-4 py-3 text-gray-700 hover:bg-gray-100"
+              >
+                Login
+              </Link>
             )}
+
           </div>
         )}
 
@@ -166,5 +143,5 @@ const Navbar = () => {
     </nav>
   );
 };
-
+ 
 export default Navbar;
