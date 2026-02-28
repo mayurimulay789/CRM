@@ -1,41 +1,57 @@
 const nodemailer = require("nodemailer");
+
+// Environment variables
 const user = process.env.EMAIL_USER;
 const pass = process.env.EMAIL_PASS;
-const bcc = process.env.BCC_EMAIL;
+const bcc = process.env.BCC_EMAIL; // optional, for submission notifications
+
+// Validate required credentials at startup
 if (!user || !pass) {
   console.error("❌ Missing EMAIL_USER or EMAIL_PASS in environment variables!");
+  // Optionally exit if email is critical – but here we just warn.
 }
+
+// Create reusable transporter
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || 'smtp.gmail.com',
   port: process.env.SMTP_PORT || 465,
   secure: true, // true for 465, false for other ports
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
+  auth: { user, pass },
+  tls: {
+    rejectUnauthorized: false, // ⚠️ Only for development! In production use a valid certificate.
   },
 });
+
 /**
  * Send email with optional BCC (for submission only)
- * @param {string} to - recipient email(s)
+ * @param {string} email - recipient email address(es)
  * @param {string} subject - email subject
- * @param {string} html - email content
- * @param {boolean} isSubmission - whether it's a submission notification
+ * @param {string} html - email HTML content
+ * @param {boolean} isSubmission - whether this is a submission notification (adds BCC)
  */
-async function sendMail(to, subject, html, isSubmission = false) {
+async function sendMail(email, subject, html, isSubmission = false) {
+  // Build mail options
   const mailOptions = {
     from: user,
-    to,
+    to: email,
     subject,
     html,
-    ...(isSubmission && { bcc }), // 👈 only add BCC for submission
   };
+
+  // Add BCC only if it's a submission AND bcc environment variable is set
+  if (isSubmission && bcc) {
+    mailOptions.bcc = bcc;
+  }
+
   try {
     await transporter.sendMail(mailOptions);
     console.log(
-      `✅ Email sent to ${to}${isSubmission ? ` (BCC: ${bcc})` : ""}`
+      `✅ Email sent to ${email}${isSubmission && bcc ? ` (BCC: ${bcc})` : ""}`
     );
   } catch (error) {
     console.error("❌ Email sending failed:", error.message);
+    // Re-throw if you want the caller to handle the error
+    // throw error;
   }
 }
 

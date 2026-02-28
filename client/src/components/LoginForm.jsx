@@ -38,7 +38,15 @@ const LoginForm = () => {
 
   useEffect(() => {
     if (isAuthenticated && user) {
-      const role = (user.role || "").toLowerCase();
+      const role = (user.role || '').toString().toLowerCase();
+
+      // Check if this is coming from registration success
+      const fromRegistration = isRegistrationSuccess;
+
+      // Clear registration success flag
+      if (fromRegistration) {
+        setIsRegistrationSuccess(false);
+      }
 
       if (role === "admin") navigate("/admin-panel");
       else if (role === "counsellor" || role === "counselor")
@@ -50,11 +58,10 @@ const LoginForm = () => {
   useEffect(() => {
     if (success && !isAuthenticated) {
       const successLower = success.toLowerCase();
-      if (
-        successLower.includes("register") ||
-        successLower.includes("account created") ||
-        successLower.includes("registration successful")
-      ) {
+      if (successLower.includes('register') ||
+        successLower.includes('account created') ||
+        successLower.includes('successfully registered') ||
+        successLower.includes('registration successful')) {
         setIsRegistrationSuccess(true);
       }
     }
@@ -64,11 +71,11 @@ const LoginForm = () => {
     if (error) {
       const err = error.toLowerCase();
       if (
-        err.includes("invalid") ||
-        err.includes("credentials") ||
-        err.includes("unauthorized") ||
-        err.includes("incorrect") ||
-        err.includes("401")
+        errorLower.includes('invalid') ||
+        errorLower.includes('credentials') ||
+        errorLower.includes('unauthorized') ||
+        errorLower.includes('incorrect') ||
+        errorLower.includes('401')
       ) {
         setInvalidCredentials(true);
       } else {
@@ -79,9 +86,11 @@ const LoginForm = () => {
 
   const onSubmit = (e) => {
     e.preventDefault();
-    setLocalMessage("");
+
+    setLocalMessage('');
     dispatch(clearError());
     setInvalidCredentials(false);
+    setIsRegistrationSuccess(false);
 
     if (!validateEmail(email)) {
       setLocalMessage("Please enter a valid email address");
@@ -94,7 +103,11 @@ const LoginForm = () => {
     }
 
     dispatch(loginUser(formData));
+    navigate('/'); // Navigate to home immediately after dispatching login action
   };
+  const handleforgetPassowrd = () => {
+    navigate('/userDetailsforForgetPassword');
+  }
 
   const displayMessage = localMessage || error || success;
 
@@ -152,15 +165,17 @@ const LoginForm = () => {
                 className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-[#890c25] focus:ring-2 focus:ring-[#890c25]/20 outline-none pr-12 transition-all duration-200"
                 required
               />
-
+              <div className='flex w-full justify-right align-right'>
+                <button className="text-sm text-amber-500 hover:text-amber-600 mt-2 text-right" onClick={handleforgetPassowrd}>Forgot Password?</button>
+              </div>
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-4 top-11 text-gray-400 hover:text-[#890c25] transition"
+                className="absolute right-3 top-2/4 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                disabled={loading}
               >
-                {showPassword ? (
-                  <EyeSlashIcon className="h-5 w-5" />
-                ) : (
+                {showPassword ?
+                  <EyeSlashIcon className="h-5 w-5" /> :
                   <EyeIcon className="h-5 w-5" />
                 )}
               </button>
