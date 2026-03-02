@@ -1,28 +1,38 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useDispatch, useSelector } from 'react-redux';
-import { loginUser, clearError, clearSuccess } from '../store/slices/authSlice';
-import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
+import React, { useState, useEffect } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+import { loginUser, clearError, clearSuccess } from "../store/slices/authSlice";
+import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
 
 const LoginForm = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
-  const { loading, error, success, isAuthenticated, user } = useSelector((state) => state.auth);
+  const { loading, error, success, isAuthenticated, user } = useSelector(
+    (state) => state.auth
+  );
 
-  const [formData, setFormData] = useState({ email: '', password: '' });
+  const [formData, setFormData] = useState({
+    email: "",
+    password: "",
+  });
+
   const [showPassword, setShowPassword] = useState(false);
-  const [localMessage, setLocalMessage] = useState('');
+  const [localMessage, setLocalMessage] = useState("");
   const [invalidCredentials, setInvalidCredentials] = useState(false);
   const [isRegistrationSuccess, setIsRegistrationSuccess] = useState(false);
 
   const { email, password } = formData;
 
-  const onChange = (e) =>
+  // Clear local validation message when user types
+  const onChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+    setLocalMessage("");
+  };
 
   const validateEmail = (email) => /\S+@\S+\.\S+/.test(email);
 
+  // Clear redux errors/success on mount
   useEffect(() => {
     dispatch(clearError());
     dispatch(clearSuccess());
@@ -30,186 +40,191 @@ const LoginForm = () => {
     setIsRegistrationSuccess(false);
   }, [dispatch]);
 
-  // Handle navigation based on authentication status
+  // Role‑based navigation after successful login
   useEffect(() => {
     if (isAuthenticated && user) {
-      const role = (user.role || '').toString().toLowerCase();
+      const role = (user.role || "").toString().toLowerCase();
 
-      // Check if this is coming from registration success
-      const fromRegistration = isRegistrationSuccess;
-
-      // Clear registration success flag
-      if (fromRegistration) {
+      // If we came from a successful registration, clear the flag
+      if (isRegistrationSuccess) {
         setIsRegistrationSuccess(false);
       }
 
-      // Navigate based on role
-      if (role === 'admin') {
-        navigate('/admin-panel');
-      } else if (role === 'counsellor' || role === 'counselor') {
-        navigate('/counsellor-panel');
-      } else {
-        navigate('/');
-      }
+      if (role === "admin") navigate("/admin-panel");
+      else if (role === "counsellor" || role === "counselor")
+        navigate("/counsellor-panel");
+      else navigate("/");
     }
   }, [isAuthenticated, user, navigate, isRegistrationSuccess]);
 
-  // Check if success message is from registration
+  // Detect registration success from redux `success` message (could be improved with a dedicated flag)
   useEffect(() => {
     if (success && !isAuthenticated) {
-      // Check if this is a registration success message
       const successLower = success.toLowerCase();
-      if (successLower.includes('register') ||
-        successLower.includes('account created') ||
-        successLower.includes('successfully registered') ||
-        successLower.includes('registration successful')) {
+      if (
+        successLower.includes("register") ||
+        successLower.includes("account created") ||
+        successLower.includes("successfully registered") ||
+        successLower.includes("registration successful")
+      ) {
         setIsRegistrationSuccess(true);
       }
     }
   }, [success, isAuthenticated]);
 
-  // Handle error changes specifically for invalid credentials
+  // Handle error messages and set `invalidCredentials` flag
   useEffect(() => {
     if (error) {
-      const errorLower = error.toLowerCase();
+      const err = error.toLowerCase();
       if (
-        errorLower.includes('invalid') ||
-        errorLower.includes('credentials') ||
-        errorLower.includes('unauthorized') ||
-        errorLower.includes('incorrect') ||
-        errorLower.includes('401')
+        err.includes("invalid") ||
+        err.includes("credentials") ||
+        err.includes("unauthorized") ||
+        err.includes("incorrect") ||
+        err.includes("401")
       ) {
         setInvalidCredentials(true);
       } else {
         setInvalidCredentials(false);
       }
-    } else {
-      setInvalidCredentials(false);
     }
   }, [error]);
 
-  const onSubmit = async (e) => {
+  const onSubmit = (e) => {
     e.preventDefault();
 
-    setLocalMessage('');
+    // Prevent double submission
+    if (loading) return;
+
+    setLocalMessage("");
     dispatch(clearError());
     setInvalidCredentials(false);
     setIsRegistrationSuccess(false);
 
     if (!validateEmail(email)) {
-      setLocalMessage('Please enter a valid email');
+      setLocalMessage("Please enter a valid email address");
       return;
     }
+
     if (password.length < 6) {
-      setLocalMessage('Password must be at least 6 characters');
+      setLocalMessage("Password must be at least 6 characters");
       return;
     }
 
     dispatch(loginUser(formData));
-    navigate('/'); // Navigate to home immediately after dispatching login action
+    // Navigation is handled by the effect above, do NOT navigate here
   };
-  const handleforgetPassowrd = () => {
-    navigate('/userDetailsforForgetPassword');
-  }
 
-  // Use error directly for display when it exists
+  const handleForgotPassword = () => {
+    navigate("/userDetailsforForgetPassword");
+  };
+
   const displayMessage = localMessage || error || success;
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-800">
-      <div className="max-w-4xl w-full min-h-[450px] bg-white shadow-lg rounded-lg overflow-hidden flex">
-        {/* Left side image */}
-        <div
-          className="hidden md:block md:w-1/2 bg-cover bg-center"
-          style={{ backgroundImage: "url('/images/two.jpg')" }}
-        >
-          <div className="h-full w-full flex flex-col items-center justify-center bg-black bg-opacity-40">
-            <h2 className="text-white text-3xl font-bold px-4 text-center">
-              Welcome Back
-            </h2>
-            <p className="text-white text-sm mt-2 px-4 text-center">
-              Please log in using your personal information to stay connected with us
+    <div className="min-h-screen flex items-center justify-center bg-white px-4">
+      <div className="w-full max-w-md">
+        <div className="bg-white p-10 rounded-3xl shadow-2xl transition-all duration-500">
+          {/* Header */}
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-bold text-[#890c25] tracking-tight">
+              RYMA Academy
+            </h1>
+            <p className="text-gray-500 mt-2 text-sm">
+              Sign in to continue to your dashboard
             </p>
           </div>
-        </div>
 
-        {/* Right side form */}
-        <div className="w-full md:w-1/2 p-8">
-          <h2 className="text-2xl font-bold mb-4 text-center">Login</h2>
-          <p className="text-center text-gray-500 mb-6">
-            Please log in using your personal information
-          </p>
-          <form onSubmit={onSubmit} className="space-y-4">
-            <div>
-              <label className="block text-gray-700 mb-1">Email</label>
+          {/* Form */}
+          <form onSubmit={onSubmit} className="space-y-6">
+            {/* EMAIL */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700">
+                Email Address
+              </label>
               <input
                 type="email"
                 name="email"
                 value={email}
                 onChange={onChange}
-                placeholder="Enter your email"
-                className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-amber-400"
-                required
+                placeholder="you@example.com"
                 disabled={loading}
+                className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-[#890c25] focus:ring-2 focus:ring-[#890c25]/20 outline-none transition-all duration-200"
+                required
               />
             </div>
 
-            <div className="relative">
-              <label className="block text-gray-700 mb-1">Password</label>
-              <input
-                type={showPassword ? 'text' : 'password'}
-                name="password"
-                value={password}
-                onChange={onChange}
-                placeholder="Enter your password"
-                className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-amber-400 pr-10"
-                required
-                disabled={loading}
-              />
-              <div className='flex w-full justify-right align-right'>
-                <button className="text-sm text-amber-500 hover:text-amber-600 mt-2 text-right" onClick={handleforgetPassowrd}>Forgot Password?</button>
+            {/* PASSWORD */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700">
+                Password
+              </label>
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  name="password"
+                  value={password}
+                  onChange={onChange}
+                  placeholder="Enter your password"
+                  disabled={loading}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-[#890c25] focus:ring-2 focus:ring-[#890c25]/20 outline-none pr-12 transition-all duration-200"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  disabled={loading}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? (
+                    <EyeSlashIcon className="h-5 w-5" />
+                  ) : (
+                    <EyeIcon className="h-5 w-5" />
+                  )}
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-2/4 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                disabled={loading}
-              >
-                {showPassword ?
-                  <EyeSlashIcon className="h-5 w-5" /> :
-                  <EyeIcon className="h-5 w-5" />
-                }
-              </button>
+              {/* Forgot password link – now a single, client‑side link */}
+              <div className="text-right mt-1">
+                <button
+                  type="button"
+                  onClick={handleForgotPassword}
+                  className="text-sm text-amber-500 hover:text-amber-600 focus:outline-none"
+                >
+                  Forgot Password?
+                </button>
+              </div>
             </div>
 
-            <div className="flex justify-between items-center text-sm">
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-amber-500 hover:bg-amber-600 text-white py-2 rounded font-semibold transition duration-300 disabled:bg-amber-300 disabled:cursor-not-allowed"
-              >
-                {loading ? 'Logging in...' : 'Log In'}
-              </button>
-            </div>
+            {/* Submit Button */}
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-[#890c25] text-white py-3 rounded-xl font-semibold shadow-md hover:shadow-lg transition-all duration-300 disabled:opacity-60"
+            >
+              {loading ? "Signing in..." : "Sign in"}
+            </button>
           </form>
 
-          {/* Show specific invalid credentials message */}
+          {/* Messages */}
           {invalidCredentials && (
-            <p className="mt-4 text-center text-red-500">
+            <p className="mt-6 text-center text-red-500 text-sm font-medium">
               Invalid credentials. Please check your email and password.
             </p>
           )}
 
-          {/* Show other messages (but not if we're showing invalid credentials) */}
           {!invalidCredentials && displayMessage && (
-            <p className={`mt-4 text-center ${localMessage || error ? 'text-red-500' : 'text-green-500'
-              }`}>
+            <p
+              className={`mt-6 text-center text-sm font-medium ${
+                localMessage || error ? "text-red-500" : "text-green-500"
+              }`}
+            >
               {displayMessage}
             </p>
           )}
-          {/* Special message for registration success */}
+
           {isRegistrationSuccess && !isAuthenticated && (
-            <p className="mt-4 text-center text-green-500">
+            <p className="mt-6 text-center text-green-500 text-sm font-medium">
               Registration successful! Auto-logging you in...
             </p>
           )}
