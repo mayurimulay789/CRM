@@ -232,11 +232,11 @@ const createStudent = async (req, res) => {
     let studentId;
     
     if (lastStudent && lastStudent.studentId) {
-      const lastNumber = parseInt(lastStudent.studentId.replace('STU', ''));
-      studentId = `STU${(lastNumber + 1).toString().padStart(6, '0')}`;
+      const lastNumber = parseInt(lastStudent.studentId.replace('RYMA', ''));
+      studentId = `RYMA${(lastNumber + 1).toString().padStart(6, '0')}`;
       console.log('🎫 Generated studentId from last student:', studentId);
     } else {
-      studentId = 'STU000001';
+      studentId = 'RYMA000001';
       console.log('🎫 Generated first studentId:', studentId);
     }
 

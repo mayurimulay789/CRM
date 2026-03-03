@@ -5,8 +5,10 @@ import toast from 'react-hot-toast';
 import {
   getAllCounsellors,
   registerUser,
+  deleteCounsellor,
   clearError,
-  clearSuccess
+  clearSuccess,
+  clearCounsellorsError
 } from '../../../store/slices/authSlice';
 import axios from 'axios';
 
@@ -14,7 +16,14 @@ const CounsellorManagement = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const {
-    counsellors: { list: counsellors, loading, error, pagination },
+    counsellors: { 
+      list: counsellors, 
+      loading, 
+      error, 
+      deleteLoading,
+      deleteError,
+      pagination 
+    },
     success
   } = useSelector(state => state.auth);
 
@@ -24,6 +33,8 @@ const CounsellorManagement = () => {
   const [selectedCounsellor, setSelectedCounsellor] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [openpop, setopenpopUp] = useState(false); // registration modal state
+  const [validationErrors, setValidationErrors] = useState({}); // For field-specific errors
+  const [deleteConfirmModal, setDeleteConfirmModal] = useState({ show: false, counsellor: null }); // Delete confirmation modal
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -37,15 +48,15 @@ const CounsellorManagement = () => {
 
   // Define all available columns
   const allColumns = [
-  { key: 'FullName', label: 'Full Name', visible: true },
-  { key: 'email', label: 'Email', visible: true },
-  { key: 'phone', label: 'Phone', visible: true },
-  { key: 'education', label: 'Education', visible: true },
-  { key: 'role', label: 'Role', visible: true },
-  { key: 'createdAt', label: 'Created Date', visible: true },
-  { key: 'updatedAt', label: 'Last Updated', visible: false },
-  { key: 'actions', label: 'Actions', visible: true }
-];
+    { key: 'FullName', label: 'Full Name', visible: true },
+    { key: 'email', label: 'Email', visible: true },
+    { key: 'phone', label: 'Phone', visible: true },
+    { key: 'education', label: 'Education', visible: true },
+    { key: 'role', label: 'Role', visible: true },
+    { key: 'createdAt', label: 'Created Date', visible: true },
+    { key: 'updatedAt', label: 'Last Updated', visible: false },
+    { key: 'actions', label: 'Actions', visible: true }
+  ];
 
   const [columns, setColumns] = useState(allColumns);
 
@@ -59,47 +70,175 @@ const CounsellorManagement = () => {
     education: ''
   });
   const [localMessage, setLocalMessage] = useState('');
-  const { FullName, email, password, phone , education } = formData;
+  const { FullName, email, password, phone, education } = formData;
 
-  const onChange = (e) =>
+  const onChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+    // Clear validation error for this field when user starts typing
+    if (validationErrors[e.target.name]) {
+      setValidationErrors({
+        ...validationErrors,
+        [e.target.name]: ''
+      });
+    }
+  };
 
-  const validateEmail = (email) => /\S+@\S+\.\S+/.test(email);
+  // Validation functions
+  const validateEmail = (email) => {
+    const emailRegex = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
+    return emailRegex.test(email);
+  };
+
+  const validatePhone = (phone) => {
+    // Indian phone number validation (10 digits, starting with 6-9)
+    const phoneRegex = /^[6-9]\d{9}$/;
+    return phoneRegex.test(phone);
+  };
+
+  // Check if email already exists in the counsellors list
+  const isEmailUnique = (email) => {
+    return !counsellors.some(counsellor => 
+      counsellor.email.toLowerCase() === email.toLowerCase()
+    );
+  };
+
+  // Check if phone already exists in the counsellors list
+  const isPhoneUnique = (phone) => {
+    return !counsellors.some(counsellor => 
+      counsellor.phone === phone
+    );
+  };
+
+  const validateForm = () => {
+    const errors = {};
+    
+    // FullName validation
+    if (!FullName.trim()) {
+      errors.FullName = 'Full Name is required';
+    } else if (FullName.trim().length < 2) {
+      errors.FullName = 'Full Name must be at least 2 characters';
+    }
+
+    // Email validation
+    if (!email.trim()) {
+      errors.email = 'Email is required';
+    } else if (!validateEmail(email)) {
+      errors.email = 'Please enter a valid email address';
+    } else if (!isEmailUnique(email)) {
+      errors.email = 'This email is already registered';
+    }
+
+    // Password validation
+    if (!password) {
+      errors.password = 'Password is required';
+    } else if (password.length < 6) {
+      errors.password = 'Password must be at least 6 characters';
+    } else if (!/(?=.*[A-Z])(?=.*[a-z])(?=.*\d)/.test(password)) {
+      errors.password = 'Password must contain at least one uppercase letter, one lowercase letter, and one number';
+    }
+
+    // Phone validation
+    if (!phone) {
+      errors.phone = 'Mobile number is required';
+    } else if (!validatePhone(phone)) {
+      errors.phone = 'Please enter a valid 10-digit Indian mobile number starting with 6-9';
+    } else if (!isPhoneUnique(phone)) {
+      errors.phone = 'This mobile number is already registered';
+    }
+
+    // Education validation
+    if (!education.trim()) {
+      errors.education = 'Education is required';
+    } else if (education.trim().length < 2) {
+      errors.education = 'Education must be at least 2 characters';
+    }
+
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
 
   const onSubmit = async (e) => {
     e.preventDefault();
     setLocalMessage('');
     dispatch(clearError());
+    setValidationErrors({});
 
-    if (!FullName.trim()) {
-      setLocalMessage('FullName is required');
+    // Validate form
+    if (!validateForm()) {
       return;
     }
-    if (!validateEmail(email)) {
-      setLocalMessage('Please enter a valid email');
-      return;
-    }
-    if (password.length < 6) {
-      setLocalMessage('Password must be at least 6 characters');
-      return;
-    }
-    const token = localStorage.getItem('token');
 
-    const response = await axios.post(
-      `${import.meta.env.VITE_BASE_URL}api/auth/register`,
-      formData,
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
+    try {
+      const token = localStorage.getItem('token');
+      
+      const response = await axios.post(
+        `${import.meta.env.VITE_BASE_URL}api/auth/register`,
+        formData,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+          }
         }
+      );
+      
+      console.log(response);
+      if (response.status === 201) {
+        toast.success('Counsellor added successfully!');
+        setopenpopUp(false);
+        setFormData({
+          FullName: '',
+          email: '',
+          password: '',
+          role: 'Counsellor',
+          phone: '',
+          education: ''
+        });
+        // Refresh the counsellors list
+        dispatch(getAllCounsellors());
       }
-    );
-    console.log(response);
-    if (response.status === 201) {
-      setopenpopUp(false);
-    };
-  }
+    } catch (error) {
+      console.error('Registration error:', error);
+      
+      // Handle duplicate key errors from MongoDB
+      if (error.response?.data?.message) {
+        const errorMsg = error.response.data.message;
+        if (errorMsg.includes('email')) {
+          setValidationErrors(prev => ({ ...prev, email: 'This email is already registered' }));
+        } else if (errorMsg.includes('phone')) {
+          setValidationErrors(prev => ({ ...prev, phone: 'This phone number is already registered' }));
+        } else {
+          setLocalMessage(errorMsg);
+        }
+      } else {
+        setLocalMessage('Failed to add counsellor. Please try again.');
+      }
+    }
+  };
+
+  // Handle delete counsellor
+  const handleDeleteClick = (counsellor) => {
+    setDeleteConfirmModal({ show: true, counsellor });
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteConfirmModal.counsellor) return;
+    
+    try {
+      const result = await dispatch(deleteCounsellor(deleteConfirmModal.counsellor._id)).unwrap();
+      toast.success(result.message);
+      setDeleteConfirmModal({ show: false, counsellor: null });
+      
+      // Refresh the counsellors list
+      dispatch(getAllCounsellors());
+    } catch (error) {
+      toast.error(error || 'Failed to delete counsellor');
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteConfirmModal({ show: false, counsellor: null });
+  };
 
   // Handle success/error toasts and close modal on success
   useEffect(() => {
@@ -112,7 +251,11 @@ const CounsellorManagement = () => {
       toast.error(error);
       dispatch(clearError());
     }
-  }, [success, error, dispatch]);
+    if (deleteError) {
+      toast.error(deleteError);
+      dispatch(clearCounsellorsError());
+    }
+  }, [success, error, deleteError, dispatch]);
 
   const displayMessage = localMessage || error || success;
 
@@ -241,7 +384,7 @@ const CounsellorManagement = () => {
 
   const getRoleBadge = (role) => {
     return role === 'admin' ? (
-      <span className="px-2 py-1 text-xs font-semibold rounded-full bg-[#890c25]/10 text-[#890c25] border border-[#890c25]/20">Admin</span>
+      <span className="px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800 border border-purple-200">Admin</span>
     ) : (
       <span className="px-2 py-1 text-xs font-semibold rounded-full bg-[#890c25]/10 text-[#890c25] border border-[#890c25]/20">Counsellor</span>
     );
@@ -264,6 +407,8 @@ const CounsellorManagement = () => {
 
   const handleSubmitPopUp = () => {
     setopenpopUp(true);
+    setValidationErrors({});
+    setLocalMessage('');
   };
 
   if (loading && counsellors.length === 0) {
@@ -573,12 +718,28 @@ const CounsellorManagement = () => {
                             case 'actions':
                               return (
                                 <td key={column.key} className={`${baseCellClasses}`}>
-                                  <button
-                                    onClick={() => handleViewDetails(counsellor)}
-                                    className="text-[#890c25] hover:text-[#6e091d] px-2 py-1 rounded hover:bg-[#890c25]/5 transition-colors border border-[#890c25]/20 text-xs font-medium"
-                                  >
-                                    View
-                                  </button>
+                                  <div className="flex items-center space-x-2">
+                                    <button
+                                      onClick={() => handleViewDetails(counsellor)}
+                                      className="text-[#890c25] hover:text-[#6e091d] p-1 rounded hover:bg-[#890c25]/5 transition-colors border border-[#890c25]/20"
+                                      title="View Details"
+                                    >
+                                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                      </svg>
+                                    </button>
+                                    <button
+                                      onClick={() => handleDeleteClick(counsellor)}
+                                      disabled={deleteLoading}
+                                      className="text-red-600 hover:text-red-800 p-1 rounded hover:bg-red-50 transition-colors border border-red-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                                      title="Delete Counsellor"
+                                    >
+                                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                      </svg>
+                                    </button>
+                                  </div>
                                 </td>
                               );
                             
@@ -727,12 +888,64 @@ const CounsellorManagement = () => {
                 </div>
               </div>
 
-              <div className="mt-6 flex justify-end">
+              <div className="mt-6 flex justify-end space-x-3">
+                <button
+                  onClick={() => {
+                    handleCloseDetails();
+                    handleDeleteClick(selectedCounsellor);
+                  }}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors duration-200 text-sm font-medium"
+                >
+                  Delete Counsellor
+                </button>
                 <button 
                   onClick={handleCloseDetails} 
                   className="px-4 py-2 bg-[#890c25] text-white rounded-lg hover:bg-[#6e091d] transition-colors duration-200 text-sm font-medium"
                 >
                   Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirmModal.show && deleteConfirmModal.counsellor && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[60]">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+            <div className="p-6">
+              <div className="flex items-center justify-center mb-4 text-red-600">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              
+              <h3 className="text-lg font-semibold text-gray-900 text-center mb-2">
+                Delete Counsellor
+              </h3>
+              
+              <p className="text-sm text-gray-600 text-center mb-6">
+                Are you sure you want to delete <span className="font-semibold">{deleteConfirmModal.counsellor.FullName}</span>?<br />
+                This action cannot be undone.
+              </p>
+
+              <div className="flex justify-center space-x-3">
+                <button
+                  onClick={handleDeleteCancel}
+                  className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition text-sm font-medium"
+                  disabled={deleteLoading}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDeleteConfirm}
+                  disabled={deleteLoading}
+                  className={`px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-sm font-medium ${
+                    deleteLoading ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
+                >
+                  {deleteLoading ? 'Deleting...' : 'Delete'}
                 </button>
               </div>
             </div>
@@ -747,7 +960,18 @@ const CounsellorManagement = () => {
             <div className="p-4 sm:p-6">
               <div className="flex justify-between items-center mb-4 sticky top-0 bg-white pb-2 border-b border-gray-200">
                 <h2 className="text-lg sm:text-xl font-bold text-gray-800">Add New Counsellor</h2>
-                <button onClick={() => setopenpopUp(false)} className="text-gray-400 hover:text-gray-600 text-2xl w-8 h-8 flex items-center justify-center">×</button>
+                <button onClick={() => {
+                  setopenpopUp(false);
+                  setValidationErrors({});
+                  setFormData({
+                    FullName: '',
+                    email: '',
+                    password: '',
+                    role: 'Counsellor',
+                    phone: '',
+                    education: ''
+                  });
+                }} className="text-gray-400 hover:text-gray-600 text-2xl w-8 h-8 flex items-center justify-center">×</button>
               </div>
 
               <form onSubmit={onSubmit} className="space-y-4">
@@ -762,10 +986,13 @@ const CounsellorManagement = () => {
                     value={FullName}
                     onChange={onChange}
                     placeholder="Enter full name"
-                    className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#890c25] focus:border-transparent text-sm"
+                    className={`w-full px-3 sm:px-4 py-2 border ${validationErrors.FullName ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-[#890c25] focus:border-transparent text-sm`}
                     required
                     disabled={loading}
                   />
+                  {validationErrors.FullName && (
+                    <p className="mt-1 text-xs text-red-500">{validationErrors.FullName}</p>
+                  )}
                 </div>
 
                 {/* Email */}
@@ -779,10 +1006,13 @@ const CounsellorManagement = () => {
                     value={email}
                     onChange={onChange}
                     placeholder="Enter email address"
-                    className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#890c25] focus:border-transparent text-sm"
+                    className={`w-full px-3 sm:px-4 py-2 border ${validationErrors.email ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-[#890c25] focus:border-transparent text-sm`}
                     required
                     disabled={loading}
                   />
+                  {validationErrors.email && (
+                    <p className="mt-1 text-xs text-red-500">{validationErrors.email}</p>
+                  )}
                 </div>
 
                 {/* Password */}
@@ -796,10 +1026,16 @@ const CounsellorManagement = () => {
                     value={password}
                     onChange={onChange}
                     placeholder="Enter password (min. 6 characters)"
-                    className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#890c25] focus:border-transparent text-sm"
+                    className={`w-full px-3 sm:px-4 py-2 border ${validationErrors.password ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-[#890c25] focus:border-transparent text-sm`}
                     required
                     disabled={loading}
                   />
+                  {validationErrors.password && (
+                    <p className="mt-1 text-xs text-red-500">{validationErrors.password}</p>
+                  )}
+                  <p className="mt-1 text-xs text-gray-500">
+                    Password must contain at least one uppercase letter, one lowercase letter, and one number
+                  </p>
                 </div>
 
                 {/* Mobile Number */}
@@ -812,11 +1048,15 @@ const CounsellorManagement = () => {
                     name="phone"
                     value={phone}
                     onChange={onChange}
-                    placeholder="Enter mobile number"
-                    className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#890c25] focus:border-transparent text-sm"
+                    placeholder="Enter 10-digit mobile number"
+                    className={`w-full px-3 sm:px-4 py-2 border ${validationErrors.phone ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-[#890c25] focus:border-transparent text-sm`}
                     required
                     disabled={loading}
+                    maxLength="10"
                   />
+                  {validationErrors.phone && (
+                    <p className="mt-1 text-xs text-red-500">{validationErrors.phone}</p>
+                  )}
                 </div>
 
                 {/* Education */}
@@ -830,17 +1070,31 @@ const CounsellorManagement = () => {
                     value={education}
                     onChange={onChange}
                     placeholder="Enter education background"
-                    className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#890c25] focus:border-transparent text-sm"
+                    className={`w-full px-3 sm:px-4 py-2 border ${validationErrors.education ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:outline-none focus:ring-2 focus:ring-[#890c25] focus:border-transparent text-sm`}
                     required
                     disabled={loading}
                   />
+                  {validationErrors.education && (
+                    <p className="mt-1 text-xs text-red-500">{validationErrors.education}</p>
+                  )}
                 </div>
 
                 {/* Action Buttons */}
                 <div className="flex flex-col sm:flex-row justify-end gap-2 sm:space-x-3 pt-4">
                   <button
                     type="button"
-                    onClick={() => setopenpopUp(false)}
+                    onClick={() => {
+                      setopenpopUp(false);
+                      setValidationErrors({});
+                      setFormData({
+                        FullName: '',
+                        email: '',
+                        password: '',
+                        role: 'Counsellor',
+                        phone: '',
+                        education: ''
+                      });
+                    }}
                     className="w-full sm:w-auto px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition text-sm font-medium order-2 sm:order-1"
                   >
                     Cancel
@@ -857,7 +1111,7 @@ const CounsellorManagement = () => {
                 </div>
 
                 {/* Message display inside modal */}
-                {displayMessage && (
+                {displayMessage && !Object.keys(validationErrors).length && (
                   <p className={`mt-4 text-center text-sm ${
                     localMessage || error ? 'text-red-500' : 'text-green-500'
                   }`}>

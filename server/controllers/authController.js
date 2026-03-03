@@ -4,6 +4,7 @@ const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const { generateToken } = require('../middleware/jwtToken');
 const sendMail = require('../utils/email'); // Adjust path as needed
+const mongoose = require('mongoose'); // ✅ ADD THIS LINE
 
 // ==================== Helper: Email Sending ====================
 
@@ -74,6 +75,7 @@ const registerUser = async (req, res) => {
       phone,
       role: 'Counsellor',
     });
+
 
     console.log("User created:", user);
     const token = generateToken(user._id);
@@ -199,25 +201,34 @@ const updateUserProfile = async (req, res) => {
 const getAllCounsellor = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
+    const limit = parseInt(req.query.limit) || 10; // You can increase this to 20 or 50 if needed
     const skip = (page - 1) * limit;
     const search = req.query.search || '';
+    
     let searchQuery = { role: 'Counsellor' };
+    
     if (search) {
       searchQuery.$or = [
         { FullName: { $regex: search, $options: 'i' } },
         { email: { $regex: search, $options: 'i' } }
       ];
     }
+    
     const totalCounsellors = await User.countDocuments(searchQuery);
+    
+    // Make sure we're not skipping more than available
+    const adjustedSkip = skip > totalCounsellors ? 0 : skip;
+    
     const counsellors = await User.find(searchQuery)
       .select('-password')
-      .sort({ FullName: 1 })
-      .skip(skip)
+      .sort({ createdAt: -1 })
+      .skip(adjustedSkip)
       .limit(limit);
+    
     const totalPages = Math.ceil(totalCounsellors / limit);
     const hasNextPage = page < totalPages;
     const hasPrevPage = page > 1;
+    
     res.status(200).json({
       message: 'Counsellors retrieved successfully',
       counsellors: counsellors.map(counsellor => ({
@@ -247,7 +258,82 @@ const getAllCounsellor = async (req, res) => {
     });
   }
 };
+// ==================== Delete Counsellor Controller ====================
 
+/**
+ * Delete a counsellor by ID (Admin only)
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+// ==================== Delete Counsellor Controller ====================
+
+/**
+ * Delete a counsellor by ID (Admin only)
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const deleteCounsellor = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Validate ID format using mongoose
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid counsellor ID format' 
+      });
+    }
+
+    // Find the user and check if they are a counsellor
+    const counsellor = await User.findById(id);
+    
+    if (!counsellor) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Counsellor not found' 
+      });
+    }
+
+    // Check if the user is actually a counsellor
+    if (counsellor.role !== 'Counsellor') {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'The specified user is not a counsellor' 
+      });
+    }
+
+    // Optional: Prevent deletion of admin users if needed
+    if (counsellor.role === 'admin') {
+      return res.status(403).json({ 
+        success: false, 
+        message: 'Cannot delete admin users' 
+      });
+    }
+
+    // Delete the counsellor
+    await User.findByIdAndDelete(id);
+
+    // Log the deletion for audit purposes
+    console.log(`Counsellor ${counsellor.FullName} (${counsellor.email}) deleted by admin ${req.user._id}`);
+
+    res.status(200).json({
+      success: true,
+      message: 'Counsellor deleted successfully',
+      deletedCounsellor: {
+        _id: counsellor._id,
+        FullName: counsellor.FullName,
+        email: counsellor.email
+      }
+    });
+  } catch (error) {
+    console.error('Delete Counsellor Error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server error while deleting counsellor',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
 // ==================== Password Reset Controllers ====================
 
 /**
@@ -420,5 +506,6 @@ module.exports = {
   getAllCounsellor,
   searchUserByEmailAndReset,
   verifyOtp,
-  setNewPassword
+  setNewPassword,
+  deleteCounsellor  // Add this line
 };

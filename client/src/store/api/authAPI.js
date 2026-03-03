@@ -52,10 +52,25 @@ const authAPI = {
     const response = await authApi.put('/myprofile', userData);
     return response;
   },
-    // ✅ NEW: Get all counsellors (Admin only)
+  
+  // ✅ Get all counsellors (Admin only)
   getAllCounsellors: async (queryParams = {}) => {
     const response = await authApi.get('/allCounsellor', {
       params: queryParams // Pass query parameters like page, limit, search
+    });
+    return response;
+  },
+
+  // ✅ NEW: Delete counsellor by ID (Admin only)
+  deleteCounsellor: async (counsellorId) => {
+    const response = await authApi.delete(`/counsellor/${counsellorId}`);
+    return response;
+  },
+
+  // ✅ OPTIONAL: Bulk delete counsellors (if you implemented it)
+  bulkDeleteCounsellors: async (counsellorIds) => {
+    const response = await authApi.delete('/counsellors/bulk-delete', {
+      data: { ids: counsellorIds }
     });
     return response;
   }
