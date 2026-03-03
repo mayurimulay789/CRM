@@ -77,6 +77,16 @@ const AddBatchForm = ({ onBack, isEdit = false, batchData = null, onEditSubmit =
     });
   }, [courses]);
 
+  // Compute today and tomorrow date strings for min/max constraints
+  const today = new Date().toISOString().split('T')[0];
+  const tomorrowDate = new Date();
+  tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+  const tomorrow = tomorrowDate.toISOString().split('T')[0];
+
+  // Date constraints based on status
+  const dateMin = formData.status === 'Upcoming' ? tomorrow : undefined;
+  const dateMax = formData.status === 'Running' ? today : undefined;
+
   const [formErrors, setFormErrors] = useState({});
 
   // Set form data for edit mode
@@ -111,9 +121,21 @@ const AddBatchForm = ({ onBack, isEdit = false, batchData = null, onEditSubmit =
   }, [formData]);
 
   const handleChange = (e) => {
+    const { name, value } = e.target;
+    // Clear date fields when status changes so previously selected dates don't violate new constraints
+    if (name === 'status') {
+      setFormData({
+        ...formData,
+        status: value,
+        startDate: '',
+        endDate: '',
+        completionDate: '',
+      });
+      return;
+    }
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value,
+      [name]: value,
     });
   };
 
@@ -122,14 +144,16 @@ const AddBatchForm = ({ onBack, isEdit = false, batchData = null, onEditSubmit =
 
     if (!formData.name.trim()) {
       errors.name = 'Batch name is required.';
-    } else if (!/^[A-Za-z\s]+$/.test(formData.name)) {
-      errors.name = 'Batch name must contain only letters and spaces.';
+    } else if (!/^[A-Za-z0-9\s]+$/.test(formData.name)) {
+      errors.name = 'Batch name must contain only letters, numbers and spaces.';
     }
 
     if (!formData.startDate) {
       errors.startDate = 'Start date is required.';
-    } else if (new Date(formData.startDate) < new Date()) {
-      errors.startDate = 'Start date must be in the future.';
+    } else if (formData.status === 'Upcoming' && formData.startDate <= today) {
+      errors.startDate = 'Start date must be from tomorrow onwards for Upcoming batches.';
+    } else if (formData.status === 'Running' && formData.startDate > today) {
+      errors.startDate = 'Start date must be today or earlier for Running batches.';
     }
 
     if (!formData.endDate) {
@@ -245,8 +269,8 @@ const AddBatchForm = ({ onBack, isEdit = false, batchData = null, onEditSubmit =
                 name="name"
                 value={formData.name}
                 onChange={handleChange}
-                pattern="[A-Za-z\s]+"
-                title="Only letters and spaces are allowed"
+                pattern="[A-Za-z0-9\s]+"
+                title="Only letters, numbers and spaces are allowed"
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
               />
             </div>
@@ -273,6 +297,8 @@ const AddBatchForm = ({ onBack, isEdit = false, batchData = null, onEditSubmit =
                 name="startDate"
                 value={formData.startDate}
                 onChange={handleChange}
+                min={dateMin}
+                max={dateMax}
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
               />
             </div>
@@ -286,6 +312,7 @@ const AddBatchForm = ({ onBack, isEdit = false, batchData = null, onEditSubmit =
                 name="endDate"
                 value={formData.endDate}
                 onChange={handleChange}
+                min={formData.startDate || undefined}
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
               />
             </div>
