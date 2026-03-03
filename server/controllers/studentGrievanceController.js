@@ -535,8 +535,8 @@ exports.approveGrievance = async (req, res) => {
       // Send mail to student (no BCC)
       await sendMail(grievance.studentEmail, "Complaint Approved", message);
 
-      // Notify counsellor (no BCC)
-      if (grievance.counsellorId?.email) {
+      // Notify counsellor (no BCC) — only if different from student email
+      if (grievance.counsellorId?.email && grievance.counsellorId.email !== grievance.studentEmail) {
         await sendMail(grievance.counsellorId.email, "Complaint Approved", message);
       }
     } catch (emailError) {
@@ -569,8 +569,8 @@ exports.rejectGrievance = async (req, res) => {
       // Send mail to student (no BCC)
       await sendMail(grievance.studentEmail, "Complaint Rejected", message);
 
-      // Notify counsellor (no BCC)
-      if (grievance.counsellorId?.email) {
+      // Notify counsellor (no BCC) — only if different from student email
+      if (grievance.counsellorId?.email && grievance.counsellorId.email !== grievance.studentEmail) {
         await sendMail(grievance.counsellorId.email, "Complaint Rejected", message);
       }
     } catch (emailError) {
