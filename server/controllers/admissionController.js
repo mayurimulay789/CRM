@@ -822,7 +822,7 @@ async function sendAdmissionConfirmationEmail(admission) {
                 <span class="detail-label">Course:</span>
                 <span class="detail-value">${course.name}</span>
               </div>
-              // ...removed Course Code row...
+              
               <div class="detail-row">
                 <span class="detail-label">Duration:</span>
                 <span class="detail-value">${course.duration}</span>

@@ -41,6 +41,7 @@ const EnrollmentManagement = () => {
 
   // Define all available columns
   const allColumns = [
+      { key: 'admissionRegistrationPayment', label: 'Admission Registration Payment', visible: true },
     { key: 'enrollmentNo', label: 'Enrollment No', visible: true },
     { key: 'student', label: 'Student', visible: true },
     { key: 'email', label: 'Email', visible: true },
@@ -786,6 +787,12 @@ const EnrollmentManagement = () => {
                           const canDelete = canDeleteEnrollment(enrollment);
                           
                           switch (column.key) {
+                                                        case 'admissionRegistrationPayment':
+                                                          return (
+                                                            <td key={column.key} className={`${baseCellClasses} text-gray-700 whitespace-nowrap`}>
+                                                              ₹{enrollment.admissionRegistrationPayment != null ? enrollment.admissionRegistrationPayment : 0}
+                                                            </td>
+                                                          );
                             case 'enrollmentNo':
                               return (
                                 <td key={column.key} className={`${baseCellClasses} font-semibold text-gray-900 whitespace-nowrap`}>

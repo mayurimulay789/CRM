@@ -34,7 +34,8 @@ const EnrollmentForm = ({ enrollment, onClose, isAdmin = true }) => {
     leadSource: 'website',
     call: '',
     status: 'active',
-    counsellor: ''
+    counsellor: '',
+    admissionRegistrationPayment: 0
   });
 
   const [errors, setErrors] = useState({});
@@ -82,8 +83,34 @@ const EnrollmentForm = ({ enrollment, onClose, isAdmin = true }) => {
         leadSource: enrollment.leadSource || 'website',
         call: enrollment.call || '',
         status: enrollment.status || 'active',
-        counsellor: enrollment.counsellor?._id || enrollment.counsellor || ''
+        counsellor: enrollment.counsellor?._id || enrollment.counsellor || '',
+        admissionRegistrationPayment: enrollment.admissionRegistrationPayment || 0
       });
+              {/* Admission Registration Payment */}
+              <div className="mt-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Admission Registration Payment
+                </label>
+                <input
+                  type="number"
+                  name="admissionRegistrationPayment"
+                  value={formData.admissionRegistrationPayment}
+                  onChange={handleChange}
+                  onBlur={() => handleBlur('admissionRegistrationPayment')}
+                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    errors.admissionRegistrationPayment ? 'border-red-500' : 'border-gray-300'
+                  }`}
+                  placeholder="Enter admission registration payment"
+                  min="0"
+                  step="1"
+                />
+                {errors.admissionRegistrationPayment && (
+                  <p className="text-red-500 text-xs mt-1 flex items-center">
+                    <span className="mr-1">⚠</span>
+                    {errors.admissionRegistrationPayment}
+                  </p>
+                )}
+              </div>
     }
   }, [enrollment]);
 
@@ -384,9 +411,9 @@ const EnrollmentForm = ({ enrollment, onClose, isAdmin = true }) => {
       validateEMITotals();
     }
 
-    // Additional charges validation
+    // additional charges validation
     if (formData.charges && parseFloat(formData.charges) < 0) {
-      newErrors.charges = 'Additional charges cannot be negative';
+      newErrors.charges = 'additional charges cannot be negative';
     }
 
     setErrors(newErrors);
@@ -782,10 +809,10 @@ const EnrollmentForm = ({ enrollment, onClose, isAdmin = true }) => {
             </div>
           </div>
 
-          {/* Additional Charges */}
+          {/* additional charges */}
           <div className="mt-4">
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Additional Charges
+              additional charges
             </label>
             <input
               type="number"

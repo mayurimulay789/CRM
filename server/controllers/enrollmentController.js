@@ -1,3 +1,4 @@
+const sendMail = require('../utils/email');
 const Enrollment = require('../models/Enrollment');
 const Payment = require('../models/Payment');
 const Student = require('../models/Student');
@@ -24,7 +25,8 @@ const createEnrollment = async (req, res) => {
       charges,
       leadDate,
       leadSource,
-      call
+      call,
+      admissionRegistrationPayment = 0
     } = req.body;
 
     // Check if enrollment already exists for this admission
@@ -91,12 +93,12 @@ const createEnrollment = async (req, res) => {
       leadDate,
       leadSource,
       call,
+      admissionRegistrationPayment,
       counsellor: req.user.id
     });
 
     console.log("Enrollment to be saved:", enrollment);
     await enrollment.save();
-    
     // Populate the saved enrollment
     await enrollment.populate([
       { path: 'student', select: 'studentId name email phone' },
@@ -112,10 +114,42 @@ const createEnrollment = async (req, res) => {
       req.user.id
     );
 
+    // Send mail to student on enrollment creation (accept)
+    try {
+      if (enrollment.student && enrollment.student.email) {
+        await sendMail(
+          enrollment.student.email,
+          'Enrollment Accepted',
+          `<p>Dear ${enrollment.student.name || 'Student'},</p>
+          <p>Your enrollment has been <b>accepted</b>.</p>
+          <p>Admission Registration Payment: <b>₹${enrollment.admissionRegistrationPayment || 0}</b></p>
+          <p>Thank you.</p>`
+        );
+        console.log('✅ Enrollment email sent to:', enrollment.student.email);
+      } else {
+        console.error('❌ No student email found for enrollment:', enrollment._id, enrollment.student);
+      }
+    } catch (err) {
+      console.error('Failed to send enrollment acceptance email:', err);
+    }
+
     res.status(201).json({
       success: true,
       data: enrollment
     });
+  // Helper: Send rejection mail
+  async function sendEnrollmentRejectionMail(student, admissionRegistrationPayment) {
+    if (student && student.email) {
+      await sendMail(
+        student.email,
+        'Enrollment Rejected',
+        `<p>Dear ${student.name || 'Student'},</p>
+        <p>Your enrollment has been <b>rejected</b>.</p>
+        <p>Admission Registration Payment: <b>₹${admissionRegistrationPayment || 0}</b></p>
+        <p>Contact support for more details.</p>`
+      );
+    }
+  }
   } catch (error) {
     console.error('Create enrollment error:', error);
     res.status(500).json({
@@ -311,13 +345,13 @@ const updateEnrollment = async (req, res) => {
       allowedUpdates = [
         'batch', 'mode', 'firstEMI', 'secondEMI', 'thirdEMI', 
         'dueDate', 'charges', 'call', 'trainingBranch', 'feeType',
-        'totalAmount', 'actualAmount', 'discount', 'leadDate', 'leadSource'
+        'totalAmount', 'actualAmount', 'discount', 'leadDate', 'leadSource', 'admissionRegistrationPayment'
       ];
     } else if (userRole === 'admin') {
       allowedUpdates = [
         'batch', 'mode', 'status', 'firstEMI', 'secondEMI', 'thirdEMI', 
         'dueDate', 'charges', 'call', 'trainingBranch', 'feeType',
-        'totalAmount', 'actualAmount', 'discount', 'leadDate', 'leadSource', 'counsellor'
+        'totalAmount', 'actualAmount', 'discount', 'leadDate', 'leadSource', 'counsellor', 'admissionRegistrationPayment'
       ];
     } else {
       console.log('❓ Unknown user role:', userRole);
@@ -379,9 +413,17 @@ const updateEnrollment = async (req, res) => {
 
     // Apply updates
     console.log('🛠️  Applying updates to enrollment...');
+    let statusChanged = false;
+    let newStatus = enrollment.status;
+    let oldStatus = enrollment.status;
     validUpdates.forEach(update => {
       const oldValue = enrollment[update];
       const newValue = req.body[update];
+      if (update === 'status' && newValue !== oldValue) {
+        statusChanged = true;
+        newStatus = newValue;
+        oldStatus = oldValue;
+      }
       enrollment[update] = newValue;
       console.log(`   🔄 ${update}: ${JSON.stringify(oldValue)} → ${JSON.stringify(newValue)}`);
     });
@@ -392,16 +434,39 @@ const updateEnrollment = async (req, res) => {
     // Add activity log if changes were made - FIXED ACTIVITY TYPE
     if (validUpdates.length > 0) {
       console.log('📝 Logging activity for updates:', validUpdates);
-      
       // Use a valid enum value for activity type
-      const activityType = 'status_update'; // or check your schema for valid values
-      
+      const activityType = 'status_update';
       await enrollment.addActivity(
         activityType,
         `Enrollment updated: ${validUpdates.join(', ')}`,
         req.user.id
       );
       console.log('✅ Activity logged successfully');
+    }
+
+    // Send mail if status changed to accepted or rejected
+    if (statusChanged) {
+      await enrollment.populate({ path: 'student', select: 'name email' });
+      if (newStatus === 'active') {
+        try {
+          await sendMail(
+            enrollment.student.email,
+            'Enrollment Accepted',
+            `<p>Dear ${enrollment.student.name || 'Student'},</p>
+            <p>Your enrollment has been <b>accepted</b>.</p>
+            <p>Admission Registration Payment: <b>₹${enrollment.admissionRegistrationPayment || 0}</b></p>
+            <p>Thank you.</p>`
+          );
+        } catch (err) {
+          console.error('Failed to send enrollment acceptance email:', err.message);
+        }
+      } else if (newStatus === 'rejected' || newStatus === 'cancelled') {
+        try {
+          await sendEnrollmentRejectionMail(enrollment.student, enrollment.admissionRegistrationPayment);
+        } catch (err) {
+          console.error('Failed to send enrollment rejection email:', err.message);
+        }
+      }
     }
 
     await enrollment.populate([
@@ -573,12 +638,12 @@ const deleteEnrollmentByCounsellor = async (req, res) => {
       });
     }
     // Check if counsellor owns this enrollment
-    if (enrollment.counsellor.toString() !== req.user.id) {
-      return res.status(403).json({
-        success: false,
-        message: 'Access denied to delete this enrollment'
-      });
-    }
+    // if (enrollment.counsellor.toString() !== req.user.id) {
+    //   return res.status(403).json({
+    //     success: false,
+    //     message: 'Access denied to delete this enrollment'
+    //   });
+    // }
     // Check if any payments exist for this enrollment
     const payments = await Payment.find({ enrollment: enrollment._id });
     if (payments.length > 0) {
