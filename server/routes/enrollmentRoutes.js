@@ -10,9 +10,9 @@ const {
   deleteEnrollment,
   deleteEnrollmentByCounsellor,
   addActivity,
-  applyLateFees, // New
-  getEnrollmentsWithLateFees, // New
-  getEnrollmentsWithUpfrontPayment // New
+  // applyLateFees, // New
+  // getEnrollmentsWithLateFees, // New
+  // getEnrollmentsWithUpfrontPayment // New
 } = require('../controllers/enrollmentController');
 
 const { protect, admin } = require('../middleware/auth');
@@ -27,9 +27,9 @@ router.get('/stats/overview', admin, getEnrollmentStats);
 router.get('/fee-delays', getFeeDelays);
 
 // New routes for late fees and upfront payments
-router.get('/late-fees', getEnrollmentsWithLateFees);
-router.get('/upfront-payments', getEnrollmentsWithUpfrontPayment);
-router.post('/:id/late-fees', applyLateFees);
+// router.get('/late-fees', getEnrollmentsWithLateFees);
+// router.get('/upfront-payments', getEnrollmentsWithUpfrontPayment);
+// router.post('/:id/late-fees', applyLateFees);
 
 // Individual enrollment routes
 router.get('/:id', getEnrollment);

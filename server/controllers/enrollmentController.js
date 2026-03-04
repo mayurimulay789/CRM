@@ -1,9 +1,11 @@
+const sendMail = require('../utils/email');
 const Enrollment = require('../models/Enrollment');
 const Payment = require('../models/Payment');
 const Student = require('../models/Student');
 const Admission = require('../models/Admission');
 const Course = require('../models/Course');
 const Batch = require('../models/Batch');
+
 
 const createEnrollment = async (req, res) => {
   console.log("re body", req.body);
@@ -20,11 +22,11 @@ const createEnrollment = async (req, res) => {
       secondEMI,
       thirdEMI,
       dueDate,
-      lateFees = 0, // Changed from charges to lateFees
+      charges,
       leadDate,
       leadSource,
       call,
-      upfrontPayment // New field
+      admissionRegistrationPayment = 0
     } = req.body;
 
     // Check if enrollment already exists for this admission
@@ -71,8 +73,8 @@ const createEnrollment = async (req, res) => {
 
     const enrollmentNo = `ENR${currentYear}${sequenceNumber.toString().padStart(4, '0')}`;
 
-    // Prepare enrollment data
-    const enrollmentData = {
+    // Create enrollment
+    const enrollment = new Enrollment({
       enrollmentNo,
       admission,
       student: admissionDetails.student.toString(),
@@ -87,29 +89,16 @@ const createEnrollment = async (req, res) => {
       secondEMI,
       thirdEMI,
       dueDate,
-      lateFees: lateFees || 0,
+      charges: charges || 0,
       leadDate,
       leadSource,
       call,
+      admissionRegistrationPayment,
       counsellor: req.user.id
-    };
-
-    // Add upfront payment if provided
-    if (upfrontPayment && upfrontPayment.amount > 0) {
-      enrollmentData.upfrontPayment = {
-        amount: upfrontPayment.amount,
-        date: upfrontPayment.date || new Date(),
-        pending: 0,
-        status: 'pending'
-      };
-    }
-
-    // Create enrollment
-    const enrollment = new Enrollment(enrollmentData);
+    });
 
     console.log("Enrollment to be saved:", enrollment);
     await enrollment.save();
-    
     // Populate the saved enrollment
     await enrollment.populate([
       { path: 'student', select: 'studentId name email phone' },
@@ -125,10 +114,42 @@ const createEnrollment = async (req, res) => {
       req.user.id
     );
 
+    // Send mail to student on enrollment creation (accept)
+    try {
+      if (enrollment.student && enrollment.student.email) {
+        await sendMail(
+          enrollment.student.email,
+          'Enrollment Accepted',
+          `<p>Dear ${enrollment.student.name || 'Student'},</p>
+          <p>Your enrollment has been <b>accepted</b>.</p>
+          <p>Admission Registration Payment: <b>₹${enrollment.admissionRegistrationPayment || 0}</b></p>
+          <p>Thank you.</p>`
+        );
+        console.log('✅ Enrollment email sent to:', enrollment.student.email);
+      } else {
+        console.error('❌ No student email found for enrollment:', enrollment._id, enrollment.student);
+      }
+    } catch (err) {
+      console.error('Failed to send enrollment acceptance email:', err);
+    }
+
     res.status(201).json({
       success: true,
       data: enrollment
     });
+  // Helper: Send rejection mail
+  async function sendEnrollmentRejectionMail(student, admissionRegistrationPayment) {
+    if (student && student.email) {
+      await sendMail(
+        student.email,
+        'Enrollment Rejected',
+        `<p>Dear ${student.name || 'Student'},</p>
+        <p>Your enrollment has been <b>rejected</b>.</p>
+        <p>Admission Registration Payment: <b>₹${admissionRegistrationPayment || 0}</b></p>
+        <p>Contact support for more details.</p>`
+      );
+    }
+  }
   } catch (error) {
     console.error('Create enrollment error:', error);
     res.status(500).json({
@@ -139,6 +160,7 @@ const createEnrollment = async (req, res) => {
   }
 };
 
+
 const getEnrollments = async (req, res) => {
   try {
     const {
@@ -147,9 +169,7 @@ const getEnrollments = async (req, res) => {
       counsellor,
       page = 1,
       limit = 10,
-      search,
-      hasLateFees, // New filter
-      hasUpfrontPayment // New filter
+      search
     } = req.query;
 
     let query = {};
@@ -166,17 +186,6 @@ const getEnrollments = async (req, res) => {
 
     if (status) query.status = status;
     if (trainingBranch) query.trainingBranch = trainingBranch;
-
-    // Filter by late fees
-    if (hasLateFees === 'true') {
-      query.lateFees = { $gt: 0 };
-      query.totalLateFeesPending = { $gt: 0 };
-    }
-
-    // Filter by upfront payment
-    if (hasUpfrontPayment === 'true') {
-      query['upfrontPayment.amount'] = { $gt: 0 };
-    }
 
     // Search functionality
     if (search) {
@@ -202,7 +211,7 @@ const getEnrollments = async (req, res) => {
       .populate('student', 'studentId name email phone')
       .populate('course', 'name fee duration')
       .populate('batch', 'name timing')
-      .populate('counsellor', 'name email')
+      .populate('counsellor', 'FullName email')
       .populate('admission', 'admissionNo')
       .sort({ enrollmentDate: -1 })
       .skip(skip)
@@ -230,13 +239,14 @@ const getEnrollments = async (req, res) => {
   }
 };
 
+
 const getEnrollment = async (req, res) => {
   try {
     const enrollment = await Enrollment.findById(req.params.id)
       .populate('student', 'studentId name email phone alternateEmail alternatePhone dateOfBirth gender address')
       .populate('course', 'name fee duration description')
       .populate('batch', 'name timing startDate endDate status')
-      .populate('counsellor', 'name email phone')
+      .populate('counsellor', 'FullName email phone')
       .populate('admission', 'admissionNo admissionDate');
 
     if (!enrollment) {
@@ -276,6 +286,7 @@ const getEnrollment = async (req, res) => {
     });
   }
 };
+
 
 const updateEnrollment = async (req, res) => {
   try {
@@ -333,15 +344,14 @@ const updateEnrollment = async (req, res) => {
     if (userRole === 'Counsellor') {
       allowedUpdates = [
         'batch', 'mode', 'firstEMI', 'secondEMI', 'thirdEMI', 
-        'dueDate', 'lateFees', 'call', 'trainingBranch', 'feeType',
-        'totalAmount', 'discount', 'leadDate', 'leadSource', 'upfrontPayment'
+        'dueDate', 'charges', 'call', 'trainingBranch', 'feeType',
+        'totalAmount', 'actualAmount', 'discount', 'leadDate', 'leadSource', 'admissionRegistrationPayment'
       ];
     } else if (userRole === 'admin') {
       allowedUpdates = [
         'batch', 'mode', 'status', 'firstEMI', 'secondEMI', 'thirdEMI', 
-        'dueDate', 'lateFees', 'call', 'trainingBranch', 'feeType',
-        'totalAmount', 'discount', 'leadDate', 'leadSource', 'counsellor',
-        'upfrontPayment', 'totalLateFeesPaid', 'totalLateFeesPending'
+        'dueDate', 'charges', 'call', 'trainingBranch', 'feeType',
+        'totalAmount', 'actualAmount', 'discount', 'leadDate', 'leadSource', 'counsellor', 'admissionRegistrationPayment'
       ];
     } else {
       console.log('❓ Unknown user role:', userRole);
@@ -353,7 +363,7 @@ const updateEnrollment = async (req, res) => {
 
     console.log('✅ Allowed updates for', userRole + ':', allowedUpdates);
 
-    // For counsellors: Filter out status and counsellor fields
+    // For counsellors: Filter out status and counsellor fields instead of throwing error
     let updates = Object.keys(req.body);
     console.log('📋 Requested updates:', updates);
     
@@ -403,9 +413,17 @@ const updateEnrollment = async (req, res) => {
 
     // Apply updates
     console.log('🛠️  Applying updates to enrollment...');
+    let statusChanged = false;
+    let newStatus = enrollment.status;
+    let oldStatus = enrollment.status;
     validUpdates.forEach(update => {
       const oldValue = enrollment[update];
       const newValue = req.body[update];
+      if (update === 'status' && newValue !== oldValue) {
+        statusChanged = true;
+        newStatus = newValue;
+        oldStatus = oldValue;
+      }
       enrollment[update] = newValue;
       console.log(`   🔄 ${update}: ${JSON.stringify(oldValue)} → ${JSON.stringify(newValue)}`);
     });
@@ -413,16 +431,42 @@ const updateEnrollment = async (req, res) => {
     await enrollment.save();
     console.log('💾 Enrollment saved successfully');
 
-    // Add activity log if changes were made
+    // Add activity log if changes were made - FIXED ACTIVITY TYPE
     if (validUpdates.length > 0) {
       console.log('📝 Logging activity for updates:', validUpdates);
-      
+      // Use a valid enum value for activity type
+      const activityType = 'status_update';
       await enrollment.addActivity(
-        'status_update',
+        activityType,
         `Enrollment updated: ${validUpdates.join(', ')}`,
         req.user.id
       );
       console.log('✅ Activity logged successfully');
+    }
+
+    // Send mail if status changed to accepted or rejected
+    if (statusChanged) {
+      await enrollment.populate({ path: 'student', select: 'name email' });
+      if (newStatus === 'active') {
+        try {
+          await sendMail(
+            enrollment.student.email,
+            'Enrollment Accepted',
+            `<p>Dear ${enrollment.student.name || 'Student'},</p>
+            <p>Your enrollment has been <b>accepted</b>.</p>
+            <p>Admission Registration Payment: <b>₹${enrollment.admissionRegistrationPayment || 0}</b></p>
+            <p>Thank you.</p>`
+          );
+        } catch (err) {
+          console.error('Failed to send enrollment acceptance email:', err.message);
+        }
+      } else if (newStatus === 'rejected' || newStatus === 'cancelled') {
+        try {
+          await sendEnrollmentRejectionMail(enrollment.student, enrollment.admissionRegistrationPayment);
+        } catch (err) {
+          console.error('Failed to send enrollment rejection email:', err.message);
+        }
+      }
     }
 
     await enrollment.populate([
@@ -447,109 +491,6 @@ const updateEnrollment = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Server error updating enrollment',
-      error: error.message
-    });
-  }
-};
-
-// New controller to apply late fees
-const applyLateFees = async (req, res) => {
-  try {
-    const { amount, reason } = req.body;
-    const enrollment = await Enrollment.findById(req.params.id);
-
-    if (!enrollment) {
-      return res.status(404).json({
-        success: false,
-        message: 'Enrollment not found'
-      });
-    }
-
-    // Check if counsellor owns this enrollment
-    if (req.user.role === 'Counsellor' && enrollment.counsellor.toString() !== req.user.id) {
-      return res.status(403).json({
-        success: false,
-        message: 'Access denied to apply late fees to this enrollment'
-      });
-    }
-
-    await enrollment.applyLateFees(amount, reason, req.user.id);
-
-    res.json({
-      success: true,
-      data: enrollment,
-      message: `Late fee of ₹${amount} applied successfully`
-    });
-  } catch (error) {
-    console.error('Apply late fees error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error applying late fees',
-      error: error.message
-    });
-  }
-};
-
-// New controller to get enrollments with late fees
-const getEnrollmentsWithLateFees = async (req, res) => {
-  try {
-    let query = {
-      lateFees: { $gt: 0 },
-      totalLateFeesPending: { $gt: 0 }
-    };
-
-    // Counsellor can only see their own enrollments with late fees
-    if (req.user.role === 'Counsellor') {
-      query.counsellor = req.user.id;
-    }
-
-    const enrollments = await Enrollment.find(query)
-      .populate('student', 'studentId name email phone')
-      .populate('course', 'name fee')
-      .populate('counsellor', 'name email')
-      .sort({ dueDate: 1 });
-
-    res.json({
-      success: true,
-      data: enrollments
-    });
-  } catch (error) {
-    console.error('Get enrollments with late fees error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error fetching enrollments with late fees',
-      error: error.message
-    });
-  }
-};
-
-// New controller to get enrollments with upfront payment
-const getEnrollmentsWithUpfrontPayment = async (req, res) => {
-  try {
-    let query = {
-      'upfrontPayment.amount': { $gt: 0 }
-    };
-
-    // Counsellor can only see their own enrollments
-    if (req.user.role === 'Counsellor') {
-      query.counsellor = req.user.id;
-    }
-
-    const enrollments = await Enrollment.find(query)
-      .populate('student', 'studentId name email phone')
-      .populate('course', 'name fee')
-      .populate('counsellor', 'name email')
-      .sort({ enrollmentDate: -1 });
-
-    res.json({
-      success: true,
-      data: enrollments
-    });
-  } catch (error) {
-    console.error('Get enrollments with upfront payment error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error fetching enrollments with upfront payment',
       error: error.message
     });
   }
@@ -591,6 +532,7 @@ const getEnrollmentStats = async (req, res) => {
   }
 };
 
+
 const getFeeDelays = async (req, res) => {
   try {
     let query = {
@@ -622,6 +564,7 @@ const getFeeDelays = async (req, res) => {
     });
   }
 };
+
 
 const addActivity = async (req, res) => {
   try {
@@ -695,12 +638,12 @@ const deleteEnrollmentByCounsellor = async (req, res) => {
       });
     }
     // Check if counsellor owns this enrollment
-    if (enrollment.counsellor.toString() !== req.user.id) {
-      return res.status(403).json({
-        success: false,
-        message: 'Access denied to delete this enrollment'
-      });
-    }
+    // if (enrollment.counsellor.toString() !== req.user.id) {
+    //   return res.status(403).json({
+    //     success: false,
+    //     message: 'Access denied to delete this enrollment'
+    //   });
+    // }
     // Check if any payments exist for this enrollment
     const payments = await Payment.find({ enrollment: enrollment._id });
     if (payments.length > 0) {
@@ -725,6 +668,13 @@ const deleteEnrollmentByCounsellor = async (req, res) => {
   }
 };
 
+
+
+
+
+
+
+
 module.exports = {
   createEnrollment,
   getEnrollments,
@@ -734,8 +684,5 @@ module.exports = {
   getFeeDelays,
   deleteEnrollment,
   deleteEnrollmentByCounsellor,
-  addActivity,
-  applyLateFees, // New
-  getEnrollmentsWithLateFees, // New
-  getEnrollmentsWithUpfrontPayment // New
+  addActivity
 };

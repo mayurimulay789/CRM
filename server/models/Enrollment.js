@@ -41,6 +41,11 @@ const studentActivitySchema = new mongoose.Schema({
 });
 
 const enrollmentSchema = new mongoose.Schema({
+    admissionRegistrationPayment: {
+      type: Number,
+      default: 0,
+      description: 'Payment made at the time of admission registration.'
+    },
   enrollmentNo: {
     type: String,
     required: true,

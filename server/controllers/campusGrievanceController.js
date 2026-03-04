@@ -1,4 +1,5 @@
 const CampusGrievance = require("../models/campusGrievanceModel");
+const sendMail = require("../utils/email");
 
 // ✅ Create new grievance
 exports.createGrievance = async (req, res) => {
@@ -90,14 +91,38 @@ exports.approveGrievance = async (req, res) => {
 
     const { adminResponse } = req.body;
 
-    const grievance = await CampusGrievance.findByIdAndUpdate(
+    // First update the grievance
+    const updated = await CampusGrievance.findByIdAndUpdate(
       req.params.id,
       { status: "approved", adminResponse },
       { new: true }
     );
 
-    if (!grievance) {
+    if (!updated) {
       return res.status(404).json({ message: "Grievance not found" });
+    }
+
+    // Then fetch with populate separately (more reliable)
+    const grievance = await CampusGrievance.findById(updated._id)
+      .populate("submittedBy", "FullName email");
+
+    console.log("Populated submittedBy:", grievance.submittedBy);
+
+    // Send approval email to the counsellor who submitted the grievance
+    try {
+      const counsellorEmail = grievance.submittedBy?.email;
+      if (counsellorEmail) {
+        const message = `Hello ${grievance.submittedBy.FullName || grievance.name},<br/>
+          Your campus grievance regarding <b>"${grievance.subject}"</b> has been <b>approved</b>.<br/>
+          <b>Admin Response:</b> ${grievance.adminResponse || 'N/A'}
+        `;
+        await sendMail(counsellorEmail, "Campus Grievance Approved", message);
+        console.log("✅ Approval email sent to:", counsellorEmail);
+      } else {
+        console.error("❌ No email found on submittedBy user for grievance:", grievance._id);
+      }
+    } catch (emailError) {
+      console.error("Email sending failed:", emailError.message);
     }
 
     res.json({ message: "Grievance approved successfully", grievance });
@@ -120,14 +145,38 @@ exports.rejectGrievance = async (req, res) => {
       return res.status(400).json({ message: "Invalid grievance ID" });
     }
 
-    const grievance = await CampusGrievance.findByIdAndUpdate(
+    // First update the grievance
+    const updated = await CampusGrievance.findByIdAndUpdate(
       req.params.id,
       { status: "rejected", adminResponse },
       { new: true }
     );
 
-    if (!grievance) {
+    if (!updated) {
       return res.status(404).json({ message: "Grievance not found" });
+    }
+
+    // Then fetch with populate separately (more reliable)
+    const grievance = await CampusGrievance.findById(updated._id)
+      .populate("submittedBy", "FullName email");
+
+    console.log("Populated submittedBy:", grievance.submittedBy);
+
+    // Send rejection email to the counsellor who submitted the grievance
+    try {
+      const counsellorEmail = grievance.submittedBy?.email;
+      if (counsellorEmail) {
+        const message = `Hello ${grievance.submittedBy.FullName || grievance.name},<br/>
+          Your campus grievance regarding <b>"${grievance.subject}"</b> has been <b>rejected</b>.<br/>
+          <b>Admin Response:</b> ${adminResponse || 'N/A'}
+        `;
+        await sendMail(counsellorEmail, "Campus Grievance Rejected", message);
+        console.log("✅ Rejection email sent to:", counsellorEmail);
+      } else {
+        console.error("❌ No email found on submittedBy user for grievance:", grievance._id);
+      }
+    } catch (emailError) {
+      console.error("Email sending failed:", emailError.message);
     }
 
     res.json({ message: "Grievance rejected successfully", grievance });

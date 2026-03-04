@@ -494,6 +494,7 @@ const ComplaintManagement = () => {
     const matchesSearch =
       (g.studentName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
       (g.studentEmail?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (g.subject?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
       (g.title?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
       (g.complaint?.toLowerCase() || '').includes(searchTerm.toLowerCase());
     const matchesFilter = filterStatus === 'all' || g.status === filterStatus;
@@ -793,7 +794,7 @@ const ComplaintManagement = () => {
           <table className="min-w-full">
             <thead className="bg-gray-50">
               <tr>
-                {['Student', 'Complaint', 'Counsellor', 'Status', 'Submitted', 'Actions'].map(
+                {['Student', 'Subject', 'Complaint', 'Counsellor', 'Status', 'Submitted', 'Actions'].map(
                   (head) => (
                     <th
                       key={head}
@@ -808,7 +809,7 @@ const ComplaintManagement = () => {
             <tbody className="bg-white divide-y divide-gray-200">
               {currentGrievances.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-gray-500">
+                  <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
                     <div className="flex flex-col items-center justify-center py-8">
                       <span className="text-4xl mb-2">📝</span>
                       <p className="text-gray-500">No grievances found</p>
@@ -832,6 +833,9 @@ const ComplaintManagement = () => {
                     <td className="px-4 py-4">
                       <div className="text-sm font-medium text-gray-900">{g.studentName}</div>
                       <div className="text-sm text-gray-500 truncate max-w-xs">{g.studentEmail}</div>
+                    </td>
+                    <td className="px-4 py-4">
+                      <div className="text-sm text-gray-900 font-medium">{g.subject || 'N/A'}</div>
                     </td>
                     <td className="px-4 py-4">
                       <div className="max-w-xs">
@@ -969,6 +973,9 @@ const ComplaintManagement = () => {
               </div>
 
               {/* Complaint */}
+              <p className="text-sm text-gray-600 mb-2">
+                <strong>Subject:</strong> {g.subject || 'N/A'}
+              </p>
               <p className="text-sm text-gray-600 mb-3 line-clamp-2">{g.complaint}</p>
 
               {/* Meta Info */}
@@ -1064,6 +1071,9 @@ const ComplaintManagement = () => {
             <div className="mb-3 sm:mb-4 p-3 bg-gray-50 rounded-lg">
               <p className="text-sm text-gray-600 mb-1">
                 <strong>Student:</strong> {selectedGrievance.studentName}
+              </p>
+              <p className="text-sm text-gray-600 mb-1">
+                <strong>Subject:</strong> {selectedGrievance.subject || 'N/A'}
               </p>
               <p className="text-sm text-gray-600">
                 <strong>Complaint:</strong> {selectedGrievance.complaint}

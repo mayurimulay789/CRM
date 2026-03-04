@@ -20,8 +20,8 @@ const EnrollmentForm = ({ enrollment, onClose, isCounsellor = true, counsellorId
     batch: '',
     trainingBranch: '',
     mode: 'Offline',
-    totalAmount: '',
     actualAmount: '',
+    totalAmount: '',
     feeType: 'one-time',
     firstEMI: { amount: 0, date: '', pending: 0 },
     secondEMI: { amount: 0, date: '', pending: 0 },
@@ -31,7 +31,8 @@ const EnrollmentForm = ({ enrollment, onClose, isCounsellor = true, counsellorId
     leadDate: new Date().toISOString().split('T')[0],
     leadSource: 'website',
     call: '',
-    status: 'active'
+    status: 'active',
+    admissionRegistrationPayment: 0
   });
 
   const [errors, setErrors] = useState({});
@@ -80,8 +81,34 @@ const EnrollmentForm = ({ enrollment, onClose, isCounsellor = true, counsellorId
         leadDate: formatDateForInput(enrollment.leadDate) || new Date().toISOString().split('T')[0],
         leadSource: enrollment.leadSource || 'website',
         call: enrollment.call || '',
-        status: enrollment.status || 'active'
+        status: enrollment.status || 'active',
+        admissionRegistrationPayment: enrollment.admissionRegistrationPayment || 0
       });
+              {/* Admission Registration Payment */}
+              <div className="mt-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Admission Registration Payment
+                </label>
+                <input
+                  type="number"
+                  name="admissionRegistrationPayment"
+                  value={formData.admissionRegistrationPayment}
+                  onChange={handleChange}
+                  onBlur={() => handleBlur('admissionRegistrationPayment')}
+                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    errors.admissionRegistrationPayment ? 'border-red-500' : 'border-gray-300'
+                  }`}
+                  placeholder="Enter admission registration payment"
+                  min="0"
+                  step="1"
+                />
+                {errors.admissionRegistrationPayment && (
+                  <p className="text-red-500 text-xs mt-1 flex items-center">
+                    <span className="mr-1">⚠</span>
+                    {errors.admissionRegistrationPayment}
+                  </p>
+                )}
+              </div>
     }
   }, [enrollment]);
 
@@ -348,9 +375,9 @@ const EnrollmentForm = ({ enrollment, onClose, isCounsellor = true, counsellorId
       validateEMITotals();
     }
 
-    // Additional charges validation
+    // additional charges validation
     if (formData.charges && parseFloat(formData.charges) < 0) {
-      newErrors.charges = 'Additional charges cannot be negative';
+      newErrors.charges = 'additional charges cannot be negative';
     }
 
     setErrors(newErrors);
@@ -688,10 +715,10 @@ const EnrollmentForm = ({ enrollment, onClose, isCounsellor = true, counsellorId
             </div>
           </div>
 
-          {/* Additional Charges */}
+          {/* additional charges */}
           <div className="mt-4">
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Additional Charges
+              additional charges
             </label>
             <input
               type="number"
