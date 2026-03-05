@@ -1,5 +1,5 @@
 const CampusGrievance = require("../models/campusGrievanceModel");
-const sendMail = require("../utils/email");
+const { sendMail } = require("../utils/email");
 
 // ✅ Create new grievance
 exports.createGrievance = async (req, res) => {

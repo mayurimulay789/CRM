@@ -9,15 +9,31 @@ cloudinary.config({
 });
 
 // Upload file to Cloudinary from buffer
-const uploadToCloudinary = async (fileBuffer, folder = 'lms/students') => {
+const uploadToCloudinary = async (fileBuffer, folder = 'lms/students', originalName = '') => {
   console.log(`☁️ Starting Cloudinary upload to folder: ${folder}`);
   console.log(`📊 Buffer size: ${fileBuffer.length} bytes`);
+  console.log(`📄 Original filename: ${originalName}`);
   
   return new Promise((resolve, reject) => {
+    // Determine if this is a PDF file
+    const isPDF = originalName.toLowerCase().endsWith('.pdf');
+    const isImage = /\.(jpg|jpeg|png|gif|bmp|webp)$/i.test(originalName);
+    
+    // Configure upload options
+    const uploadOptions = {
+      folder: folder,
+      resource_type: isPDF ? 'raw' : (isImage ? 'image' : 'auto'),
+      // For PDFs, ensure proper public_id with .pdf extension
+      ...(isPDF && {
+        public_id: `${folder}/${originalName.replace(/\.[^/.]+$/, '')}_${Date.now()}`,
+        format: 'pdf'
+      })
+    };
+    
+    console.log(`📋 Upload options:`, uploadOptions);
+
     const uploadStream = cloudinary.uploader.upload_stream(
-      {
-        folder: folder
-      },
+      uploadOptions,
       (error, result) => {
         if (error) {
           console.error('❌ Cloudinary upload failed:', error);
@@ -27,7 +43,17 @@ const uploadToCloudinary = async (fileBuffer, folder = 'lms/students') => {
           console.log(`   📍 URL: ${result.secure_url}`);
           console.log(`   🆔 Public ID: ${result.public_id}`);
           console.log(`   📁 Folder: ${result.folder}`);
-          resolve(result.secure_url);
+          console.log(`   📄 Resource Type: ${result.resource_type}`);
+          console.log(`   📄 Format: ${result.format}`);
+          
+          // Ensure URL ends with .pdf for PDF files
+          let finalUrl = result.secure_url;
+          if (isPDF && !finalUrl.endsWith('.pdf')) {
+            finalUrl = `${finalUrl}.pdf`;
+            console.log(`   🔧 Corrected URL with .pdf extension: ${finalUrl}`);
+          }
+          
+          resolve(finalUrl);
         }
       }
     );

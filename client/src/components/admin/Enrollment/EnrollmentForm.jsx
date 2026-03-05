@@ -744,6 +744,9 @@ const EnrollmentForm = ({ enrollment, onClose, isAdmin = true }) => {
               )}
             </div>
 
+            {/* Admission Registration Payment */}
+            
+
             {/* Fee Type */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -809,7 +812,31 @@ const EnrollmentForm = ({ enrollment, onClose, isAdmin = true }) => {
               </p>
             )}
           </div>
-
+               
+               <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Admission Registration Payment
+              </label>
+              <input
+                type="number"
+                name="admissionRegistrationPayment"
+                value={formData.admissionRegistrationPayment}
+                onChange={handleChange}
+                onBlur={() => handleBlur('admissionRegistrationPayment')}
+                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  errors.admissionRegistrationPayment ? 'border-red-500' : 'border-gray-300'
+                }`}
+                placeholder="Enter admission registration payment"
+                min="0"
+                step="1"
+              />
+              {errors.admissionRegistrationPayment && (
+                <p className="text-red-500 text-xs mt-1 flex items-center">
+                  <span className="mr-1">⚠</span>
+                  {errors.admissionRegistrationPayment}
+                </p>
+              )}
+            </div>
           {/* EMI Details - Show only for installment */}
           {formData.feeType === 'installment' && (
             <div className="mt-6 border-t pt-6">

@@ -169,9 +169,16 @@ const AdmissionManagement = () => {
   };
 
   const handleImageClick = (imageUrl, title) => {
+    console.log('📄 Opening document:', title, imageUrl);
     setSelectedImage(imageUrl);
     setImageTitle(title);
     setShowImageModal(true);
+  };
+
+  // Alternative: Direct PDF opening in new tab (can be used for quick access)
+  const handlePdfClick = (pdfUrl, title) => {
+    console.log('📄 Opening PDF in new tab:', title, pdfUrl);
+    window.open(pdfUrl, '_blank', 'noopener,noreferrer');
   };
 
   const handleCloseImageModal = () => {
@@ -328,9 +335,21 @@ const AdmissionManagement = () => {
     
     if (url.toLowerCase().endsWith('.pdf')) {
       return (
-        <div className="flex items-center space-x-2 text-blue-600">
-          <span>📄</span>
+        <div 
+          className="flex items-center space-x-2 text-blue-600 cursor-pointer hover:text-blue-800 transition-colors duration-200 p-1 rounded hover:bg-blue-50 relative group"
+          onClick={() => handleImageClick(url, title)}
+          onContextMenu={(e) => {
+            e.preventDefault();
+            handlePdfClick(url, title);
+          }}
+          title={`Left click: View in modal | Right click: Open in new tab`}
+        >
+          <span className="text-lg">📄</span>
           <span className="text-sm hidden lg:inline">PDF</span>
+          {/* Tooltip */}
+          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap">
+            Click to view PDF
+          </div>
         </div>
       );
     } else {
@@ -1151,22 +1170,104 @@ const AdmissionManagement = () => {
 
             <div className="relative w-full h-full flex items-center justify-center">
               {selectedImage.toLowerCase().endsWith('.pdf') ? (
-                <div className="bg-white p-4 lg:p-8 rounded-lg max-w-2xl w-full">
-                  <div className="text-center">
-                    <div className="text-4xl lg:text-6xl mb-4">📄</div>
-                    <h3 className="text-lg lg:text-xl font-semibold text-gray-800 mb-2">PDF Document</h3>
-                    <p className="text-gray-600 mb-4 text-sm lg:text-base">This is a PDF file that cannot be previewed in the image viewer.</p>
-                    <a
-                      href={selectedImage}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center px-3 lg:px-4 py-2 bg-[#890c25] text-black rounded-lg hover:bg-[#890c25] transition-colors duration-200 text-sm lg:text-base"
+                <div className="w-full h-full bg-white rounded-lg overflow-hidden">
+                  <div className="flex justify-between items-center p-4 border-b bg-gray-50">
+                    <h3 className="text-lg lg:text-xl font-semibold text-gray-800">{imageTitle} (PDF)</h3>
+                    <div className="flex space-x-2">
+                      <a
+                        href={selectedImage}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-200 text-sm"
+                        title="Open in new tab"
+                      >
+                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                        Open
+                      </a>
+                      <a
+                        href={selectedImage}
+                        download
+                        className="inline-flex items-center px-3 py-1 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors duration-200 text-sm"
+                        title="Download PDF"
+                      >
+                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        Download
+                      </a>
+                      <button
+                        onClick={handleCloseImageModal}
+                        className="inline-flex items-center px-3 py-1 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors duration-200 text-sm"
+                      >
+                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                        Close
+                      </button>
+                    </div>
+                  </div>
+                  
+                  {/* PDF Iframe Container */}
+                  <div className="w-full bg-gray-100" style={{ height: 'calc(100vh - 180px)' }}>
+                    <iframe
+                      src={selectedImage}
+                      title={imageTitle}
+                      className="w-full h-full border-0"
+                      frameBorder="0"
+                      scrolling="auto"
+                      id="pdf-iframe"
+                      onLoad={(e) => {
+                        console.log('PDF iframe loaded successfully');
+                        // Hide loading message if visible
+                        const loadingMsg = document.getElementById('pdf-loading');
+                        if (loadingMsg) loadingMsg.style.display = 'none';
+                      }}
+                      onError={(e) => {
+                        console.error('PDF iframe failed to load, showing fallback');
+                        // Show fallback content
+                        const iframe = e.target;
+                        const container = iframe.parentNode;
+                        container.innerHTML = `
+                          <div class="flex items-center justify-center h-full bg-gray-100 p-8">
+                            <div class="text-center">
+                              <div class="text-6xl mb-4">📄</div>
+                              <h3 class="text-xl font-semibold text-gray-800 mb-2">Cannot Preview PDF</h3>
+                              <p class="text-gray-600 mb-4">The PDF cannot be displayed in this browser.</p>
+                              <div class="flex flex-col space-y-2">
+                                <a href="${selectedImage}" target="_blank" rel="noopener noreferrer" 
+                                   class="inline-flex items-center justify-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 font-medium">
+                                  <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                  </svg>
+                                  Open in New Tab
+                                </a>
+                                <a href="${selectedImage}" download
+                                   class="inline-flex items-center justify-center px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors duration-200">
+                                  <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                  </svg>
+                                  Download PDF
+                                </a>
+                              </div>
+                            </div>
+                          </div>
+                        `;
+                      }}
+                    />
+                    
+                    {/* Loading message */}
+                    <div 
+                      id="pdf-loading" 
+                      className="absolute inset-0 flex items-center justify-center bg-gray-100 z-10"
+                      style={{ display: 'block' }}
                     >
-                      <svg className="w-3 h-3 lg:w-4 lg:h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                      Download PDF
-                    </a>
+                      <div className="text-center">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                        <p className="text-gray-600">Loading PDF...</p>
+                      </div>
+                    </div>
                   </div>
                 </div>
               ) : (

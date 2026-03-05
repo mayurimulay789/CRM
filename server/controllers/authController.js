@@ -5,9 +5,6 @@ const crypto = require('crypto');
 const { generateToken } = require('../middleware/jwtToken');
 const sendMail = require('../utils/email'); // Adjust path as needed
 const mongoose = require('mongoose'); // ✅ ADD THIS LINE
-
-// ==================== Helper: Email Sending ====================
-
 /**
  * Send OTP email to user
  * @param {string} email - recipient email
