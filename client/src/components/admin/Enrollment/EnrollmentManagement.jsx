@@ -41,12 +41,12 @@ const EnrollmentManagement = () => {
 
   // Define all available columns
   const allColumns = [
-      { key: 'admissionRegistrationPayment', label: 'Admission Registration Payment', visible: true },
     { key: 'enrollmentNo', label: 'Enrollment No', visible: true },
     { key: 'student', label: 'Student', visible: true },
     { key: 'email', label: 'Email', visible: true },
     { key: 'phone', label: 'Phone', visible: true },
-    { key: 'course', label: 'Course', visible: true },
+  { key: 'admissionRegistrationPayment', label: 'Registration Payment', visible: true },
+    { key: 'course', label: 'Course Name', visible: true },
     { key: 'batch', label: 'Batch', visible: true },
     { key: 'timing', label: 'Timing', visible: true },
     { key: 'trainingBranch', label: 'Branch', visible: true },
@@ -791,7 +791,7 @@ const EnrollmentManagement = () => {
                           switch (column.key) {
                                                         case 'admissionRegistrationPayment':
                                                           return (
-                                                            <td key={column.key} className={`${baseCellClasses} text-gray-700 whitespace-nowrap`}>
+                                                            <td key={column.key} className={`${baseCellClasses} text-gray-700 text-center whitespace-nowrap`}>
                                                               ₹{enrollment.admissionRegistrationPayment != null ? enrollment.admissionRegistrationPayment : 0}
                                                             </td>
                                                           );

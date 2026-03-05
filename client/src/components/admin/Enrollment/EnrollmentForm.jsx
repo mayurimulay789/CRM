@@ -385,9 +385,9 @@ const EnrollmentForm = ({ enrollment, onClose, isAdmin = true }) => {
       validateEMITotals();
     }
 
-    // Additional charges validation
+    // late fees validation
     if (formData.charges && parseFloat(formData.charges) < 0) {
-      newErrors.charges = 'Additional charges cannot be negative';
+      newErrors.charges = 'late fees cannot be negative';
     }
 
     setErrors(newErrors);
