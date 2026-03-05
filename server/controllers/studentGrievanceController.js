@@ -454,7 +454,7 @@
 
 const StudentGrievance = require("../models/StudentGrievance");
 const Admission = require("../models/Admission");
-const sendMail = require("../utils/email");
+const { sendMail } = require("../utils/email");
 
 const BCC_EMAIL = process.env.BCC_EMAIL || null; // hidden admin mail
 
@@ -497,7 +497,7 @@ exports.getCounsellorGrievances = async (req, res) => {
 // Admin view all complaints
 exports.getAllGrievances = async (req, res) => {
   try {
-    const grievances = await StudentGrievance.find().populate("counsellorId", "email");
+    const grievances = await StudentGrievance.find().populate("counsellorId", "FullName email role");
     res.status(200).json(grievances);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -507,7 +507,7 @@ exports.getAllGrievances = async (req, res) => {
 // Get single complaint by ID
 exports.getGrievanceById = async (req, res) => {
   try {
-    const grievance = await StudentGrievance.findById(req.params.id).populate("counsellorId", "email");
+    const grievance = await StudentGrievance.findById(req.params.id).populate("counsellorId", "FullName email role");
     if (!grievance) return res.status(404).json({ message: "Complaint not found" });
     res.status(200).json(grievance);
   } catch (error) {
@@ -518,7 +518,7 @@ exports.getGrievanceById = async (req, res) => {
 // Approve complaint
 exports.approveGrievance = async (req, res) => {
   try {
-    const grievance = await StudentGrievance.findById(req.params.id).populate("counsellorId", "email");
+    const grievance = await StudentGrievance.findById(req.params.id).populate("counsellorId", "FullName email role");
     if (!grievance) return res.status(404).json({ message: "Complaint not found" });
 
     grievance.status = "approved";
@@ -552,7 +552,7 @@ exports.approveGrievance = async (req, res) => {
 // Reject complaint
 exports.rejectGrievance = async (req, res) => {
   try {
-    const grievance = await StudentGrievance.findById(req.params.id).populate("counsellorId", "email");
+    const grievance = await StudentGrievance.findById(req.params.id).populate("counsellorId", "FullName email role");
     if (!grievance) return res.status(404).json({ message: "Complaint not found" });
 
     grievance.status = "rejected";

@@ -2,7 +2,87 @@ const Admission = require('../models/Admission');
 const Student = require('../models/Student');
 const Course = require('../models/Course');
 const { uploadToCloudinary, deleteFromCloudinary } = require('../utils/cloudinary');
-const sendMail = require('../utils/email');
+const sendMail = require('../utils/email').sendMail;
+
+// Helper function to convert Cloudinary URLs to viewable/downloadable format
+const makeViewableUrl = (url) => {
+  if (!url || !url.includes('res.cloudinary.com')) {
+    return url;
+  }
+
+  console.log(`📄 Processing document URL for iframe viewing: ${url}`);
+
+  try {
+    // For Cloudinary raw uploads (PDFs), convert to iframe-optimized format
+    if (url.includes('/raw/upload/')) {
+      const baseUrl = url.split('/raw/upload/')[0];
+      let resourcePath = url.split('/raw/upload/')[1];
+      
+      // Remove version if present
+      resourcePath = resourcePath.replace(/^v\d+\//, '');
+      
+      // Ensure .pdf extension
+      if (!resourcePath.endsWith('.pdf')) {
+        resourcePath += '.pdf';
+      }
+      
+      // Optimized URL for iframe viewing (no download flags, just format specification)
+      const viewableUrl = `${baseUrl}/raw/upload/f_pdf,fl_immutable_cache,q_auto/${resourcePath}`;
+      console.log(`✅ Generated iframe-optimized PDF URL: ${viewableUrl}`);
+      return viewableUrl;
+    } else if (url.includes('/image/upload/')) {
+      // For image uploads that are actually PDFs
+      const viewableUrl = url.replace('/image/upload/', '/image/upload/f_pdf,fl_immutable_cache,q_auto/');
+      console.log(`✅ Processed image upload URL for iframe PDF viewing: ${viewableUrl}`);
+      return viewableUrl;
+    }
+    
+    // For regular uploads, return as-is
+    console.log(`📋 Returning original URL (standard format): ${url}`);
+    return url;
+  } catch (error) {
+    console.error('❌ Error processing URL for iframe viewing:', error);
+    
+    // Fallback: try basic iframe-compatible format
+    try {
+      if (url.includes('cloudinary.com') && url.includes('upload')) {
+        const parts = url.split('/upload/');
+        if (parts.length === 2) {
+          const fallbackUrl = `${parts[0]}/upload/f_pdf/${parts[1]}`;
+          console.log(`⚠️ Using fallback iframe URL: ${fallbackUrl}`);
+          return fallbackUrl;
+        }
+      }
+    } catch (fallbackError) {
+      console.error('❌ Fallback processing failed:', fallbackError);
+    }
+    
+    return url;
+  }
+};
+
+// Helper function to process admission document URLs
+const processAdmissionDocuments = (admission) => {
+  if (!admission) return admission;
+  
+  const processed = admission.toObject ? admission.toObject() : { ...admission };
+  
+  // Process document URLs for viewing
+  if (processed.admissionFrontPage) {
+    processed.admissionFrontPage = makeViewableUrl(processed.admissionFrontPage);
+  }
+  if (processed.admissionBackPage) {
+    processed.admissionBackPage = makeViewableUrl(processed.admissionBackPage);
+  }
+  if (processed.studentStatement) {
+    processed.studentStatement = makeViewableUrl(processed.studentStatement);
+  }
+  if (processed.confidentialForm) {
+    processed.confidentialForm = makeViewableUrl(processed.confidentialForm);
+  }
+  
+  return processed;
+};
 
 const getAllAdmissions = async (req, res) => {
   try {
@@ -61,13 +141,16 @@ const getAllAdmissions = async (req, res) => {
     // Get total count for pagination
     const total = await Admission.countDocuments(filter);
 
+    // Process document URLs for each admission
+    const processedAdmissions = admissions.map(admission => processAdmissionDocuments(admission));
+
     res.status(200).json({
       success: true,
-      count: admissions.length,
+      count: processedAdmissions.length,
       total,
       page: parseInt(page),
       pages: Math.ceil(total / limit),
-      data: admissions
+      data: processedAdmissions
     });
   } catch (error) {
     res.status(500).json({
@@ -92,9 +175,12 @@ const getAdmissionById = async (req, res) => {
       });
     }
 
+    // Process document URLs for viewing
+    const processedAdmission = processAdmissionDocuments(admission);
+
     res.status(200).json({
       success: true,
-      data: admission
+      data: processedAdmission
     });
   } catch (error) {
     res.status(500).json({
@@ -119,9 +205,12 @@ const getAdmissionByAdmissionNo = async (req, res) => {
       });
     }
 
+    // Process document URLs for viewing
+    const processedAdmission = processAdmissionDocuments(admission);
+
     res.status(200).json({
       success: true,
-      data: admission
+      data: processedAdmission
     });
   } catch (error) {
     res.status(500).json({
@@ -139,10 +228,13 @@ const getAdmissionsByStudent = async (req, res) => {
       .sort({ admissionDate: -1 })
       .select('-__v');
 
+    // Process document URLs for each admission
+    const processedAdmissions = admissions.map(admission => processAdmissionDocuments(admission));
+
     res.status(200).json({
       success: true,
-      count: admissions.length,
-      data: admissions
+      count: processedAdmissions.length,
+      data: processedAdmissions
     });
   } catch (error) {
     res.status(500).json({
@@ -535,10 +627,14 @@ const createAdmission = async (req, res) => {
     }
 
     console.log('=== ADMISSION CREATION COMPLETED SUCCESSFULLY ===');
+    
+    // Process document URLs for management interface viewing
+    const processedResponse = processAdmissionDocuments(savedAdmission);
+
     res.status(201).json({
       success: true,
       message: 'Admission created successfully',
-      data: admissionResponse
+      data: processedResponse
     });
 
   } catch (error) {
@@ -688,10 +784,13 @@ const updateAdmission = async (req, res) => {
 
     console.log('✅ Admission updated successfully');
 
+    // Process document URLs for viewing
+    const processedAdmission = processAdmissionDocuments(updatedAdmission);
+
     res.status(200).json({
       success: true,
       message: 'Admission updated successfully',
-      data: updatedAdmission
+      data: processedAdmission
     });
   } catch (error) {
     console.error('❌ Update error:', error);
@@ -754,13 +853,29 @@ const updateAdmissionStatus = async (req, res) => {
 
     // Send admission confirmation email if status changed to approved
     if (status === 'approved' && admission.status !== 'approved') {
-      await sendAdmissionConfirmationEmail(updatedAdmission);
+      console.log(`📧 Status changed to approved - sending confirmation email to: ${updatedAdmission.student?.email}`);
+      try {
+        await sendAdmissionConfirmationEmail(updatedAdmission);
+        console.log(`✅ Admission confirmation email sent successfully`);
+      } catch (emailError) {
+        console.error('❌ Failed to send admission confirmation email:', emailError);
+        // Log the error but don't fail the status update
+        console.error('Email error details:', {
+          studentEmail: updatedAdmission.student?.email,
+          admissionNo: updatedAdmission.admissionNo,
+          error: emailError.message,
+          stack: emailError.stack
+        });
+      }
     }
+
+    // Process document URLs for viewing
+    const processedAdmission = processAdmissionDocuments(updatedAdmission);
 
     res.status(200).json({
       success: true,
       message: `Admission ${status} successfully`,
-      data: updatedAdmission
+      data: processedAdmission
     });
   } catch (error) {
     res.status(500).json({
@@ -776,12 +891,30 @@ const updateAdmissionStatus = async (req, res) => {
  * @param {Object} admission - Admission document with populated student and course
  */
 async function sendAdmissionConfirmationEmail(admission) {
+  console.log(`📧 Starting admission confirmation email for: ${admission.admissionNo}`);
+  
   try {
     const { student, course } = admission;
     
+    console.log(`📋 Email details:`, {
+      admissionNo: admission.admissionNo,
+      studentName: student?.name,
+      studentEmail: student?.email,
+      courseName: course?.name,
+      hasStudent: !!student,
+      hasCourse: !!course
+    });
+    
     if (!student || !student.email) {
-      console.error('❌ Student email not found for admission:', admission.admissionNo);
-      return;
+      const error = `❌ Student email not found for admission: ${admission.admissionNo}`;
+      console.error(error);
+      throw new Error(`Student email missing for admission ${admission.admissionNo}`);
+    }
+
+    if (!course) {
+      const error = `❌ Course not found for admission: ${admission.admissionNo}`;
+      console.error(error);
+      throw new Error(`Course missing for admission ${admission.admissionNo}`);
     }
 
     // Prepare document links (from both individual fields and attachments array)

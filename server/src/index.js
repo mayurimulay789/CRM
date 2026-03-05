@@ -87,7 +87,13 @@ app.get("/", (req, res) => {
 
 
 
-app.listen(PORT, () => {
+// Import email verification function
+const { verifyConnection } = require('../utils/email');
+
+app.listen(PORT, async () => {
   console.log(`Server running on port ${PORT}`);
+  
+  // Verify email connection on startup
+  await verifyConnection();
 });
 

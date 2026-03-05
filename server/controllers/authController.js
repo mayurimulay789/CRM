@@ -3,7 +3,7 @@ const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const { generateToken } = require('../middleware/jwtToken');
-const sendMail = require('../utils/email'); // Adjust path as needed
+const { sendMail } = require('../utils/email'); // Adjust path as needed
 
 // ==================== Helper: Email Sending ====================
 

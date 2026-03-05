@@ -1,4 +1,4 @@
-const sendMail = require('../utils/email');
+const { sendMail } = require('../utils/email');
 const Enrollment = require('../models/Enrollment');
 const Payment = require('../models/Payment');
 const Student = require('../models/Student');
@@ -117,20 +117,32 @@ const createEnrollment = async (req, res) => {
     // Send mail to student on enrollment creation (accept)
     try {
       if (enrollment.student && enrollment.student.email) {
+        console.log(`📧 Sending enrollment acceptance email to: ${enrollment.student.email}`);
         await sendMail(
           enrollment.student.email,
-          'Enrollment Accepted',
+          'Enrollment Accepted - Ryma Academy',
           `<p>Dear ${enrollment.student.name || 'Student'},</p>
           <p>Your enrollment has been <b>accepted</b>.</p>
           <p>Admission Registration Payment: <b>₹${enrollment.admissionRegistrationPayment || 0}</b></p>
-          <p>Thank you.</p>`
+          <p>Thank you.</p>`,
+          true // Include BCC for enrollment notifications
         );
-        console.log('✅ Enrollment email sent to:', enrollment.student.email);
+        console.log('✅ Enrollment acceptance email sent successfully to:', enrollment.student.email);
       } else {
-        console.error('❌ No student email found for enrollment:', enrollment._id, enrollment.student);
+        console.error('❌ No student email found for enrollment:', {
+          enrollmentId: enrollment._id,
+          studentId: enrollment.student?._id,
+          studentEmail: enrollment.student?.email,
+          studentName: enrollment.student?.name
+        });
       }
     } catch (err) {
-      console.error('Failed to send enrollment acceptance email:', err);
+      console.error('❌ Failed to send enrollment acceptance email:', {
+        error: err.message,
+        studentEmail: enrollment.student?.email,
+        enrollmentId: enrollment._id,
+        stack: err.stack
+      });
     }
 
     res.status(201).json({
@@ -139,15 +151,33 @@ const createEnrollment = async (req, res) => {
     });
   // Helper: Send rejection mail
   async function sendEnrollmentRejectionMail(student, admissionRegistrationPayment) {
-    if (student && student.email) {
-      await sendMail(
-        student.email,
-        'Enrollment Rejected',
-        `<p>Dear ${student.name || 'Student'},</p>
-        <p>Your enrollment has been <b>rejected</b>.</p>
-        <p>Admission Registration Payment: <b>₹${admissionRegistrationPayment || 0}</b></p>
-        <p>Contact support for more details.</p>`
-      );
+    try {
+      if (student && student.email) {
+        console.log(`📧 Sending enrollment rejection email to: ${student.email}`);
+        await sendMail(
+          student.email,
+          'Enrollment Rejected - Ryma Academy',
+          `<p>Dear ${student.name || 'Student'},</p>
+          <p>Your enrollment has been <b>rejected</b>.</p>
+          <p>Admission Registration Payment: <b>₹${admissionRegistrationPayment || 0}</b></p>
+          <p>Contact support for more details.</p>`,
+          true // Include BCC for enrollment notifications
+        );
+        console.log('✅ Enrollment rejection email sent successfully to:', student.email);
+      } else {
+        console.error('❌ No student email found for rejection notification:', {
+          studentId: student?._id,
+          studentEmail: student?.email,
+          studentName: student?.name
+        });
+      }
+    } catch (err) {
+      console.error('❌ Failed to send enrollment rejection email:', {
+        error: err.message,
+        studentEmail: student?.email,
+        studentId: student?._id,
+        stack: err.stack
+      });
     }
   }
   } catch (error) {

@@ -1,7 +1,7 @@
 const Payment = require('../models/Payment');
 const Enrollment = require('../models/Enrollment');
 const Student = require('../models/Student');
-const sendMail = require('../utils/email');
+const { sendMail } = require('../utils/email');
 
 // @desc    Validate payment amount against enrollment fee structure - STRICT VERSION
 const validatePaymentAmountStrict = async (enrollment, amountReceived, feeType, emiNumber) => {
