@@ -84,31 +84,7 @@ const EnrollmentForm = ({ enrollment, onClose, isCounsellor = true, counsellorId
         status: enrollment.status || 'active',
         admissionRegistrationPayment: enrollment.admissionRegistrationPayment || 0
       });
-              {/* Admission Registration Payment */}
-              <div className="mt-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Admission Registration Payment
-                </label>
-                <input
-                  type="number"
-                  name="admissionRegistrationPayment"
-                  value={formData.admissionRegistrationPayment}
-                  onChange={handleChange}
-                  onBlur={() => handleBlur('admissionRegistrationPayment')}
-                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors.admissionRegistrationPayment ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                  placeholder="Enter admission registration payment"
-                  min="0"
-                  step="1"
-                />
-                {errors.admissionRegistrationPayment && (
-                  <p className="text-red-500 text-xs mt-1 flex items-center">
-                    <span className="mr-1">⚠</span>
-                    {errors.admissionRegistrationPayment}
-                  </p>
-                )}
-              </div>
+              // ...existing code...
     }
   }, [enrollment]);
 
@@ -716,6 +692,31 @@ const EnrollmentForm = ({ enrollment, onClose, isCounsellor = true, counsellorId
           </div>
 
           {/* additional charges */}
+                    {/* Admission Registration Payment */}
+                    <div className="mt-4">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Admission Registration Payment
+                      </label>
+                      <input
+                        type="number"
+                        name="admissionRegistrationPayment"
+                        value={formData.admissionRegistrationPayment}
+                        onChange={handleChange}
+                        onBlur={() => handleBlur('admissionRegistrationPayment')}
+                        className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                          errors.admissionRegistrationPayment ? 'border-red-500' : 'border-gray-300'
+                        }`}
+                        placeholder="Enter admission registration payment"
+                        min="0"
+                        step="1"
+                      />
+                      {errors.admissionRegistrationPayment && (
+                        <p className="text-red-500 text-xs mt-1 flex items-center">
+                          <span className="mr-1">⚠</span>
+                          {errors.admissionRegistrationPayment}
+                        </p>
+                      )}
+                    </div>
           <div className="mt-4">
             <label className="block text-sm font-medium text-gray-700 mb-2">
               additional charges

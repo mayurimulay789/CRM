@@ -12,10 +12,14 @@ if (!user || !pass) {
 }
 
 // Create reusable transporter
+const smtpHost = process.env.SMTP_HOST || 'smtp.gmail.com';
+const smtpPort = parseInt(process.env.SMTP_PORT) || 465;
+const smtpSecure = smtpPort === 465;
+
 const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || 'smtp.gmail.com',
-  port: process.env.SMTP_PORT || 465,
-  secure: true, // true for 465, false for other ports
+  host: smtpHost,
+  port: smtpPort,
+  secure: smtpSecure, // true for 465, false for other ports
   auth: { user, pass },
   tls: {
     rejectUnauthorized: false, // ⚠️ Only for development! In production use a valid certificate.
@@ -55,4 +59,4 @@ async function sendMail(email, subject, html, isSubmission = false) {
   }
 }
 
-module.exports = sendMail;
+module.exports = sendMail; 

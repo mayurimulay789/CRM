@@ -39,7 +39,6 @@ const EnrollmentManagement = () => {
 
   // Define all available columns
   const allColumns = [
-      { key: 'admissionRegistrationPayment', label: 'Admission Registration Payment', visible: true },
     { key: 'enrollmentNo', label: 'Enrollment No', visible: true },
     { key: 'student', label: 'Student', visible: true },
     { key: 'email', label: 'Email', visible: true },

@@ -188,7 +188,6 @@ const createAdmission = async (req, res) => {
       appliedBatch,
       source,
       notes
-      // Remove file fields from req.body since they'll come from files
     } = req.body;
 
     console.log('1. Reading request body...');
@@ -215,32 +214,32 @@ const createAdmission = async (req, res) => {
     if (req.files) {
       try {
         console.log('3. Starting file uploads to Cloudinary...');
-        
+
         if (req.files.admissionFrontPage && req.files.admissionFrontPage[0]) {
           const file = req.files.admissionFrontPage[0];
           console.log('📄 Uploading admission front page:', file.originalname);
-          admissionFrontPageUrl = await uploadToCloudinary(file.buffer, 'lms/admissions/front-pages');
+          admissionFrontPageUrl = await uploadToCloudinary(file.buffer, 'lms/admissions/front-pages', file.originalname);
           console.log('✅ Admission front page uploaded:', admissionFrontPageUrl);
         }
 
         if (req.files.admissionBackPage && req.files.admissionBackPage[0]) {
           const file = req.files.admissionBackPage[0];
           console.log('📄 Uploading admission back page:', file.originalname);
-          admissionBackPageUrl = await uploadToCloudinary(file.buffer, 'lms/admissions/back-pages');
+          admissionBackPageUrl = await uploadToCloudinary(file.buffer, 'lms/admissions/back-pages', file.originalname);
           console.log('✅ Admission back page uploaded:', admissionBackPageUrl);
         }
 
         if (req.files.studentStatement && req.files.studentStatement[0]) {
           const file = req.files.studentStatement[0];
           console.log('📄 Uploading student statement:', file.originalname);
-          studentStatementUrl = await uploadToCloudinary(file.buffer, 'lms/admissions/statements');
+          studentStatementUrl = await uploadToCloudinary(file.buffer, 'lms/admissions/statements', file.originalname);
           console.log('✅ Student statement uploaded:', studentStatementUrl);
         }
 
         if (req.files.confidentialForm && req.files.confidentialForm[0]) {
           const file = req.files.confidentialForm[0];
           console.log('📄 Uploading confidential form:', file.originalname);
-          confidentialFormUrl = await uploadToCloudinary(file.buffer, 'lms/admissions/confidential-forms');
+          confidentialFormUrl = await uploadToCloudinary(file.buffer, 'lms/admissions/confidential-forms', file.originalname);
           console.log('✅ Confidential form uploaded:', confidentialFormUrl);
         }
 
@@ -331,6 +330,97 @@ const createAdmission = async (req, res) => {
     console.log(`9. Final admission number: ${admissionNo}`);
 
     console.log('10. Preparing admission data...');
+    // Prepare attachments array
+    // Helper to create download link with filename
+    function makeDownloadUrl(url, filename) {
+      if (!url) return url;
+      
+      console.log(`🔗 Processing URL for PDF download: ${url}`);
+      
+      // For Cloudinary URLs, create proper download link with PDF format
+      if (url.includes('res.cloudinary.com')) {
+        try {
+          // Handle raw uploads (PDFs)
+          if (url.includes('/raw/upload/')) {
+            // Split the URL to insert transformation parameters
+            const baseUrl = url.split('/raw/upload/')[0];
+            let resourcePath = url.split('/raw/upload/')[1];
+            
+            // Remove version if present (v1234567890/)
+            resourcePath = resourcePath.replace(/^v\d+\//, '');
+            
+            // Ensure the resource path ends with .pdf
+            if (!resourcePath.endsWith('.pdf')) {
+              resourcePath = resourcePath + '.pdf';
+            }
+            
+            // Create download URL with proper attachment and format flags
+            const downloadUrl = `${baseUrl}/raw/upload/fl_attachment:${filename}/f_pdf/${resourcePath}`;
+            console.log(`📎 Generated PDF download URL: ${downloadUrl}`);
+            return downloadUrl;
+          }
+          
+          // Handle regular image uploads (shouldn't happen for PDFs, but just in case)
+          else if (url.includes('/upload/')) {
+            return url.replace('/upload/', `/upload/fl_attachment:${filename}/f_pdf/`);
+          }
+        } catch (error) {
+          console.error('❌ Error processing PDF URL:', error);
+        }
+      }
+      
+      // Fallback: ensure URL ends with .pdf
+      let fallbackUrl = url;
+      if (!fallbackUrl.endsWith('.pdf')) {
+        fallbackUrl = `${url}.pdf`;
+      }
+      console.log(`⚠️ Returning fallback PDF URL: ${fallbackUrl}`);
+      return fallbackUrl;
+    }
+
+    const attachments = [];
+    
+    // Log original URLs for debugging
+    console.log('🔍 Original URLs:');
+    if (admissionFrontPageUrl) console.log(`   Front Page: ${admissionFrontPageUrl}`);
+    if (admissionBackPageUrl) console.log(`   Back Page: ${admissionBackPageUrl}`);
+    if (studentStatementUrl) console.log(`   Statement: ${studentStatementUrl}`);
+    if (confidentialFormUrl) console.log(`   Confidential: ${confidentialFormUrl}`);
+
+    // Create attachment objects with both transformed and original URLs
+    if (admissionFrontPageUrl) {
+      const transformedUrl = makeDownloadUrl(admissionFrontPageUrl, 'Admission_Front_Page.pdf');
+      attachments.push({ 
+        type: 'Admission Front Page', 
+        url: transformedUrl,
+        originalUrl: admissionFrontPageUrl  // Keep original as fallback
+      });
+    }
+    if (admissionBackPageUrl) {
+      const transformedUrl = makeDownloadUrl(admissionBackPageUrl, 'Admission_Back_Page.pdf');
+      attachments.push({ 
+        type: 'Admission Back Page', 
+        url: transformedUrl,
+        originalUrl: admissionBackPageUrl
+      });
+    }
+    if (studentStatementUrl) {
+      const transformedUrl = makeDownloadUrl(studentStatementUrl, 'Student_Statement.pdf');
+      attachments.push({ 
+        type: 'Student Statement', 
+        url: transformedUrl,
+        originalUrl: studentStatementUrl
+      });
+    }
+    if (confidentialFormUrl) {
+      const transformedUrl = makeDownloadUrl(confidentialFormUrl, 'Confidential_Form.pdf');
+      attachments.push({ 
+        type: 'Confidential Form', 
+        url: transformedUrl,
+        originalUrl: confidentialFormUrl
+      });
+    }
+
     const admissionData = {
       admissionNo,
       student,
@@ -346,7 +436,8 @@ const createAdmission = async (req, res) => {
       appliedBatch,
       source: source || 'website',
       notes,
-      admissionDate: new Date()
+      admissionDate: new Date(),
+      attachments
     };
 
     console.log('Admission data prepared:', {
@@ -379,6 +470,69 @@ const createAdmission = async (req, res) => {
     console.log('14. Preparing response...');
     const admissionResponse = savedAdmission.toObject();
     delete admissionResponse.__v;
+
+    // Send email to student with PDF/Cloudinary URLs
+    try {
+      const studentEmail = admissionResponse.student?.email;
+      if (studentEmail) {
+        console.log('📧 Preparing email with attachments:');
+        attachments.forEach((att, index) => {
+          console.log(`   ${index + 1}. ${att.type}: ${att.url}`);
+        });
+
+        let emailHtml = `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #333;">Dear ${admissionResponse.student?.name || 'Student'},</h2>
+            <p>Your admission has been processed successfully. Please find your document download links below:</p>
+            
+            <div style="background: #f8f9fa; padding: 20px; border-radius: 5px; margin: 20px 0;">
+              <h3 style="color: #495057; margin-top: 0;">📄 Your PDF Documents:</h3>
+              <ul style="list-style: none; padding: 0;">`;
+
+        attachments.forEach(att => {
+          emailHtml += `
+                <li style="margin: 10px 0; padding: 10px; background: white; border-radius: 3px; border-left: 4px solid #007bff;">
+                  <strong>${att.type} (PDF)</strong><br>
+                  <a href="${att.url}" 
+                     style="color: #007bff; text-decoration: none; font-weight: bold;"
+                     download="${att.type.replace(/\s+/g, '_')}.pdf"
+                     target="_blank">
+                     📄 Download ${att.type} PDF
+                  </a>
+                  ${att.originalUrl && att.originalUrl !== att.url ? `
+                  <br>
+                  <a href="${att.originalUrl}" 
+                     style="color: #28a745; text-decoration: none; font-size: 0.9em;"
+                     download="${att.type.replace(/\s+/g, '_')}.pdf"
+                     target="_blank">
+                     🔗 Alternative PDF Link
+                  </a>` : ''}
+                  <br>
+                  <small style="color: #6c757d;">Right-click and "Save As" if download doesn't start automatically</small>
+                </li>`;
+        });
+
+        emailHtml += `
+              </ul>
+            </div>
+            
+            <p style="color: #666;">
+              <strong>📋 Important Notes:</strong><br>
+              • All documents are in PDF format<br>
+              • If a document opens in browser instead of downloading, right-click the link and select "Save As"<br>
+              • Ensure you have a PDF reader installed (like Adobe Reader, Chrome, Edge)<br>
+              • If you have trouble opening any document, please contact our support team
+            </p>
+            
+            <p>Thank you!</p>
+          </div>`;
+
+        await sendMail(studentEmail, 'Your Admission PDF Documents', emailHtml);
+        console.log('✅ Admission document email sent to student:', studentEmail);
+      }
+    } catch (mailError) {
+      console.error('❌ Error sending admission email:', mailError);
+    }
 
     console.log('=== ADMISSION CREATION COMPLETED SUCCESSFULLY ===');
     res.status(201).json({
@@ -426,7 +580,6 @@ const updateAdmission = async (req, res) => {
       appliedBatch,
       source,
       notes
-      // Remove file fields from body
     } = req.body;
 
     console.log('=== ADMISSION UPDATE STARTED ===');
@@ -451,7 +604,7 @@ const updateAdmission = async (req, res) => {
         if (req.files.admissionFrontPage && req.files.admissionFrontPage[0]) {
           const file = req.files.admissionFrontPage[0];
           console.log('📄 Uploading new admission front page:', file.originalname);
-          fileUpdateData.admissionFrontPage = await uploadToCloudinary(file.buffer, 'lms/admissions/front-pages');
+          fileUpdateData.admissionFrontPage = await uploadToCloudinary(file.buffer, 'lms/admissions/front-pages', file.originalname);
           
           // Delete old file if exists
           if (admission.admissionFrontPage) {
@@ -463,7 +616,7 @@ const updateAdmission = async (req, res) => {
         if (req.files.admissionBackPage && req.files.admissionBackPage[0]) {
           const file = req.files.admissionBackPage[0];
           console.log('📄 Uploading new admission back page:', file.originalname);
-          fileUpdateData.admissionBackPage = await uploadToCloudinary(file.buffer, 'lms/admissions/back-pages');
+          fileUpdateData.admissionBackPage = await uploadToCloudinary(file.buffer, 'lms/admissions/back-pages', file.originalname);
           
           // Delete old file if exists
           if (admission.admissionBackPage) {
@@ -475,7 +628,7 @@ const updateAdmission = async (req, res) => {
         if (req.files.studentStatement && req.files.studentStatement[0]) {
           const file = req.files.studentStatement[0];
           console.log('📄 Uploading new student statement:', file.originalname);
-          fileUpdateData.studentStatement = await uploadToCloudinary(file.buffer, 'lms/admissions/statements');
+          fileUpdateData.studentStatement = await uploadToCloudinary(file.buffer, 'lms/admissions/statements', file.originalname);
           
           // Delete old file if exists
           if (admission.studentStatement) {
@@ -487,7 +640,7 @@ const updateAdmission = async (req, res) => {
         if (req.files.confidentialForm && req.files.confidentialForm[0]) {
           const file = req.files.confidentialForm[0];
           console.log('📄 Uploading new confidential form:', file.originalname);
-          fileUpdateData.confidentialForm = await uploadToCloudinary(file.buffer, 'lms/admissions/confidential-forms');
+          fileUpdateData.confidentialForm = await uploadToCloudinary(file.buffer, 'lms/admissions/confidential-forms', file.originalname);
           
           // Delete old file if exists
           if (admission.confidentialForm) {
@@ -560,58 +713,6 @@ const updateAdmission = async (req, res) => {
   }
 };
 
-// ... rest of the functions remain the same (updateAdmissionStatus, deleteAdmission, verifyAdmissionEmail, getAdmissionStats)
-
-// const updateAdmissionStatus = async (req, res) => {
-//   try {
-//     const { status, notes } = req.body;
-
-//     // Check if admission exists
-//     const admission = await Admission.findById(req.params.id);
-//     if (!admission) {
-//       return res.status(404).json({
-//         success: false,
-//         message: 'Admission not found'
-//       });
-//     }
-
-//     // Validate status
-//     const validStatuses = ['pending', 'approved', 'rejected', 'waiting_list'];
-//     if (!validStatuses.includes(status)) {
-//       return res.status(400).json({
-//         success: false,
-//         message: 'Invalid status. Must be one of: pending, approved, rejected, waiting_list'
-//       });
-//     }
-
-//     const updateData = {
-//       status,
-//       notes: notes !== undefined ? notes : admission.notes
-//     };
-
-//     const updatedAdmission = await Admission.findByIdAndUpdate(
-//       req.params.id,
-//       updateData,
-//       { new: true }
-//     )
-//     .populate('student', 'studentId name email phone')
-//     .populate('course', 'name code fee duration')
-//     .select('-__v');
-
-//     res.status(200).json({
-//       success: true,
-//       message: `Admission ${status} successfully`,
-//       data: updatedAdmission
-//     });
-//   } catch (error) {
-//     res.status(500).json({
-//       success: false,
-//       message: 'Error updating admission status',
-//       error: error.message
-//     });
-//   }
-// };
-
 const updateAdmissionStatus = async (req, res) => {
   try {
     const { status, notes } = req.body;
@@ -682,6 +783,18 @@ async function sendAdmissionConfirmationEmail(admission) {
       console.error('❌ Student email not found for admission:', admission.admissionNo);
       return;
     }
+
+    // Prepare document links (from both individual fields and attachments array)
+    const documents = [
+      { name: 'Admission Front Page', url: admission.admissionFrontPage },
+      { name: 'Admission Back Page', url: admission.admissionBackPage },
+      { name: 'Student Statement', url: admission.studentStatement },
+      { name: 'Confidential Form', url: admission.confidentialForm },
+      ...(admission.attachments || []).map(att => ({
+        name: att.type.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()),
+        url: att.url
+      }))
+    ].filter(doc => doc.url); // only include those with a URL
 
     // Email subject
     const subject = `🎉 Admission Confirmed - ${course.name} | ${admission.admissionNo}`;
@@ -760,6 +873,30 @@ async function sendAdmissionConfirmationEmail(admission) {
             color: #212529;
             text-align: right;
           }
+          .documents-section {
+            margin: 20px 0;
+            padding: 20px;
+            background-color: #f0f8ff;
+            border-radius: 8px;
+          }
+          .documents-section h3 {
+            color: #007bff;
+            margin-top: 0;
+          }
+          .documents-section ul {
+            list-style: none;
+            padding: 0;
+          }
+          .documents-section li {
+            margin-bottom: 10px;
+          }
+          .documents-section a {
+            color: #007bff;
+            text-decoration: none;
+          }
+          .documents-section a:hover {
+            text-decoration: underline;
+          }
           .next-steps {
             background-color: #e7f3ff;
             border-left: 4px solid #007bff;
@@ -805,7 +942,7 @@ async function sendAdmissionConfirmationEmail(admission) {
           <div class="content">
             <div class="congrats">
               <h2>Congratulations, ${student.name}! 🎉</h2>
-              <p>Your admission has been successfully approved. Welcome to our Ryma Academy!</p>
+              <p>Your admission has been successfully approved. Welcome to Ryma Academy!</p>
               <span class="badge">Admission No: ${admission.admissionNo}</span>
             </div>
 
@@ -822,7 +959,6 @@ async function sendAdmissionConfirmationEmail(admission) {
                 <span class="detail-label">Course:</span>
                 <span class="detail-value">${course.name}</span>
               </div>
-              
               <div class="detail-row">
                 <span class="detail-label">Duration:</span>
                 <span class="detail-value">${course.duration}</span>
@@ -849,6 +985,21 @@ async function sendAdmissionConfirmationEmail(admission) {
               </div>
             </div>
 
+            ${documents.length > 0 ? `
+              <div class="documents-section">
+                <h3>📎 Your Uploaded Documents</h3>
+                <p>You can access the documents you submitted using the links below:</p>
+                <ul>
+                  ${documents.map(doc => `
+                    <li>
+                      <a href="${doc.url}" target="_blank">📄 ${doc.name}</a>
+                    </li>
+                  `).join('')}
+                </ul>
+                <p style="font-size: 0.9em; color: #6c757d;">These links are permanent and can be used anytime.</p>
+              </div>
+            ` : ''}
+
             <div class="next-steps">
               <h3>📋 Next Steps</h3>
               <ul>
@@ -867,7 +1018,7 @@ async function sendAdmissionConfirmationEmail(admission) {
             </div>
 
             <p style="text-align: center; color: #6c757d; font-style: italic;">
-              We're excited to have you join our Ryma Academy! 🚀
+              We're excited to have you join Ryma Academy! 🚀
             </p>
           </div>
 
@@ -882,7 +1033,7 @@ async function sendAdmissionConfirmationEmail(admission) {
     // Send email to student with BCC for submission
     await sendMail(student.email, subject, html, true);
     
-    console.log(`✅ Admission confirmation email sent to ${student.email} with BCC`);
+    console.log(`✅ Admission confirmation email (with documents) sent to ${student.email} with BCC`);
 
   } catch (error) {
     console.error('❌ Failed to send admission confirmation email:', error.message);
@@ -1125,4 +1276,4 @@ module.exports = {
   verifyAdmissionEmail,
   getAdmissionStats,
   searchApprovedStudents
-};
+};      
