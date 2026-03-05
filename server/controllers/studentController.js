@@ -227,18 +227,25 @@ const createStudent = async (req, res) => {
       }
     }
 
-    // Generate sequential studentId
-    const lastStudent = await Student.findOne().sort({ studentId: -1 });
-    let studentId;
-    
-    if (lastStudent && lastStudent.studentId) {
-      const lastNumber = parseInt(lastStudent.studentId.replace('STU', ''));
-      studentId = `STU${(lastNumber + 1).toString().padStart(6, '0')}`;
-      console.log('🎫 Generated studentId from last student:', studentId);
-    } else {
-      studentId = 'STU000001';
-      console.log('🎫 Generated first studentId:', studentId);
-    }
+  // सोपा आणि सुरक्षित उपाय:
+const lastStudent = await Student.findOne().sort({ studentId: -1 });
+let studentId;
+
+if (lastStudent && lastStudent.studentId) {
+  // फक्त digits काढा (RYMA काढून टाका)
+  const numberPart = lastStudent.studentId.replace(/[^0-9]/g, '');
+  console.log('Number part:', numberPart); // "000012" येईल
+  
+  // Number मध्ये convert करा
+  const lastNumber = parseInt(numberPart, 10);
+  console.log('Last number:', lastNumber); // 12 येईल
+  
+  // पुढचा number generate करा
+  const nextNumber = lastNumber + 1;
+  studentId = `RYMA${nextNumber.toString().padStart(6, '0')}`;
+} else {
+  studentId = 'RYMA000001';
+}
 
     // Prepare student data
     const studentData = {

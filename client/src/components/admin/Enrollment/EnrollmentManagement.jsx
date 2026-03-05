@@ -262,9 +262,11 @@ const EnrollmentManagement = () => {
 
   const getCounsellorName = (enrollment) => {
     try {
+
+      console.log("******************",enrollment);
       if (!enrollment?.counsellor) return 'N/A';
       if (typeof enrollment.counsellor === 'string') return enrollment.counsellor;
-      return enrollment.counsellor.name || 'N/A';
+      return enrollment.counsellor.FullName || 'N/A';
     } catch (error) {
       console.error('Error getting counsellor name:', error);
       return 'N/A';

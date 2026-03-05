@@ -8,14 +8,15 @@ import {
 } from '../../../store/slices/enrollmentSlice';
 import { fetchAdmissions } from '../../../store/slices/admissionSlice';
 import { getBatches } from '../../../store/slices/batchSlice';
-import { getCurrentUser } from '../../../store/slices/authSlice';
+import { getAllCounsellors } from '../../../store/slices/authSlice'; // Import getAllCounsellors
 
 const EnrollmentForm = ({ enrollment, onClose, isAdmin = true }) => {
   const dispatch = useDispatch();
   const { operationLoading, error, success } = useSelector(state => state.enrollments);
   const { admissions } = useSelector(state => state.admissions);
   const { batches } = useSelector(state => state.batch);
-  const { users } = useSelector(state => state.user);
+  // Use the same counsellors structure as in counsellor management
+  const { counsellors } = useSelector(state => state.auth); // Fixed: using counsellors from auth slice
   
   const [formData, setFormData] = useState({
     admission: '',
@@ -46,7 +47,7 @@ const EnrollmentForm = ({ enrollment, onClose, isAdmin = true }) => {
     console.log('Admin Enrollment Form - Loading data...');
     dispatch(fetchAdmissions());
     dispatch(getBatches());
-    dispatch(getUsers()); // Get all users for counsellor selection
+    dispatch(getAllCounsellors()); // Fetch counsellors using the same mechanism
   }, [dispatch]);
 
   // Helper function to format date for input fields
@@ -86,31 +87,6 @@ const EnrollmentForm = ({ enrollment, onClose, isAdmin = true }) => {
         counsellor: enrollment.counsellor?._id || enrollment.counsellor || '',
         admissionRegistrationPayment: enrollment.admissionRegistrationPayment || 0
       });
-              {/* Admission Registration Payment */}
-              <div className="mt-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Admission Registration Payment
-                </label>
-                <input
-                  type="number"
-                  name="admissionRegistrationPayment"
-                  value={formData.admissionRegistrationPayment}
-                  onChange={handleChange}
-                  onBlur={() => handleBlur('admissionRegistrationPayment')}
-                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors.admissionRegistrationPayment ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                  placeholder="Enter admission registration payment"
-                  min="0"
-                  step="1"
-                />
-                {errors.admissionRegistrationPayment && (
-                  <p className="text-red-500 text-xs mt-1 flex items-center">
-                    <span className="mr-1">⚠</span>
-                    {errors.admissionRegistrationPayment}
-                  </p>
-                )}
-              </div>
     }
   }, [enrollment]);
 
@@ -146,10 +122,8 @@ const EnrollmentForm = ({ enrollment, onClose, isAdmin = true }) => {
     }
   }, [formData.admission, admissions, enrollment]);
 
-  // Get counsellors (users with counsellor role)
-  const counsellors = users.filter(user => 
-    user.role === 'Counsellor' || user.role === 'counsellor'
-  );
+  // Get counsellors list - using the same structure as counsellor management
+  const counsellorsList = counsellors?.list || []; // Access the list property from counsellors object
 
   const handleBlur = (field) => {
     setTouched(prev => ({ ...prev, [field]: true }));
@@ -411,9 +385,9 @@ const EnrollmentForm = ({ enrollment, onClose, isAdmin = true }) => {
       validateEMITotals();
     }
 
-    // additional charges validation
+    // Additional charges validation
     if (formData.charges && parseFloat(formData.charges) < 0) {
-      newErrors.charges = 'additional charges cannot be negative';
+      newErrors.charges = 'Additional charges cannot be negative';
     }
 
     setErrors(newErrors);
@@ -435,7 +409,8 @@ const EnrollmentForm = ({ enrollment, onClose, isAdmin = true }) => {
       leadSource: formData.leadSource,
       call: formData.call,
       status: formData.status,
-      counsellor: formData.counsellor
+      counsellor: formData.counsellor,
+      admissionRegistrationPayment: parseFloat(formData.admissionRegistrationPayment) || 0
     };
 
     // Add EMI data for installment type
@@ -644,7 +619,7 @@ const EnrollmentForm = ({ enrollment, onClose, isAdmin = true }) => {
               )}
             </div>
 
-            {/* Counsellor Selection - ADMIN ONLY */}
+            {/* Counsellor Selection - Using counsellors from auth slice */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Counsellor <RequiredStar />
@@ -659,9 +634,9 @@ const EnrollmentForm = ({ enrollment, onClose, isAdmin = true }) => {
                 }`}
               >
                 <option value="">Select Counsellor</option>
-                {counsellors.map(counsellor => (
+                {counsellorsList.map(counsellor => (
                   <option key={counsellor._id} value={counsellor._id}>
-                    {counsellor.name} - {counsellor.email}
+                    {counsellor.FullName || counsellor.name} - {counsellor.email}
                   </option>
                 ))}
               </select>
@@ -812,28 +787,28 @@ const EnrollmentForm = ({ enrollment, onClose, isAdmin = true }) => {
             </div>
           </div>
 
-          {/* additional charges */}
+          {/* Admission Registration Payment */}
           <div className="mt-4">
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              additional charges
+              Admission Registration Payment
             </label>
             <input
               type="number"
-              name="charges"
-              value={formData.charges}
+              name="admissionRegistrationPayment"
+              value={formData.admissionRegistrationPayment}
               onChange={handleChange}
-              onBlur={() => handleBlur('charges')}
+              onBlur={() => handleBlur('admissionRegistrationPayment')}
               className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                errors.charges ? 'border-red-500' : 'border-gray-300'
+                errors.admissionRegistrationPayment ? 'border-red-500' : 'border-gray-300'
               }`}
-              placeholder="Enter additional charges"
+              placeholder="Enter admission registration payment"
               min="0"
               step="1"
             />
-            {errors.charges && (
+            {errors.admissionRegistrationPayment && (
               <p className="text-red-500 text-xs mt-1 flex items-center">
                 <span className="mr-1">⚠</span>
-                {errors.charges}
+                {errors.admissionRegistrationPayment}
               </p>
             )}
           </div>

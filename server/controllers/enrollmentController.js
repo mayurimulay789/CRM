@@ -211,7 +211,7 @@ const getEnrollments = async (req, res) => {
       .populate('student', 'studentId name email phone')
       .populate('course', 'name fee duration')
       .populate('batch', 'name timing')
-      .populate('counsellor', 'name email')
+      .populate('counsellor', 'FullName email')
       .populate('admission', 'admissionNo')
       .sort({ enrollmentDate: -1 })
       .skip(skip)
@@ -246,7 +246,7 @@ const getEnrollment = async (req, res) => {
       .populate('student', 'studentId name email phone alternateEmail alternatePhone dateOfBirth gender address')
       .populate('course', 'name fee duration description')
       .populate('batch', 'name timing startDate endDate status')
-      .populate('counsellor', 'name email phone')
+      .populate('counsellor', 'FullName email phone')
       .populate('admission', 'admissionNo admissionDate');
 
     if (!enrollment) {
