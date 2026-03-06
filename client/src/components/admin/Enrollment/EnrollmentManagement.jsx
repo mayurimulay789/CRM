@@ -329,6 +329,14 @@ const EnrollmentManagement = () => {
     }).format(amount || 0);
   };
 
+  // Calculate actual total including late fees and registration fees
+  const calculateActualTotal = (enrollment) => {
+    const baseAmount = enrollment.totalAmount || 0;
+    const lateFees = enrollment.charges || 0;
+    const registrationFees = enrollment.admissionRegistrationPayment || 0;
+    return baseAmount + lateFees + registrationFees;
+  };
+
   const formatDate = (dateString) => {
     if (!dateString) return '-';
     try {
@@ -830,7 +838,7 @@ const EnrollmentManagement = () => {
                                   </span>
                                   {enrollment.pendingAmount > 0 && (
                                     <div className="text-xs text-gray-500 mt-1 hidden lg:block">
-                                      Due: {formatCurrency(enrollment.pendingAmount)}
+                                      Due: {formatCurrency(calculateActualTotal(enrollment) - (enrollment.amountReceived || 0))}
                                     </div>
                                   )}
                                 </td>
@@ -842,9 +850,10 @@ const EnrollmentManagement = () => {
                                 </td>
                               );
                             case 'totalAmount':
+                              const actualTotal = calculateActualTotal(enrollment);
                               return (
-                                <td key={column.key} className={`${baseCellClasses} text-gray-900 font-semibold whitespace-nowrap`}>
-                                  {formatCurrency(enrollment.totalAmount)}
+                                <td key={column.key} className={`${baseCellClasses} text-gray-900 font-semibold whitespace-nowrap`} title={`Base: ${formatCurrency(enrollment.totalAmount)} + Late Fees: ${formatCurrency(enrollment.charges || 0)} + Registration: ${formatCurrency(enrollment.admissionRegistrationPayment || 0)}`}>
+                                  {formatCurrency(actualTotal)}
                                 </td>
                               );
                             case 'amountReceived':
@@ -854,9 +863,10 @@ const EnrollmentManagement = () => {
                                 </td>
                               );
                             case 'pendingAmount':
+                              const actualPending = calculateActualTotal(enrollment) - (enrollment.amountReceived || 0);
                               return (
                                 <td key={column.key} className={`${baseCellClasses} text-red-600 font-semibold whitespace-nowrap`}>
-                                  {formatCurrency(enrollment.pendingAmount)}
+                                  {formatCurrency(actualPending)}
                                 </td>
                               );
                             case 'charges':
