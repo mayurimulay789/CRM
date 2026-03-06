@@ -12,7 +12,7 @@ const PaymentForm = ({ onClose }) => {
   const [formData, setFormData] = useState({
     enrollment: '',
     amountReceived: '',
-    feeType: 'tuition',
+    feeType: 'tuition',        // default matches backend enum
     paymentMode: 'cash',
     paymentBank: '',
     transactionNo: '',
@@ -21,9 +21,10 @@ const PaymentForm = ({ onClose }) => {
     chequeDetails: {
       chequeNo: '',
       bankName: '',
-      chequeDate: ''
+      chequeDate: '',
     },
-    remarks: ''
+    remarks: '',
+    emiNumber: '' // for installment payments
   });
 
   const [errors, setErrors] = useState({});
@@ -51,26 +52,17 @@ const PaymentForm = ({ onClose }) => {
   }, [dispatch]);
 
   useEffect(() => {
-    // Set received branch from selected enrollment
     if (formData.enrollment) {
       const enrollment = enrollments.find(e => e._id === formData.enrollment);
       setSelectedEnrollment(enrollment);
       if (enrollment) {
         setFormData(prev => ({
           ...prev,
-          receivedBranch: enrollment.trainingBranch || prev.receivedBranch
+          receivedBranch: enrollment.trainingBranch || prev.receivedBranch,
+          emiNumber: enrollment.nextEMI?.number || prev.emiNumber,
+          amountReceived: enrollment.nextEMI?.amount?.toString() || prev.amountReceived
         }));
-
-        // Auto-set amount for installment payments
-        if (enrollment.feeType === 'installment' && enrollment.nextEMI?.amount) {
-          setFormData(prev => ({
-            ...prev,
-            amountReceived: enrollment.nextEMI.amount.toString()
-          }));
-          setIsAmountAutoSet(true);
-        } else {
-          setIsAmountAutoSet(false);
-        }
+        setIsAmountAutoSet(!!enrollment.nextEMI?.amount);
       }
     } else {
       setSelectedEnrollment(null);
@@ -80,17 +72,10 @@ const PaymentForm = ({ onClose }) => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    
-    // If amount is manually changed, mark it as not auto-set
     if (name === 'amountReceived' && isAmountAutoSet) {
       setIsAmountAutoSet(false);
     }
-    
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-
+    setFormData(prev => ({ ...prev, [name]: value }));
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
     }
@@ -99,16 +84,24 @@ const PaymentForm = ({ onClose }) => {
   const handleChequeChange = (field, value) => {
     setFormData(prev => ({
       ...prev,
-      chequeDetails: {
-        ...prev.chequeDetails,
-        [field]: value
-      }
+      chequeDetails: { ...prev.chequeDetails, [field]: value }
     }));
   };
 
-  // Safe EMI data accessor function
   const getNextEMI = (enrollment) => {
-    return enrollment.nextEMI || { amount: 0, date: null, status: 'pending' };
+    return enrollment.nextEMI || { amount: 0, date: null, status: 'pending', number: '' };
+  };
+
+  // Calculate actual total including late fees and registration fees
+  const calculateActualTotal = (enrollment) => {
+    const baseAmount = enrollment.totalAmount || 0;
+    const lateFees = enrollment.charges || 0;
+    const registrationFees = enrollment.admissionRegistrationPayment || 0;
+    return baseAmount + lateFees + registrationFees;
+  };
+
+  const calculateActualPending = (enrollment) => {
+    return calculateActualTotal(enrollment) - (enrollment.amountReceived || 0);
   };
 
   const validateForm = () => {
@@ -125,13 +118,24 @@ const PaymentForm = ({ onClose }) => {
     }
 
     if (selectedEnrollment) {
-      const pendingAmount = selectedEnrollment.totalAmount - selectedEnrollment.amountReceived;
-      if (parseFloat(formData.amountReceived) > pendingAmount) {
-        newErrors.amountReceived = `Amount cannot exceed pending amount of ${formatCurrency(pendingAmount)}`;
+      const actualPending = calculateActualPending(selectedEnrollment);
+      if (parseFloat(formData.amountReceived) > actualPending) {
+        newErrors.amountReceived = `Amount cannot exceed pending amount of ${formatCurrency(actualPending)}`;
       }
 
-      // For installment payments, validate against next EMI amount
-      if (selectedEnrollment.feeType === 'Installment') {
+      // One-time payment: require exact full total (including fees)
+      if (selectedEnrollment.feeType === 'one-time') {
+        const actualTotal = calculateActualTotal(selectedEnrollment);
+        if (parseFloat(formData.amountReceived) !== actualTotal) {
+          newErrors.amountReceived = `One-time fee requires single full payment of ${formatCurrency(actualTotal)}`;
+        }
+      }
+
+      // Installment payment: validate EMI number and amount
+      if (selectedEnrollment.feeType === 'installment') {
+        if (!formData.emiNumber) {
+          newErrors.emiNumber = 'EMI number is required for installment payments';
+        }
         const nextEMI = getNextEMI(selectedEnrollment);
         if (parseFloat(formData.amountReceived) !== nextEMI.amount && !isAmountAutoSet) {
           newErrors.amountReceived = `For installment payments, amount should match the next EMI amount of ${formatCurrency(nextEMI.amount)}`;
@@ -143,22 +147,19 @@ const PaymentForm = ({ onClose }) => {
       setErrors(newErrors);
       return false;
     }
-
     return true;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    if (!validateForm()) {
-      return;
-    }
+    if (!validateForm()) return;
 
     dispatch(clearError());
 
     const submitData = {
       ...formData,
-      amountReceived: parseFloat(formData.amountReceived)
+      amountReceived: parseFloat(formData.amountReceived),
+      ...(selectedEnrollment?.feeType === 'installment' && { emiNumber: formData.emiNumber })
     };
 
     await dispatch(createPayment(submitData));
@@ -228,7 +229,7 @@ const PaymentForm = ({ onClose }) => {
                 {counsellorEnrollments.map(enrollment => (
                   <option key={enrollment._id} value={enrollment._id}>
                     {enrollment.enrollmentNo} - {enrollment.student?.name} - {enrollment.course?.name}
-                    {enrollment.pendingAmount > 0 && ` (Pending: ${formatCurrency(enrollment.pendingAmount)})`}
+                    {calculateActualPending(enrollment) > 0 && ` (Pending: ${formatCurrency(calculateActualPending(enrollment))})`}
                   </option>
                 ))}
               </select>
@@ -260,8 +261,24 @@ const PaymentForm = ({ onClose }) => {
                     </div>
                   </div>
                   <div>
-                    <span className="text-blue-600 font-medium">Total Fee:</span>
+                    <span className="text-blue-600 font-medium">Base Amount:</span>
                     <div className="font-semibold mt-1">{formatCurrency(selectedEnrollment.totalAmount)}</div>
+                  </div>
+                  {(selectedEnrollment.charges > 0) && (
+                    <div>
+                      <span className="text-blue-600 font-medium">Late Fees:</span>
+                      <div className="font-semibold mt-1 text-orange-600">{formatCurrency(selectedEnrollment.charges)}</div>
+                    </div>
+                  )}
+                  {(selectedEnrollment.admissionRegistrationPayment > 0) && (
+                    <div>
+                      <span className="text-blue-600 font-medium">Registration Fees:</span>
+                      <div className="font-semibold mt-1 text-purple-600">{formatCurrency(selectedEnrollment.admissionRegistrationPayment)}</div>
+                    </div>
+                  )}
+                  <div>
+                    <span className="text-blue-600 font-medium">Total Amount:</span>
+                    <div className="font-semibold mt-1 text-gray-900">{formatCurrency(calculateActualTotal(selectedEnrollment))}</div>
                   </div>
                   <div>
                     <span className="text-blue-600 font-medium">Amount Received:</span>
@@ -272,12 +289,12 @@ const PaymentForm = ({ onClose }) => {
                   <div>
                     <span className="text-blue-600 font-medium">Pending Amount:</span>
                     <div className="font-semibold mt-1 text-red-600">
-                      {formatCurrency(selectedEnrollment.pendingAmount)}
+                      {formatCurrency(calculateActualPending(selectedEnrollment))}
                     </div>
                   </div>
                   
                   {/* Next EMI Details for Installment Payments */}
-                  {selectedEnrollment.feeType === 'Installment' && (
+                  {selectedEnrollment.feeType === 'installment' && (
                     <>
                       <div>
                         <span className="text-blue-600 font-medium">Next EMI Amount:</span>
@@ -327,14 +344,37 @@ const PaymentForm = ({ onClose }) => {
                 )}
               </div>
               {errors.amountReceived && <p className="text-red-500 text-xs mt-1">{errors.amountReceived}</p>}
-              {selectedEnrollment?.feeType === 'Installment' && !isAmountAutoSet && (
+              {selectedEnrollment?.feeType === 'installment' && !isAmountAutoSet && (
                 <p className="text-yellow-600 text-xs mt-1">
                   💡 For installment payments, the amount should match the next EMI amount
                 </p>
               )}
             </div>
 
-            {/* Fee Type */}
+            {/* EMI Number - Show only for installment enrollments */}
+            {selectedEnrollment?.feeType === 'installment' && (
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  EMI Number *
+                </label>
+                <select
+                  name="emiNumber"
+                  value={formData.emiNumber}
+                  onChange={handleChange}
+                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    errors.emiNumber ? 'border-red-500' : 'border-gray-300'
+                  }`}
+                >
+                  <option value="">Select EMI</option>
+                  <option value="first">First EMI</option>
+                  <option value="second">Second EMI</option>
+                  <option value="third">Third EMI</option>
+                </select>
+                {errors.emiNumber && <p className="text-red-500 text-xs mt-1">{errors.emiNumber}</p>}
+              </div>
+            )}
+
+            {/* Fee Type - now using correct backend enum values */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Fee Type *
@@ -346,9 +386,9 @@ const PaymentForm = ({ onClose }) => {
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="registration">Registration Fee</option>
-                <option value="admission">Admission fees</option>
-                <option value="emi1">EMI 1</option>
-                <option value="emi2">EMI 2</option>
+                <option value="tuition">Tuition Fee</option>
+                <option value="exam">Exam Fee</option>
+                <option value="other">Other</option>
               </select>
             </div>
 
@@ -501,10 +541,13 @@ const PaymentForm = ({ onClose }) => {
               <div>
                 <h4 className="font-semibold text-yellow-800">Important Note</h4>
                 <p className="text-yellow-700 text-sm mt-1">
+                  <strong>Total Amount Calculation:</strong> Total Amount = Base Amount + Late Fees + Registration Fees
+                </p>
+                <p className="text-yellow-700 text-sm mt-1">
                   All payments recorded will be pending admin approval. The amount will be reflected in the enrollment 
                   only after admin approval. Please ensure all details are accurate.
                 </p>
-                {selectedEnrollment?.feeType === 'Installment' && (
+                {selectedEnrollment?.feeType === 'installment' && (
                   <p className="text-yellow-700 text-sm mt-2">
                     <strong>For Installment Payments:</strong> The amount is automatically set to match the next EMI amount. 
                     If you change this amount, it must match the next EMI amount exactly.

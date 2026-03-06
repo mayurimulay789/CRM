@@ -374,7 +374,8 @@ const EnrollmentForm = ({ enrollment, onClose, isCounsellor = true, counsellorId
       leadDate: formData.leadDate ? new Date(formData.leadDate) : new Date(),
       leadSource: formData.leadSource,
       call: formData.call,
-      status: formData.status
+      status: formData.status,
+      admissionRegistrationPayment: parseFloat(formData.admissionRegistrationPayment) || 0
     };
 
     // Add counsellor for new enrollments
@@ -719,7 +720,8 @@ const EnrollmentForm = ({ enrollment, onClose, isCounsellor = true, counsellorId
                     </div>
           <div className="mt-4">
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              late fees
+
+              Late Fees
             </label>
             <input
               type="number"

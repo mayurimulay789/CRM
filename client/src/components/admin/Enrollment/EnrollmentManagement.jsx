@@ -8,7 +8,7 @@ import {
   clearError,
   clearSuccess 
 } from '../../../store/slices/enrollmentSlice';
-import AdminEnrollmentForm from './EnrollmentForm';
+import EnrollmentForm from './EnrollmentForm';
 
 const EnrollmentManagement = () => {
   const dispatch = useDispatch();
@@ -24,8 +24,6 @@ const EnrollmentManagement = () => {
   const [editingEnrollment, setEditingEnrollment] = useState(null);
   const [filterStatus, setFilterStatus] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCounsellor, setSelectedCounsellor] = useState('all');
-  const [selectedBranch, setSelectedBranch] = useState('all');
   const [showFilterMenu, setShowFilterMenu] = useState(false);
   const [showColumnsMenu, setShowColumnsMenu] = useState(false);
 
@@ -51,18 +49,19 @@ const EnrollmentManagement = () => {
     { key: 'timing', label: 'Timing', visible: true },
     { key: 'trainingBranch', label: 'Branch', visible: true },
     { key: 'mode', label: 'Mode', visible: true },
-    { key: 'counsellor', label: 'Counsellor', visible: true },
+    { key: 'counsellor', label: 'Counsellor', visible: true},
     { key: 'status', label: 'Status', visible: true },
     { key: 'feeStatus', label: 'Fee Status', visible: true },
     { key: 'feeType', label: 'Fee Type', visible: true },
     { key: 'totalAmount', label: 'Total Amount', visible: true },
     { key: 'amountReceived', label: 'Amount Received', visible: true },
     { key: 'pendingAmount', label: 'Pending Amount', visible: true },
+    { key: 'admissionRegistrationPayment', label: 'Registration Payment', visible: true },
     { key: 'enrollmentDate', label: 'Enrollment Date', visible: true },
-    { key: 'charges', label: 'Charges', visible: true },
+    { key: 'charges', label: 'Late Fees', visible: true },
     { key: 'dueDate', label: 'Due Date', visible: false },
     { key: 'paymentMode', label: 'Payment Mode', visible: false },
-    { key: 'notes', label: 'Notes', visible: false },
+    { key: 'notes', label: 'Notes', visible: false },  
     { key: '1stEmiAmount', label: '1st EMI', visible: false },
     { key: '1stEmiDate', label: '1st EMI Date', visible: false },
     { key: '1stEmiStatus', label: '1st EMI Status', visible: false },
@@ -80,23 +79,10 @@ const EnrollmentManagement = () => {
 
   const [columns, setColumns] = useState(allColumns);
 
-  // Get unique counsellors and branches for admin filters
-  const counsellors = [...new Set(enrollments
-    .filter(e => e.counsellor)
-    .map(e => typeof e.counsellor === 'object' ? e.counsellor : null)
-    .filter(Boolean)
-    .map(c => ({ _id: c._id, name: c.name }))
-  )];
-
-  const branches = [...new Set(enrollments
-    .map(e => e.trainingBranch)
-    .filter(Boolean)
-  )];
-
   useEffect(() => {
-    console.log('🔄 Admin: Fetching all enrollments');
+    console.log('🔄 Fetching enrollments for user:', user);
     dispatch(fetchEnrollments());
-  }, [dispatch]);
+  }, [dispatch, user?._id]);
 
   useEffect(() => {
     if (success && !showForm) {
@@ -119,7 +105,7 @@ const EnrollmentManagement = () => {
   // Reset to first page when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [filterStatus, searchTerm, selectedCounsellor, selectedBranch]);
+  }, [filterStatus, searchTerm]);
 
   // Fixed click outside detection
   useEffect(() => {
@@ -148,6 +134,13 @@ const EnrollmentManagement = () => {
   }, [showFilterMenu, showColumnsMenu]);
 
   const handleEdit = (enrollment) => {
+    // Verify ownership before editing (for counsellors)
+    if (user?.role === 'counsellor' && 
+        enrollment.counsellor?._id !== user?._id && 
+        enrollment.counsellor !== user?._id) {
+      alert('You are not authorized to edit this enrollment');
+      return;
+    }
     setEditingEnrollment(enrollment);
     setShowForm(true);
   };
@@ -262,8 +255,6 @@ const EnrollmentManagement = () => {
 
   const getCounsellorName = (enrollment) => {
     try {
-
-      console.log("******************",enrollment);
       if (!enrollment?.counsellor) return 'N/A';
       if (typeof enrollment.counsellor === 'string') return enrollment.counsellor;
       return enrollment.counsellor.FullName || 'N/A';
@@ -279,9 +270,7 @@ const EnrollmentManagement = () => {
       inactive: { color: 'bg-gray-100 text-gray-800', label: 'Inactive' },
       dropout: { color: 'bg-red-100 text-red-800', label: 'Dropout' },
       completed: { color: 'bg-blue-100 text-blue-800', label: 'Completed' },
-      on_hold: { color: 'bg-yellow-100 text-yellow-800', label: 'On Hold' },
-      cancelled: { color: 'bg-red-100 text-red-800', label: 'Cancelled' },
-      notattending: { color: 'bg-orange-100 text-orange-800', label: 'Not Attending' }
+      on_hold: { color: 'bg-yellow-100 text-yellow-800', label: 'On Hold' }
     };
 
     const config = statusConfig[status] || statusConfig.active;
@@ -329,11 +318,24 @@ const EnrollmentManagement = () => {
     return enrollment.nextEMI || { amount: 0, date: null, status: 'pending' };
   };
 
+  // Check if EMI should be displayed based on feeType
+  const shouldDisplayEMI = (enrollment) => {
+    return enrollment.feeType !== 'one-time';
+  };
+
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
       currency: 'INR'
     }).format(amount || 0);
+  };
+
+  // Calculate actual total including late fees and registration fees
+  const calculateActualTotal = (enrollment) => {
+    const baseAmount = enrollment.totalAmount || 0;
+    const lateFees = enrollment.charges || 0;
+    const registrationFees = enrollment.admissionRegistrationPayment || 0;
+    return baseAmount + lateFees + registrationFees;
   };
 
   const formatDate = (dateString) => {
@@ -352,13 +354,18 @@ const EnrollmentManagement = () => {
     return `${text.substring(0, maxLength)}...`;
   };
 
-  // Filter enrollments based on admin filters
+  // Filter enrollments based on role, status and search term
   const filteredEnrollments = enrollments.filter(enrollment => {
+    // For counsellors, only show their enrollments
+    if (user?.role === 'counsellor') {
+      const isOwnEnrollment = 
+        enrollment.counsellor?._id === user?._id || 
+        enrollment.counsellor === user?._id;
+      
+      if (!isOwnEnrollment) return false;
+    }
+    
     const matchesStatus = filterStatus === 'all' || enrollment.status === filterStatus;
-    const matchesCounsellor = selectedCounsellor === 'all' || 
-      (enrollment.counsellor && 
-       (enrollment.counsellor._id === selectedCounsellor || enrollment.counsellor === selectedCounsellor));
-    const matchesBranch = selectedBranch === 'all' || enrollment.trainingBranch === selectedBranch;
     
     const matchesSearch = 
       enrollment.enrollmentNo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -367,7 +374,7 @@ const EnrollmentManagement = () => {
       getBatchName(enrollment).toLowerCase().includes(searchTerm.toLowerCase()) ||
       getCounsellorName(enrollment).toLowerCase().includes(searchTerm.toLowerCase());
 
-    return matchesStatus && matchesCounsellor && matchesBranch && matchesSearch;
+    return matchesStatus && matchesSearch;
   });
 
   // Pagination logic
@@ -414,25 +421,35 @@ const EnrollmentManagement = () => {
     return pageNumbers;
   };
 
-  // Statistics for admin - ALL ENROLLMENTS
+  // Get user-specific enrollments for statistics
+  const userEnrollments = user?.role === 'counsellor' 
+    ? enrollments.filter(enrollment => 
+        enrollment.counsellor?._id === user?._id || enrollment.counsellor === user?._id
+      )
+    : enrollments;
+
+  // Statistics based on user's enrollments
   const enrollmentStats = {
-    total: enrollments.length,
-    active: enrollments.filter(e => e.status === 'active').length,
-    completed: enrollments.filter(e => e.status === 'completed').length,
-    pendingPayments: enrollments.filter(e => e.pendingAmount > 0).length,
-    totalRevenue: enrollments.reduce((sum, e) => sum + (e.amountReceived || 0), 0),
-    totalPending: enrollments.reduce((sum, e) => sum + (e.pendingAmount || 0), 0)
+    total: userEnrollments.length,
+    active: userEnrollments.filter(e => e.status === 'active').length,
+    completed: userEnrollments.filter(e => e.status === 'completed').length,
+    pendingPayments: userEnrollments.filter(e => e.pendingAmount > 0).length,
+    totalRevenue: userEnrollments.reduce((sum, e) => sum + (e.amountReceived || 0), 0)
   };
 
-  // Check if enrollment can be deleted (only if no payments) - ADMIN CAN DELETE ANY
+  // Check if enrollment can be deleted by counsellor
   const canDeleteEnrollment = (enrollment) => {
-    return enrollment.amountReceived === 0;
+    if (user?.role !== 'counsellor') return false;
+    
+    const isOwnEnrollment = 
+      enrollment.counsellor?._id === user?._id || 
+      enrollment.counsellor === user?._id;
+    
+    return isOwnEnrollment && enrollment.amountReceived === 0;
   };
 
   const resetFilters = () => {
     setFilterStatus('all');
-    setSelectedCounsellor('all');
-    setSelectedBranch('all');
     setSearchTerm('');
   };
 
@@ -451,8 +468,17 @@ const EnrollmentManagement = () => {
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center space-y-4 lg:space-y-0">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center w-full lg:w-auto space-y-4 sm:space-y-0 sm:space-x-4">
             <div className="flex-1">
-              <h1 className="text-xl lg:text-2xl font-bold text-gray-800">Enrollment Management</h1>
-              {/* Admin Stats */}
+              <h1 className="text-xl lg:text-2xl font-bold text-gray-800">
+                {user?.role === 'counsellor' ? 'Enrollment Management' : 'Enrollment Management'}
+              </h1>
+              <p className="text-gray-600 text-sm lg:text-base">
+                {user?.role === 'counsellor' 
+                  ? 'Manage your student enrollments' 
+                  : 'Manage all system enrollments'
+                }
+              </p>
+              
+              {/* User Stats */}
               <div className="flex flex-wrap gap-2 mt-2">
                 <div className="text-xs bg-blue-50 px-2 py-1 rounded-full">
                   <span className="font-semibold text-blue-700">Total: {enrollmentStats.total}</span>
@@ -505,64 +531,28 @@ const EnrollmentManagement = () => {
               {showFilterMenu && (
                 <div 
                   ref={filterMenuRef}
-                  className="absolute right-0 mt-2 w-72 lg:w-80 bg-white border border-gray-200 rounded-lg shadow-xl z-50"
+                  className="absolute right-0 mt-2 w-64 lg:w-72 bg-white border border-gray-200 rounded-lg shadow-xl z-50"
                 >
                   <div className="p-4">
-                    <h3 className="font-semibold text-gray-800 mb-3 text-sm lg:text-base">Filter Enrollments</h3>
+                    <h3 className="font-semibold text-gray-800 mb-3 text-sm lg:text-base">Filter by Status</h3>
+                    <div className="space-y-2">
+                      {['all', 'active', 'completed', 'on_hold', 'inactive', 'dropout'].map(status => (
+                        <label key={status} className="flex items-center space-x-2 cursor-pointer">
+                          <input
+                            type="radio"
+                            name="status"
+                            value={status}
+                            checked={filterStatus === status}
+                            onChange={(e) => setFilterStatus(e.target.value)}
+                            className="text-blue-500 focus:ring-blue-500"
+                          />
+                          <span className="capitalize text-sm">
+                            {status === 'all' ? 'All Status' : status.replace('_', ' ')}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
                     
-                    {/* Status Filter */}
-                    <div className="mb-3">
-                      <label className="block text-xs lg:text-sm font-medium text-gray-700 mb-2">Status</label>
-                      <select
-                        value={filterStatus}
-                        onChange={(e) => setFilterStatus(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                      >
-                        <option value="all">All Status</option>
-                        <option value="active">Active</option>
-                        <option value="completed">Completed</option>
-                        <option value="on_hold">On Hold</option>
-                        <option value="inactive">Inactive</option>
-                        <option value="dropout">Dropout</option>
-                        <option value="cancelled">Cancelled</option>
-                        <option value="notattending">Not Attending</option>
-                      </select>
-                    </div>
-
-                    {/* Counsellor Filter */}
-                    <div className="mb-3">
-                      <label className="block text-xs lg:text-sm font-medium text-gray-700 mb-2">Counsellor</label>
-                      <select
-                        value={selectedCounsellor}
-                        onChange={(e) => setSelectedCounsellor(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                      >
-                        <option value="all">All Counsellors</option>
-                        {counsellors.map(counsellor => (
-                          <option key={counsellor._id} value={counsellor._id}>
-                            {counsellor.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    {/* Branch Filter */}
-                    <div className="mb-3">
-                      <label className="block text-xs lg:text-sm font-medium text-gray-700 mb-2">Branch</label>
-                      <select
-                        value={selectedBranch}
-                        onChange={(e) => setSelectedBranch(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                      >
-                        <option value="all">All Branches</option>
-                        {branches.map(branch => (
-                          <option key={branch} value={branch}>
-                            {branch}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
                     <div className="mt-4 pt-3 border-t border-gray-200">
                       <h3 className="font-semibold text-gray-800 mb-3 text-sm lg:text-base">Search</h3>
                       <input
@@ -690,22 +680,12 @@ const EnrollmentManagement = () => {
         )}
 
         {/* Active Filters Display */}
-        {(filterStatus !== 'all' || selectedCounsellor !== 'all' || selectedBranch !== 'all' || searchTerm) && (
+        {(filterStatus !== 'all' || searchTerm) && (
           <div className="mt-3 flex flex-wrap gap-2">
             <span className="text-xs text-gray-600">Active filters:</span>
             {filterStatus !== 'all' && (
               <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
                 Status: {filterStatus}
-              </span>
-            )}
-            {selectedCounsellor !== 'all' && (
-              <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
-                Counsellor: {counsellors.find(c => c._id === selectedCounsellor)?.name}
-              </span>
-            )}
-            {selectedBranch !== 'all' && (
-              <span className="bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded-full">
-                Branch: {selectedBranch}
               </span>
             )}
             {searchTerm && (
@@ -757,19 +737,8 @@ const EnrollmentManagement = () => {
                             {enrollments.length === 0 ? 'No enrollments found' : 'No matching enrollments'}
                           </p>
                           <p className="text-xs lg:text-sm">
-                            {enrollments.length === 0 
-                              ? 'Get started by creating your first enrollment' 
-                              : 'Try adjusting your filters or search terms.'
-                            }
+                            {enrollments.length === 0 ? 'Get started by creating your first enrollment' : 'Try adjusting your filters or search terms.'}
                           </p>
-                          {searchTerm && (
-                            <button
-                              onClick={() => setSearchTerm('')}
-                              className="mt-3 text-blue-500 hover:text-blue-700 text-sm"
-                            >
-                              Clear search
-                            </button>
-                          )}
                         </div>
                       </td>
                     </tr>
@@ -787,14 +756,18 @@ const EnrollmentManagement = () => {
                           // Common cell styling
                           const baseCellClasses = "px-2 lg:px-4 py-2 lg:py-3 text-xs lg:text-sm border-b border-gray-200";
                           const canDelete = canDeleteEnrollment(enrollment);
+                          const displayEMI = shouldDisplayEMI(enrollment);
                           
                           switch (column.key) {
+<<<<<<< HEAD
                                                         case 'admissionRegistrationPayment':
                                                           return (
                                                             <td key={column.key} className={`${baseCellClasses} text-gray-700 text-center whitespace-nowrap`}>
                                                               ₹{enrollment.admissionRegistrationPayment != null ? enrollment.admissionRegistrationPayment : 0}
                                                             </td>
                                                           );
+=======
+>>>>>>> mrunal-corrections
                             case 'enrollmentNo':
                               return (
                                 <td key={column.key} className={`${baseCellClasses} font-semibold text-gray-900 whitespace-nowrap`}>
@@ -875,7 +848,7 @@ const EnrollmentManagement = () => {
                                   </span>
                                   {enrollment.pendingAmount > 0 && (
                                     <div className="text-xs text-gray-500 mt-1 hidden lg:block">
-                                      Due: {formatCurrency(enrollment.pendingAmount)}
+                                      Due: {formatCurrency(calculateActualTotal(enrollment) - (enrollment.amountReceived || 0))}
                                     </div>
                                   )}
                                 </td>
@@ -887,9 +860,10 @@ const EnrollmentManagement = () => {
                                 </td>
                               );
                             case 'totalAmount':
+                              const actualTotal = calculateActualTotal(enrollment);
                               return (
-                                <td key={column.key} className={`${baseCellClasses} text-gray-900 font-semibold whitespace-nowrap`}>
-                                  {formatCurrency(enrollment.totalAmount)}
+                                <td key={column.key} className={`${baseCellClasses} text-gray-900 font-semibold whitespace-nowrap`} title={`Base: ${formatCurrency(enrollment.totalAmount)} + Late Fees: ${formatCurrency(enrollment.charges || 0)} + Registration: ${formatCurrency(enrollment.admissionRegistrationPayment || 0)}`}>
+                                  {formatCurrency(actualTotal)}
                                 </td>
                               );
                             case 'amountReceived':
@@ -899,15 +873,22 @@ const EnrollmentManagement = () => {
                                 </td>
                               );
                             case 'pendingAmount':
+                              const actualPending = calculateActualTotal(enrollment) - (enrollment.amountReceived || 0);
                               return (
                                 <td key={column.key} className={`${baseCellClasses} text-red-600 font-semibold whitespace-nowrap`}>
-                                  {formatCurrency(enrollment.pendingAmount)}
+                                  {formatCurrency(actualPending)}
                                 </td>
                               );
                             case 'charges':
                               return (
-                                <td key={column.key} className={`${baseCellClasses} text-red-600 font-semibold whitespace-nowrap`}>
+                                <td key={column.key} className={`${baseCellClasses} text-green-600 font-semibold whitespace-nowrap`}>
                                   {formatCurrency(enrollment.charges)}
+                                </td>
+                              );
+                            case 'admissionRegistrationPayment':
+                              return (
+                                <td key={column.key} className={`${baseCellClasses} text-green-600 font-semibold whitespace-nowrap`}>
+                                  {formatCurrency(enrollment.admissionRegistrationPayment || 0)}
                                 </td>
                               );
                             case 'enrollmentDate':
@@ -935,6 +916,11 @@ const EnrollmentManagement = () => {
                                 </td>
                               );
                             case '1stEmiAmount':
+                              if (!displayEMI) return (
+                                <td key={column.key} className={`${baseCellClasses} text-gray-500 whitespace-nowrap`}>
+                                  -
+                                </td>
+                              );
                               const firstEMI = getFirstEMI(enrollment);
                               return (
                                 <td key={column.key} className={`${baseCellClasses} text-gray-900 font-semibold whitespace-nowrap`}>
@@ -942,6 +928,11 @@ const EnrollmentManagement = () => {
                                 </td>
                               );
                             case '1stEmiDate':
+                              if (!displayEMI) return (
+                                <td key={column.key} className={`${baseCellClasses} text-gray-500 whitespace-nowrap`}>
+                                  -
+                                </td>
+                              );
                               const firstEMIDate = getFirstEMI(enrollment);
                               return (
                                 <td key={column.key} className={`${baseCellClasses} text-gray-500 whitespace-nowrap`}>
@@ -949,6 +940,11 @@ const EnrollmentManagement = () => {
                                 </td>
                               );
                             case '1stEmiStatus':
+                              if (!displayEMI) return (
+                                <td key={column.key} className={`${baseCellClasses} text-center`}>
+                                  -
+                                </td>
+                              );
                               const firstEMIStatus = getFirstEMI(enrollment);
                               return (
                                 <td key={column.key} className={`${baseCellClasses} text-center`}>
@@ -958,6 +954,11 @@ const EnrollmentManagement = () => {
                                 </td>
                               );
                             case '2ndEmiAmount':
+                              if (!displayEMI) return (
+                                <td key={column.key} className={`${baseCellClasses} text-gray-500 whitespace-nowrap`}>
+                                  -
+                                </td>
+                              );
                               const secondEMI = getSecondEMI(enrollment);
                               return (
                                 <td key={column.key} className={`${baseCellClasses} text-gray-900 font-semibold whitespace-nowrap`}>
@@ -965,6 +966,11 @@ const EnrollmentManagement = () => {
                                 </td>
                               );
                             case '2ndEmiDate':
+                              if (!displayEMI) return (
+                                <td key={column.key} className={`${baseCellClasses} text-gray-500 whitespace-nowrap`}>
+                                  -
+                                </td>
+                              );
                               const secondEMIDate = getSecondEMI(enrollment);
                               return (
                                 <td key={column.key} className={`${baseCellClasses} text-gray-500 whitespace-nowrap`}>
@@ -972,6 +978,11 @@ const EnrollmentManagement = () => {
                                 </td>
                               );
                             case '2ndEmiStatus':
+                              if (!displayEMI) return (
+                                <td key={column.key} className={`${baseCellClasses} text-center`}>
+                                  -
+                                </td>
+                              );
                               const secondEMIStatus = getSecondEMI(enrollment);
                               return (
                                 <td key={column.key} className={`${baseCellClasses} text-center`}>
@@ -981,6 +992,11 @@ const EnrollmentManagement = () => {
                                 </td>
                               );
                             case '3rdEmiAmount':
+                              if (!displayEMI) return (
+                                <td key={column.key} className={`${baseCellClasses} text-gray-500 whitespace-nowrap`}>
+                                  -
+                                </td>
+                              );
                               const thirdEMI = getThirdEMI(enrollment);
                               return (
                                 <td key={column.key} className={`${baseCellClasses} text-gray-900 font-semibold whitespace-nowrap`}>
@@ -988,6 +1004,11 @@ const EnrollmentManagement = () => {
                                 </td>
                               );
                             case '3rdEmiDate':
+                              if (!displayEMI) return (
+                                <td key={column.key} className={`${baseCellClasses} text-gray-500 whitespace-nowrap`}>
+                                  -
+                                </td>
+                              );
                               const thirdEMIDate = getThirdEMI(enrollment);
                               return (
                                 <td key={column.key} className={`${baseCellClasses} text-gray-500 whitespace-nowrap`}>
@@ -995,6 +1016,11 @@ const EnrollmentManagement = () => {
                                 </td>
                               );
                             case '3rdEmiStatus':
+                              if (!displayEMI) return (
+                                <td key={column.key} className={`${baseCellClasses} text-center`}>
+                                  -
+                                </td>
+                              );
                               const thirdEMIStatus = getThirdEMI(enrollment);
                               return (
                                 <td key={column.key} className={`${baseCellClasses} text-center`}>
@@ -1004,6 +1030,11 @@ const EnrollmentManagement = () => {
                                 </td>
                               );
                             case 'nextEmiAmount':
+                              if (!displayEMI) return (
+                                <td key={column.key} className={`${baseCellClasses} text-gray-500 whitespace-nowrap`}>
+                                  -
+                                </td>
+                              );
                               const nextEMI = getNextEMI(enrollment);
                               return (
                                 <td key={column.key} className={`${baseCellClasses} text-gray-900 font-semibold whitespace-nowrap`}>
@@ -1011,6 +1042,11 @@ const EnrollmentManagement = () => {
                                 </td>
                               );
                             case 'nextEmiDate':
+                              if (!displayEMI) return (
+                                <td key={column.key} className={`${baseCellClasses} text-gray-500 whitespace-nowrap`}>
+                                  -
+                                </td>
+                              );
                               const nextEMIDate = getNextEMI(enrollment);
                               return (
                                 <td key={column.key} className={`${baseCellClasses} text-gray-500 whitespace-nowrap`}>
@@ -1018,6 +1054,11 @@ const EnrollmentManagement = () => {
                                 </td>
                               );
                             case 'nextEmiStatus':
+                              if (!displayEMI) return (
+                                <td key={column.key} className={`${baseCellClasses} text-center`}>
+                                  -
+                                </td>
+                              );
                               const nextEMIStatus = getNextEMI(enrollment);
                               return (
                                 <td key={column.key} className={`${baseCellClasses} text-center`}>
@@ -1037,15 +1078,13 @@ const EnrollmentManagement = () => {
                                     >
                                       Edit
                                     </button>
-                                    {canDelete && (
-                                      <button 
-                                        onClick={() => handleDelete(enrollment._id)} 
-                                        className="text-red-600 hover:text-red-900 px-1 lg:px-2 py-1 rounded hover:bg-red-50 transition-colors border border-red-200 text-xs w-full lg:w-auto" 
-                                        title="Delete Enrollment"
-                                      >
-                                        Delete
-                                      </button>
-                                    )}
+                                    <button 
+                                      onClick={() => handleDelete(enrollment._id)} 
+                                      className="text-red-600 hover:text-red-900 px-1 lg:px-2 py-1 rounded hover:bg-red-50 transition-colors border border-red-200 text-xs w-full lg:w-auto" 
+                                      title="Delete Enrollment"
+                                    >
+                                      Delete
+                                    </button>
                                   </div>
                                 </td>
                               );
@@ -1125,7 +1164,7 @@ const EnrollmentManagement = () => {
 
                 {/* Total Records */}
                 <div className="text-xs lg:text-sm text-gray-500">
-                  Total: {enrollments.length} enrollments • 
+                  Total: {userEnrollments.length} {user?.role === 'counsellor' ? 'your' : ''} enrollments • 
                   Revenue: {formatCurrency(enrollmentStats.totalRevenue)}
                 </div>
               </div>
@@ -1145,10 +1184,11 @@ const EnrollmentManagement = () => {
                 </h2>
                 <button onClick={handleCloseForm} className="text-gray-400 hover:text-gray-600 text-2xl">×</button>
               </div>
-              <AdminEnrollmentForm 
+              <EnrollmentForm 
                 enrollment={editingEnrollment} 
                 onClose={handleCloseForm}
-                isAdmin={true}
+                isCounsellor={user?.role === 'counsellor'}
+                counsellorId={user?.role === 'counsellor' ? user?._id : null}
               />
             </div>
           </div>

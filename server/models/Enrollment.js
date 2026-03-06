@@ -22,7 +22,7 @@ const emiSchema = new mongoose.Schema({
 const studentActivitySchema = new mongoose.Schema({
   type: {
     type: String,
-    enum: ['fee_delay', 'course_change', 'status_update', 'note', 'call', 'payment_recorded', 'payment_approved', 'payment_rejected', 'late_fee_applied'],
+    enum: ['fee_delay', 'course_change', 'status_update', 'note', 'call', 'payment_recorded', 'payment_approved', 'payment_rejected'],
     required: true
   },
   description: String,
@@ -93,7 +93,7 @@ const enrollmentSchema = new mongoose.Schema({
     default: 'active'
   },
   
-  // Fee Details
+  // Fee Details - CLEANED VERSION (actualAmount removed)
   totalAmount: {
     type: Number,
     required: true
@@ -113,44 +113,18 @@ const enrollmentSchema = new mongoose.Schema({
   pendingAmount: {
     type: Number,
     default: function() {
-      return (this.totalAmount - this.discount) - this.amountReceived;
+      const actualTotal = (this.totalAmount || 0) + (this.charges || 0) + (this.admissionRegistrationPayment || 0);
+      return (actualTotal - (this.discount || 0)) - (this.amountReceived || 0);
     }
   },
-  lateFees: { // Changed from 'charges' to 'lateFees'
+  charges: {
     type: Number,
-    default: 0
-  },
-  totalLateFeesPaid: {
-    type: Number,
-    default: 0
-  },
-  totalLateFeesPending: {
-    type: Number,
-    default: 0
+    default: 0,
+    description: 'Late fees charged to the student for overdue payments'
   },
   upcomingEMIAmount: {
     type: Number,
     default: 0
-  },
-  
-  // Upfront Payment (New field)
-  upfrontPayment: {
-    amount: {
-      type: Number,
-      default: 0
-    },
-    date: {
-      type: Date
-    },
-    pending: {
-      type: Number,
-      default: 0
-    },
-    status: {
-      type: String,
-      enum: ['pending', 'paid', 'partial'],
-      default: 'pending'
-    }
   },
   
   // Fee Structure
@@ -219,18 +193,6 @@ enrollmentSchema.virtual('hasFeeDelay').get(function() {
   return false;
 });
 
-// Virtual for total amount including late fees
-enrollmentSchema.virtual('totalWithLateFees').get(function() {
-  return (this.totalAmount - this.discount) + this.lateFees;
-});
-
-// Virtual for net pending including late fees
-enrollmentSchema.virtual('netPendingAmount').get(function() {
-  const basePending = (this.totalAmount - this.discount) - this.amountReceived;
-  const lateFeesPending = this.lateFees - this.totalLateFeesPaid;
-  return basePending + lateFeesPending;
-});
-
 // Virtual for next EMI
 enrollmentSchema.virtual('nextEMI').get(function() {
   const today = new Date();
@@ -249,7 +211,7 @@ enrollmentSchema.virtual('approvedPayments', {
   match: { verificationStatus: 'approved' }
 });
 
-// Pre-save middleware to generate enrollment number and calculate amounts
+// Pre-save middleware to generate enrollment number
 enrollmentSchema.pre('save', async function(next) {
   if (this.isNew && !this.enrollmentNo) {
     const year = new Date().getFullYear();
@@ -263,23 +225,13 @@ enrollmentSchema.pre('save', async function(next) {
   }
   
   // Update pending amount based on approved payments
-  if (this.isModified('totalAmount') || this.isModified('discount') || this.isModified('amountReceived') || this.isModified('lateFees') || this.isModified('totalLateFeesPaid')) {
+  if (this.isModified('totalAmount') || this.isModified('discount') || this.isModified('amountReceived')) {
     this.pendingAmount = (this.totalAmount - this.discount) - this.amountReceived;
-    this.totalLateFeesPending = this.lateFees - this.totalLateFeesPaid;
   }
   
   // Update upcoming EMI amount
   const nextEMI = this.nextEMI;
   this.upcomingEMIAmount = nextEMI ? nextEMI.amount : 0;
-  
-  // Initialize upfront payment if not set
-  if (this.isNew && !this.upfrontPayment) {
-    this.upfrontPayment = {
-      amount: 0,
-      pending: 0,
-      status: 'pending'
-    };
-  }
   
   next();
 });
@@ -296,98 +248,30 @@ enrollmentSchema.methods.addActivity = function(type, description, createdBy, pa
   return this.save();
 };
 
-// Instance method to apply late fees
-enrollmentSchema.methods.applyLateFees = async function(amount, reason, appliedBy) {
-  this.lateFees += amount;
-  this.totalLateFeesPending = this.lateFees - this.totalLateFeesPaid;
-  
-  await this.addActivity(
-    'late_fee_applied',
-    `Late fee of ₹${amount} applied. Reason: ${reason}`,
-    appliedBy
-  );
-  
-  await this.save();
-  return this;
+// Helper method to calculate actual total including all fees
+enrollmentSchema.methods.calculateActualTotal = function() {
+  const baseAmount = this.totalAmount || 0;
+  const lateFees = this.charges || 0;
+  const registrationFees = this.admissionRegistrationPayment || 0;
+  return baseAmount + lateFees + registrationFees;
 };
 
-// Instance method to update after upfront payment
-enrollmentSchema.methods.updateAfterUpfrontPayment = async function(payment) {
-  // Update upfront payment details
-  this.upfrontPayment.amount = payment.amountReceived;
-  this.upfrontPayment.date = payment.date;
-  this.upfrontPayment.pending = 0;
-  this.upfrontPayment.status = 'paid';
-  
+// Helper method to calculate actual total including all fees
+enrollmentSchema.methods.calculateActualTotal = function() {
+  const baseAmount = this.totalAmount || 0;
+  const lateFees = this.charges || 0;
+  const registrationFees = this.admissionRegistrationPayment || 0;
+  return baseAmount + lateFees + registrationFees;
+};
+
+// Instance method to update enrollment after payment approval
+enrollmentSchema.methods.updateAfterPaymentApproval = async function(payment) {
   // Update amount received
   this.amountReceived += payment.amountReceived;
-  this.pendingAmount = (this.totalAmount - this.discount) - this.amountReceived;
   
-  // Update last payment details
-  this.lastTransactionNo = payment.transactionNo || payment.paymentNo;
-  this.lastPaidAmount = payment.amountReceived;
-  this.lastPaidDate = payment.date;
-  this.lastPaidMode = payment.paymentMode;
-  this.lastAmountReceivedBy = payment.receivedBy;
-  
-  await this.save();
-  await this.addActivity(
-    'payment_approved',
-    `Upfront payment of ₹${payment.amountReceived} approved`,
-    payment.verifiedBy,
-    payment._id
-  );
-  
-  return this;
-};
-
-// Instance method to update after late fee payment
-enrollmentSchema.methods.updateAfterLateFeePayment = async function(payment) {
-  // Update late fees paid
-  this.totalLateFeesPaid += payment.amountReceived;
-  this.totalLateFeesPending = this.lateFees - this.totalLateFeesPaid;
-  
-  // Update amount received (if payment is for both fee and late fee)
-  if (payment.feeType === 'fee_with_late') {
-    const feePortion = payment.amountReceived - payment.lateFeeAmount;
-    this.amountReceived += feePortion;
-  }
-  
-  this.pendingAmount = (this.totalAmount - this.discount) - this.amountReceived;
-  
-  // Update last payment details
-  this.lastTransactionNo = payment.transactionNo || payment.paymentNo;
-  this.lastPaidAmount = payment.amountReceived;
-  this.lastPaidDate = payment.date;
-  this.lastPaidMode = payment.paymentMode;
-  this.lastAmountReceivedBy = payment.receivedBy;
-  
-  await this.save();
-  await this.addActivity(
-    'payment_approved',
-    `Payment of ₹${payment.amountReceived} (including ₹${payment.lateFeeAmount || 0} late fee) approved`,
-    payment.verifiedBy,
-    payment._id
-  );
-  
-  return this;
-};
-
-// Instance method to update enrollment after payment approval (existing method updated)
-enrollmentSchema.methods.updateAfterPaymentApproval = async function(payment) {
-  // Check if payment includes late fee
-  if (payment.feeType === 'fee_with_late' && payment.lateFeeAmount) {
-    return this.updateAfterLateFeePayment(payment);
-  }
-  
-  // Check if payment is upfront payment
-  if (payment.paymentType === 'upfront') {
-    return this.updateAfterUpfrontPayment(payment);
-  }
-  
-  // Regular payment update
-  this.amountReceived += payment.amountReceived;
-  this.pendingAmount = (this.totalAmount - this.discount) - this.amountReceived;
+  // Calculate pending amount using actual total (including all fees)
+  const actualTotal = this.calculateActualTotal();
+  this.pendingAmount = (actualTotal - this.discount) - this.amountReceived;
   
   // Update last payment details
   this.lastTransactionNo = payment.transactionNo || payment.paymentNo;
@@ -416,28 +300,6 @@ enrollmentSchema.methods.updateAfterPaymentApproval = async function(payment) {
   );
   
   return this;
-};
-
-// Static method to find enrollments with late fees
-enrollmentSchema.statics.findWithLateFees = function() {
-  return this.find({
-    lateFees: { $gt: 0 },
-    totalLateFeesPending: { $gt: 0 }
-  })
-  .populate('student', 'studentId name email phone')
-  .populate('course', 'name')
-  .populate('counsellor', 'name email')
-  .sort({ dueDate: 1 });
-};
-
-// Static method to find enrollments with upfront payment
-enrollmentSchema.statics.findWithUpfrontPayment = function() {
-  return this.find({
-    'upfrontPayment.amount': { $gt: 0 }
-  })
-  .populate('student', 'studentId name email phone')
-  .populate('course', 'name')
-  .populate('counsellor', 'name email');
 };
 
 // Static method to find enrollments by status
@@ -498,12 +360,6 @@ enrollmentSchema.statics.getStatistics = async function(branch = null) {
         totalEnrollments: { $sum: 1 },
         totalRevenue: { $sum: '$totalApprovedAmount' },
         totalPending: { $sum: { $subtract: ['$totalAmount', '$totalApprovedAmount'] } },
-        totalLateFees: { $sum: '$lateFees' },
-        totalLateFeesPaid: { $sum: '$totalLateFeesPaid' },
-        totalLateFeesPending: { $sum: '$totalLateFeesPending' },
-        totalUpfrontPayments: { 
-          $sum: { $cond: [{ $gt: ['$upfrontPayment.amount', 0] }, 1, 0] } 
-        },
         activeEnrollments: {
           $sum: { $cond: [{ $eq: ['$status', 'active'] }, 1, 0] }
         },
@@ -558,10 +414,6 @@ enrollmentSchema.statics.getStatistics = async function(branch = null) {
       totalEnrollments: 0,
       totalRevenue: 0,
       totalPending: 0,
-      totalLateFees: 0,
-      totalLateFeesPaid: 0,
-      totalLateFeesPending: 0,
-      totalUpfrontPayments: 0,
       activeEnrollments: 0,
       completedEnrollments: 0
     }),

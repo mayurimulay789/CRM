@@ -39,7 +39,8 @@ const PaymentManagement = () => {
   } = useSelector(state => state.payments);
 
   const [showForm, setShowForm] = useState(false);
-  const [filterStatus, setFilterStatus] = useState('pending');
+  // FIX: Default filterStatus to 'all' so approved payments appear
+  const [filterStatus, setFilterStatus] = useState('all');
   const [filterBranch, setFilterBranch] = useState('all');
   const [filterCounsellor, setFilterCounsellor] = useState('all');
   const [filterMode, setFilterMode] = useState('all');
