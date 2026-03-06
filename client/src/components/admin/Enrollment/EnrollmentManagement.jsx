@@ -759,15 +759,14 @@ const EnrollmentManagement = () => {
                           const displayEMI = shouldDisplayEMI(enrollment);
                           
                           switch (column.key) {
-<<<<<<< HEAD
+
                                                         case 'admissionRegistrationPayment':
                                                           return (
                                                             <td key={column.key} className={`${baseCellClasses} text-gray-700 text-center whitespace-nowrap`}>
                                                               ₹{enrollment.admissionRegistrationPayment != null ? enrollment.admissionRegistrationPayment : 0}
                                                             </td>
                                                           );
-=======
->>>>>>> mrunal-corrections
+
                             case 'enrollmentNo':
                               return (
                                 <td key={column.key} className={`${baseCellClasses} font-semibold text-gray-900 whitespace-nowrap`}>

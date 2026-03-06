@@ -43,7 +43,7 @@ const EnrollmentManagement = () => {
     { key: 'student', label: 'Student', visible: true },
     { key: 'email', label: 'Email', visible: true },
     { key: 'phone', label: 'Phone', visible: true },
-    { key: 'course', label: 'Course Name', visible: true },
+    { key: 'course', label: 'Course', visible: true },
     { key: 'batch', label: 'Batch', visible: true },
     { key: 'timing', label: 'Timing', visible: true },
     { key: 'trainingBranch', label: 'Branch', visible: true },
