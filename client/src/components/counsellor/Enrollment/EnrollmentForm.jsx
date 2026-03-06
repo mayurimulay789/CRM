@@ -351,9 +351,9 @@ const EnrollmentForm = ({ enrollment, onClose, isCounsellor = true, counsellorId
       validateEMITotals();
     }
 
-    // additional charges validation
+    // late fees validation
     if (formData.charges && parseFloat(formData.charges) < 0) {
-      newErrors.charges = 'additional charges cannot be negative';
+      newErrors.charges = 'late fees cannot be negative';
     }
 
     setErrors(newErrors);
@@ -374,7 +374,8 @@ const EnrollmentForm = ({ enrollment, onClose, isCounsellor = true, counsellorId
       leadDate: formData.leadDate ? new Date(formData.leadDate) : new Date(),
       leadSource: formData.leadSource,
       call: formData.call,
-      status: formData.status
+      status: formData.status,
+      admissionRegistrationPayment: parseFloat(formData.admissionRegistrationPayment) || 0
     };
 
     // Add counsellor for new enrollments
@@ -691,7 +692,7 @@ const EnrollmentForm = ({ enrollment, onClose, isCounsellor = true, counsellorId
             </div>
           </div>
 
-          {/* additional charges */}
+          {/* late fees */}
                     {/* Admission Registration Payment */}
                     <div className="mt-4">
                       <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -719,7 +720,7 @@ const EnrollmentForm = ({ enrollment, onClose, isCounsellor = true, counsellorId
                     </div>
           <div className="mt-4">
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              additional charges
+              Late Fees
             </label>
             <input
               type="number"
@@ -730,7 +731,7 @@ const EnrollmentForm = ({ enrollment, onClose, isCounsellor = true, counsellorId
               className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                 errors.charges ? 'border-red-500' : 'border-gray-300'
               }`}
-              placeholder="Enter additional charges"
+              placeholder="Enter late fees"
               min="0"
               step="1"
             />

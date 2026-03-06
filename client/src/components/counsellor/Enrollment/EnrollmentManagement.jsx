@@ -55,8 +55,9 @@ const EnrollmentManagement = () => {
     { key: 'totalAmount', label: 'Total Amount', visible: true },
     { key: 'amountReceived', label: 'Amount Received', visible: true },
     { key: 'pendingAmount', label: 'Pending Amount', visible: true },
+    { key: 'admissionRegistrationPayment', label: 'Registration Payment', visible: true },
     { key: 'enrollmentDate', label: 'Enrollment Date', visible: true },
-    { key: 'charges', label: 'Charges', visible: true },
+    { key: 'charges', label: 'Late Fees', visible: true },
     { key: 'dueDate', label: 'Due Date', visible: false },
     { key: 'paymentMode', label: 'Payment Mode', visible: false },
     { key: 'notes', label: 'Notes', visible: false },  
@@ -758,12 +759,6 @@ const EnrollmentManagement = () => {
                           const displayEMI = shouldDisplayEMI(enrollment);
                           
                           switch (column.key) {
-                                                        case 'admissionRegistrationPayment':
-                                                          return (
-                                                            <td key={column.key} className={`${baseCellClasses} text-gray-700 whitespace-nowrap`}>
-                                                              ₹{enrollment.admissionRegistrationPayment != null ? enrollment.admissionRegistrationPayment : 0}
-                                                            </td>
-                                                          );
                             case 'enrollmentNo':
                               return (
                                 <td key={column.key} className={`${baseCellClasses} font-semibold text-gray-900 whitespace-nowrap`}>
@@ -875,8 +870,14 @@ const EnrollmentManagement = () => {
                               );
                             case 'charges':
                               return (
-                                <td key={column.key} className={`${baseCellClasses} text-red-600 font-semibold whitespace-nowrap`}>
+                                <td key={column.key} className={`${baseCellClasses} text-green-600 font-semibold whitespace-nowrap`}>
                                   {formatCurrency(enrollment.charges)}
+                                </td>
+                              );
+                            case 'admissionRegistrationPayment':
+                              return (
+                                <td key={column.key} className={`${baseCellClasses} text-green-600 font-semibold whitespace-nowrap`}>
+                                  {formatCurrency(enrollment.admissionRegistrationPayment || 0)}
                                 </td>
                               );
                             case 'enrollmentDate':

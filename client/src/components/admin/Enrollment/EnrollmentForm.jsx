@@ -8,23 +8,20 @@ import {
 } from '../../../store/slices/enrollmentSlice';
 import { fetchAdmissions } from '../../../store/slices/admissionSlice';
 import { getBatches } from '../../../store/slices/batchSlice';
-import { getAllCounsellors } from '../../../store/slices/authSlice'; // Import getAllCounsellors
 
-const EnrollmentForm = ({ enrollment, onClose, isAdmin = true }) => {
+const EnrollmentForm = ({ enrollment, onClose, isCounsellor = true, counsellorId = null }) => {
   const dispatch = useDispatch();
   const { operationLoading, error, success } = useSelector(state => state.enrollments);
   const { admissions } = useSelector(state => state.admissions);
   const { batches } = useSelector(state => state.batch);
-  // Use the same counsellors structure as in counsellor management
-  const { counsellors } = useSelector(state => state.auth); // Fixed: using counsellors from auth slice
   
   const [formData, setFormData] = useState({
     admission: '',
     batch: '',
     trainingBranch: '',
     mode: 'Offline',
+    actualAmount: '',
     totalAmount: '',
-    discount: 0,
     feeType: 'one-time',
     firstEMI: { amount: 0, date: '', pending: 0 },
     secondEMI: { amount: 0, date: '', pending: 0 },
@@ -35,7 +32,6 @@ const EnrollmentForm = ({ enrollment, onClose, isAdmin = true }) => {
     leadSource: 'website',
     call: '',
     status: 'active',
-    counsellor: '',
     admissionRegistrationPayment: 0
   });
 
@@ -44,10 +40,10 @@ const EnrollmentForm = ({ enrollment, onClose, isAdmin = true }) => {
   const [touched, setTouched] = useState({});
 
   useEffect(() => {
-    console.log('Admin Enrollment Form - Loading data...');
+    console.log('isCounsellor:', isCounsellor);
+    console.log('enrollment:', enrollment);
     dispatch(fetchAdmissions());
     dispatch(getBatches());
-    dispatch(getAllCounsellors()); // Fetch counsellors using the same mechanism
   }, [dispatch]);
 
   // Helper function to format date for input fields
@@ -56,7 +52,9 @@ const EnrollmentForm = ({ enrollment, onClose, isAdmin = true }) => {
     
     try {
       const date = new Date(dateString);
+      // Check if date is valid
       if (isNaN(date.getTime())) return '';
+      
       return date.toISOString().split('T')[0];
     } catch (error) {
       console.error('Date formatting error:', error);
@@ -73,7 +71,7 @@ const EnrollmentForm = ({ enrollment, onClose, isAdmin = true }) => {
         trainingBranch: enrollment.trainingBranch || '',
         mode: enrollment.mode || 'Offline',
         totalAmount: enrollment.totalAmount || '',
-        discount: enrollment.discount || 0,
+        actualAmount: enrollment.actualAmount || enrollment.totalAmount || '',
         feeType: enrollment.feeType || 'one-time',
         firstEMI: enrollment.firstEMI || { amount: 0, date: '', pending: 0 },
         secondEMI: enrollment.secondEMI || { amount: 0, date: '', pending: 0 },
@@ -84,9 +82,9 @@ const EnrollmentForm = ({ enrollment, onClose, isAdmin = true }) => {
         leadSource: enrollment.leadSource || 'website',
         call: enrollment.call || '',
         status: enrollment.status || 'active',
-        counsellor: enrollment.counsellor?._id || enrollment.counsellor || '',
         admissionRegistrationPayment: enrollment.admissionRegistrationPayment || 0
       });
+              // ...existing code...
     }
   }, [enrollment]);
 
@@ -115,15 +113,11 @@ const EnrollmentForm = ({ enrollment, onClose, isAdmin = true }) => {
         // For new enrollments, auto-populate from admission
         setFormData(prev => ({
           ...prev,
-          trainingBranch: admission.trainingBranch || prev.trainingBranch,
-          counsellor: admission.counsellor?._id || admission.counsellor || prev.counsellor
+          trainingBranch: admission.trainingBranch || prev.trainingBranch
         }));
       }
     }
   }, [formData.admission, admissions, enrollment]);
-
-  // Get counsellors list - using the same structure as counsellor management
-  const counsellorsList = counsellors?.list || []; // Access the list property from counsellors object
 
   const handleBlur = (field) => {
     setTouched(prev => ({ ...prev, [field]: true }));
@@ -137,6 +131,7 @@ const EnrollmentForm = ({ enrollment, onClose, isAdmin = true }) => {
       [name]: value
     }));
 
+    // Validate field immediately after change if it's been touched before
     if (touched[name]) {
       validateField(name, value);
     }
@@ -152,29 +147,15 @@ const EnrollmentForm = ({ enrollment, onClose, isAdmin = true }) => {
       [emiIndex]: {
         ...prev[emiIndex],
         [field]: value,
+        // For amount changes, update pending amount
         ...(field === 'amount' && { pending: parseFloat(value) || 0 })
       }
     }));
 
+    // Validate EMI totals if any EMI field is changed
     if (touched.totalAmount || touched.feeType) {
       validateEMITotals();
     }
-  };
-
-  const handleDiscountChange = (e) => {
-    const discount = parseFloat(e.target.value) || 0;
-    const totalAmount = parseFloat(formData.totalAmount) || 0;
-    
-    if (discount > totalAmount) {
-      setErrors(prev => ({ ...prev, discount: 'Discount cannot exceed total amount' }));
-      return;
-    }
-
-    setErrors(prev => ({ ...prev, discount: '' }));
-    setFormData(prev => ({
-      ...prev,
-      discount: discount
-    }));
   };
 
   const validateField = (fieldName, value) => {
@@ -216,21 +197,10 @@ const EnrollmentForm = ({ enrollment, onClose, isAdmin = true }) => {
           newErrors.totalAmount = 'Total amount cannot exceed ₹10,00,000';
         } else {
           delete newErrors.totalAmount;
+          // Revalidate EMI totals if total amount changes
           if (formData.feeType === 'installment') {
             validateEMITotals();
           }
-          // Validate discount against new total
-          if (formData.discount > parseFloat(value)) {
-            newErrors.discount = 'Discount cannot exceed total amount';
-          }
-        }
-        break;
-
-      case 'counsellor':
-        if (!value) {
-          newErrors.counsellor = 'Counsellor is required';
-        } else {
-          delete newErrors.counsellor;
         }
         break;
 
@@ -253,6 +223,7 @@ const EnrollmentForm = ({ enrollment, onClose, isAdmin = true }) => {
         break;
 
       case 'feeType':
+        // Revalidate related fields when fee type changes
         if (value === 'one-time' && !formData.dueDate) {
           newErrors.dueDate = 'Due date is required for one-time payments';
         } else {
@@ -325,6 +296,7 @@ const EnrollmentForm = ({ enrollment, onClose, isAdmin = true }) => {
         }
       }
     } else {
+      // Clear EMI errors for one-time payments
       delete newErrors.emiTotal;
       delete newErrors.emiSequence;
       delete newErrors.firstEMI;
@@ -337,7 +309,7 @@ const EnrollmentForm = ({ enrollment, onClose, isAdmin = true }) => {
 
   const validateForm = () => {
     // Mark all fields as touched to show all errors
-    const allFields = ['admission', 'batch', 'trainingBranch', 'totalAmount', 'counsellor'];
+    const allFields = ['admission', 'batch', 'trainingBranch', 'totalAmount'];
     const newTouched = {};
     allFields.forEach(field => {
       newTouched[field] = true;
@@ -353,7 +325,6 @@ const EnrollmentForm = ({ enrollment, onClose, isAdmin = true }) => {
     if (!formData.trainingBranch || !formData.trainingBranch.trim()) {
       newErrors.trainingBranch = 'Training branch is required';
     }
-    if (!formData.counsellor) newErrors.counsellor = 'Counsellor is required';
     
     // Amount validation
     if (!formData.totalAmount || formData.totalAmount === '') {
@@ -362,11 +333,6 @@ const EnrollmentForm = ({ enrollment, onClose, isAdmin = true }) => {
       newErrors.totalAmount = 'Total amount must be greater than 0';
     } else if (parseFloat(formData.totalAmount) > 1000000) {
       newErrors.totalAmount = 'Total amount cannot exceed ₹10,00,000';
-    }
-
-    // Discount validation
-    if (formData.discount > parseFloat(formData.totalAmount || 0)) {
-      newErrors.discount = 'Discount cannot exceed total amount';
     }
 
     // Fee type specific validations
@@ -385,9 +351,9 @@ const EnrollmentForm = ({ enrollment, onClose, isAdmin = true }) => {
       validateEMITotals();
     }
 
-    // Additional charges validation
+    // late fees validation
     if (formData.charges && parseFloat(formData.charges) < 0) {
-      newErrors.charges = 'Additional charges cannot be negative';
+      newErrors.charges = 'late fees cannot be negative';
     }
 
     setErrors(newErrors);
@@ -401,7 +367,7 @@ const EnrollmentForm = ({ enrollment, onClose, isAdmin = true }) => {
       trainingBranch: formData.trainingBranch.trim(),
       mode: formData.mode,
       totalAmount: parseFloat(formData.totalAmount),
-      discount: parseFloat(formData.discount) || 0,
+      actualAmount: formData.actualAmount ? parseFloat(formData.actualAmount) : parseFloat(formData.totalAmount),
       feeType: formData.feeType,
       charges: parseFloat(formData.charges) || 0,
       dueDate: formData.dueDate ? new Date(formData.dueDate) : null,
@@ -409,9 +375,13 @@ const EnrollmentForm = ({ enrollment, onClose, isAdmin = true }) => {
       leadSource: formData.leadSource,
       call: formData.call,
       status: formData.status,
-      counsellor: formData.counsellor,
       admissionRegistrationPayment: parseFloat(formData.admissionRegistrationPayment) || 0
     };
+
+    // Add counsellor for new enrollments
+    if (!enrollment && counsellorId) {
+      baseData.counsellor = counsellorId;
+    }
 
     // Add EMI data for installment type
     if (formData.feeType === 'installment') {
@@ -436,6 +406,7 @@ const EnrollmentForm = ({ enrollment, onClose, isAdmin = true }) => {
         status: 'pending'
       };
     } else {
+      // For one-time payments, clear EMI data
       baseData.firstEMI = { amount: 0, pending: 0, date: null, status: 'pending' };
       baseData.secondEMI = { amount: 0, pending: 0, date: null, status: 'pending' };
       baseData.thirdEMI = { amount: 0, pending: 0, date: null, status: 'pending' };
@@ -473,7 +444,7 @@ const EnrollmentForm = ({ enrollment, onClose, isAdmin = true }) => {
     if (enrollment) {
       return `Edit Enrollment - ${enrollment.enrollmentNo}`;
     }
-    return 'Create New Enrollment - Admin';
+    return 'Create New Enrollment';
   };
 
   // Counsellor can only see approved admissions
@@ -489,8 +460,6 @@ const EnrollmentForm = ({ enrollment, onClose, isAdmin = true }) => {
   const totalEMIAmount = parseFloat(formData.firstEMI.amount || 0) + 
                         parseFloat(formData.secondEMI.amount || 0) + 
                         parseFloat(formData.thirdEMI.amount || 0);
-
-  const finalAmount = (parseFloat(formData.totalAmount) || 0) - (parseFloat(formData.discount) || 0);
 
   // Helper component for required field indicator
   const RequiredStar = () => <span className="text-red-500 ml-1">*</span>;
@@ -619,35 +588,6 @@ const EnrollmentForm = ({ enrollment, onClose, isAdmin = true }) => {
               )}
             </div>
 
-            {/* Counsellor Selection - Using counsellors from auth slice */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Counsellor <RequiredStar />
-              </label>
-              <select
-                name="counsellor"
-                value={formData.counsellor}
-                onChange={handleChange}
-                onBlur={() => handleBlur('counsellor')}
-                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  errors.counsellor ? 'border-red-500' : 'border-gray-300'
-                }`}
-              >
-                <option value="">Select Counsellor</option>
-                {counsellorsList.map(counsellor => (
-                  <option key={counsellor._id} value={counsellor._id}>
-                    {counsellor.FullName || counsellor.name} - {counsellor.email}
-                  </option>
-                ))}
-              </select>
-              {errors.counsellor && (
-                <p className="text-red-500 text-xs mt-1 flex items-center">
-                  <span className="mr-1">⚠</span>
-                  {errors.counsellor}
-                </p>
-              )}
-            </div>
-
             {/* Mode */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -665,26 +605,26 @@ const EnrollmentForm = ({ enrollment, onClose, isAdmin = true }) => {
               </select>
             </div>
 
-            {/* Status */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Status
-              </label>
-              <select
-                name="status"
-                value={formData.status}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-                <option value="completed">Completed</option>
-                <option value="on_hold">On Hold</option>
-                <option value="dropout">Dropout</option>
-                <option value="cancelled">Cancelled</option>
-                <option value="notattending">Not Attending</option>
-              </select>
-            </div>
+            {/* Status (for editing) */}
+            {enrollment && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Status
+                </label>
+                <select
+                  name="status"
+                  value={formData.status}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                  <option value="completed">Completed</option>
+                  <option value="on_hold">On Hold</option>
+                  <option value="dropout">Dropout</option>
+                </select>
+              </div>
+            )}
 
             {/* Fee Details */}
             <div>
@@ -711,41 +651,6 @@ const EnrollmentForm = ({ enrollment, onClose, isAdmin = true }) => {
                 </p>
               )}
             </div>
-
-            {/* Discount */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Discount
-              </label>
-              <input
-                type="number"
-                name="discount"
-                value={formData.discount}
-                onChange={handleDiscountChange}
-                onBlur={() => handleBlur('discount')}
-                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  errors.discount ? 'border-red-500' : 'border-gray-300'
-                }`}
-                placeholder="Enter discount amount"
-                min="0"
-                step="1"
-                max={formData.totalAmount}
-              />
-              {errors.discount && (
-                <p className="text-red-500 text-xs mt-1 flex items-center">
-                  <span className="mr-1">⚠</span>
-                  {errors.discount}
-                </p>
-              )}
-              {formData.totalAmount && (
-                <p className="text-xs text-gray-500 mt-1">
-                  Final Amount: ₹{finalAmount}
-                </p>
-              )}
-            </div>
-
-            {/* Admission Registration Payment */}
-            
 
             {/* Fee Type */}
             <div>
@@ -787,56 +692,57 @@ const EnrollmentForm = ({ enrollment, onClose, isAdmin = true }) => {
             </div>
           </div>
 
-          {/* Admission Registration Payment */}
+          {/* late fees */}
+                    {/* Admission Registration Payment */}
+                    <div className="mt-4">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Admission Registration Payment
+                      </label>
+                      <input
+                        type="number"
+                        name="admissionRegistrationPayment"
+                        value={formData.admissionRegistrationPayment}
+                        onChange={handleChange}
+                        onBlur={() => handleBlur('admissionRegistrationPayment')}
+                        className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                          errors.admissionRegistrationPayment ? 'border-red-500' : 'border-gray-300'
+                        }`}
+                        placeholder="Enter admission registration payment"
+                        min="0"
+                        step="1"
+                      />
+                      {errors.admissionRegistrationPayment && (
+                        <p className="text-red-500 text-xs mt-1 flex items-center">
+                          <span className="mr-1">⚠</span>
+                          {errors.admissionRegistrationPayment}
+                        </p>
+                      )}
+                    </div>
           <div className="mt-4">
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Admission Registration Payment
+              Late Fees
             </label>
             <input
               type="number"
-              name="admissionRegistrationPayment"
-              value={formData.admissionRegistrationPayment}
+              name="charges"
+              value={formData.charges}
               onChange={handleChange}
-              onBlur={() => handleBlur('admissionRegistrationPayment')}
+              onBlur={() => handleBlur('charges')}
               className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                errors.admissionRegistrationPayment ? 'border-red-500' : 'border-gray-300'
+                errors.charges ? 'border-red-500' : 'border-gray-300'
               }`}
-              placeholder="Enter admission registration payment"
+              placeholder="Enter late fees"
               min="0"
               step="1"
             />
-            {errors.admissionRegistrationPayment && (
+            {errors.charges && (
               <p className="text-red-500 text-xs mt-1 flex items-center">
                 <span className="mr-1">⚠</span>
-                {errors.admissionRegistrationPayment}
+                {errors.charges}
               </p>
             )}
           </div>
-               
-               <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Admission Registration Payment
-              </label>
-              <input
-                type="number"
-                name="admissionRegistrationPayment"
-                value={formData.admissionRegistrationPayment}
-                onChange={handleChange}
-                onBlur={() => handleBlur('admissionRegistrationPayment')}
-                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  errors.admissionRegistrationPayment ? 'border-red-500' : 'border-gray-300'
-                }`}
-                placeholder="Enter admission registration payment"
-                min="0"
-                step="1"
-              />
-              {errors.admissionRegistrationPayment && (
-                <p className="text-red-500 text-xs mt-1 flex items-center">
-                  <span className="mr-1">⚠</span>
-                  {errors.admissionRegistrationPayment}
-                </p>
-              )}
-            </div>
+
           {/* EMI Details - Show only for installment */}
           {formData.feeType === 'installment' && (
             <div className="mt-6 border-t pt-6">

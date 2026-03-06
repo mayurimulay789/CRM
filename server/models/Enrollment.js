@@ -118,7 +118,8 @@ const enrollmentSchema = new mongoose.Schema({
   },
   charges: {
     type: Number,
-    default: 0
+    default: 0,
+    description: 'Late fees charged to the student for overdue payments'
   },
   upcomingEMIAmount: {
     type: Number,
