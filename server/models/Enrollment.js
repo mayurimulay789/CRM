@@ -224,9 +224,11 @@ enrollmentSchema.pre('save', async function(next) {
     this.enrollmentNo = `ENR${year}${(count + 1).toString().padStart(4, '0')}`;
   }
   
-  // Update pending amount based on approved payments
-  if (this.isModified('totalAmount') || this.isModified('discount') || this.isModified('amountReceived')) {
-    this.pendingAmount = (this.totalAmount - this.discount) - this.amountReceived;
+  // Update pending amount using actual total (including charges and registration payment)
+  if (this.isModified('totalAmount') || this.isModified('discount') || this.isModified('amountReceived') || 
+      this.isModified('charges') || this.isModified('admissionRegistrationPayment')) {
+    const actualTotal = this.calculateActualTotal();
+    this.pendingAmount = (actualTotal - this.discount) - this.amountReceived;
   }
   
   // Update upcoming EMI amount
@@ -246,14 +248,6 @@ enrollmentSchema.methods.addActivity = function(type, description, createdBy, pa
     date: new Date()
   });
   return this.save();
-};
-
-// Helper method to calculate actual total including all fees
-enrollmentSchema.methods.calculateActualTotal = function() {
-  const baseAmount = this.totalAmount || 0;
-  const lateFees = this.charges || 0;
-  const registrationFees = this.admissionRegistrationPayment || 0;
-  return baseAmount + lateFees + registrationFees;
 };
 
 // Helper method to calculate actual total including all fees

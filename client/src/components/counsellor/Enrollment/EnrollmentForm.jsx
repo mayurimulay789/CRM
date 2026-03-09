@@ -242,17 +242,22 @@ const EnrollmentForm = ({ enrollment, onClose, isCounsellor = true, counsellorId
   const validateEMITotals = () => {
     const newErrors = { ...errors };
 
-    if (formData.feeType === 'installment') {
-      const totalEMI = parseFloat(formData.firstEMI.amount || 0) + 
-                      parseFloat(formData.secondEMI.amount || 0) + 
-                      parseFloat(formData.thirdEMI.amount || 0);
-      const totalAmount = parseFloat(formData.totalAmount || 0);
-      
-      if (totalEMI !== totalAmount) {
-        newErrors.emiTotal = `EMI total (₹${totalEMI}) must match total amount (₹${totalAmount})`;
-      } else {
-        delete newErrors.emiTotal;
-      }
+  // EMI validation for installment fee type
+  if (formData.feeType === 'installment') {
+    // Calculate actual total including late fees and registration payment
+    const actualTotal = parseFloat(formData.totalAmount || 0) + 
+                       parseFloat(formData.charges || 0) + 
+                       parseFloat(formData.admissionRegistrationPayment || 0);
+    
+    const totalEMI = parseFloat(formData.firstEMI.amount || 0) + 
+                    parseFloat(formData.secondEMI.amount || 0) + 
+                    parseFloat(formData.thirdEMI.amount || 0);
+    
+    if (totalEMI !== actualTotal) {
+      newErrors.emiTotal = `EMI total (₹${totalEMI}) must match total amount (₹${actualTotal}) [Base: ₹${formData.totalAmount} + Late Fees: ₹${formData.charges || 0} + Registration: ₹${formData.admissionRegistrationPayment || 0}]`;
+    } else {
+      delete newErrors.emiTotal;
+    }
 
       // Validate individual EMI dates and amounts
       const emis = [
@@ -460,6 +465,11 @@ const EnrollmentForm = ({ enrollment, onClose, isCounsellor = true, counsellorId
   const totalEMIAmount = parseFloat(formData.firstEMI.amount || 0) + 
                         parseFloat(formData.secondEMI.amount || 0) + 
                         parseFloat(formData.thirdEMI.amount || 0);
+
+  // Calculate actual total for EMI comparison
+  const actualTotalForEMI = parseFloat(formData.totalAmount || 0) + 
+                           parseFloat(formData.charges || 0) + 
+                           parseFloat(formData.admissionRegistrationPayment || 0);
 
   // Helper component for required field indicator
   const RequiredStar = () => <span className="text-red-500 ml-1">*</span>;
@@ -805,14 +815,14 @@ const EnrollmentForm = ({ enrollment, onClose, isCounsellor = true, counsellorId
               </div>
               
               <div className={`mt-4 p-3 rounded-lg ${
-                totalEMIAmount === parseFloat(formData.totalAmount || 0) 
+                totalEMIAmount === actualTotalForEMI 
                   ? 'bg-green-50 border border-green-200 text-green-800'
                   : 'bg-yellow-50 border border-yellow-200 text-yellow-800'
               }`}>
                 <div className="text-sm">
                   <strong>EMI Summary:</strong> Total EMI Amount: ₹{totalEMIAmount} | 
-                  Course Amount: ₹{formData.totalAmount} | 
-                  {totalEMIAmount === parseFloat(formData.totalAmount || 0) ? (
+                  Total Amount: ₹{actualTotalForEMI} [Base: ₹{formData.totalAmount} + Late Fees: ₹{formData.charges || 0} + Registration: ₹{formData.admissionRegistrationPayment || 0}] | 
+                  {totalEMIAmount === actualTotalForEMI ? (
                     <span className="text-green-600"> ✓ Amounts match</span>
                   ) : (
                     <span className="text-yellow-600"> ⚠ Amounts don't match</span>
