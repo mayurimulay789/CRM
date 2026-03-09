@@ -301,21 +301,40 @@ const EnrollmentManagement = () => {
     }
   };
 
-  // Safe EMI data accessor functions
+  // Function to calculate adjusted EMI amounts based on actual total (including late fees and registration payment)
+  const getAdjustedEMI = (enrollment, baseEMI) => {
+    const baseTotal = enrollment.totalAmount || 0;
+    const actualTotal = calculateActualTotal(enrollment);
+    
+    if (baseTotal === 0 || !baseEMI) return baseEMI || { amount: 0, date: null, status: 'pending' };
+    
+    const adjustmentRatio = actualTotal / baseTotal;
+    
+    return {
+      ...baseEMI,
+      amount: (baseEMI.amount || 0) * adjustmentRatio
+    };
+  };
+
+  // Safe EMI data accessor functions - now adjusted for actual total
   const getFirstEMI = (enrollment) => {
-    return enrollment.firstEMI || { amount: 0, date: null, status: 'pending' };
+    const baseEMI = enrollment.firstEMI || { amount: 0, date: null, status: 'pending' };
+    return getAdjustedEMI(enrollment, baseEMI);
   };
 
   const getSecondEMI = (enrollment) => {
-    return enrollment.secondEMI || { amount: 0, date: null, status: 'pending' };
+    const baseEMI = enrollment.secondEMI || { amount: 0, date: null, status: 'pending' };
+    return getAdjustedEMI(enrollment, baseEMI);
   };
 
   const getThirdEMI = (enrollment) => {
-    return enrollment.thirdEMI || { amount: 0, date: null, status: 'pending' };
+    const baseEMI = enrollment.thirdEMI || { amount: 0, date: null, status: 'pending' };
+    return getAdjustedEMI(enrollment, baseEMI);
   };
 
   const getNextEMI = (enrollment) => {
-    return enrollment.nextEMI || { amount: 0, date: null, status: 'pending' };
+    const baseEMI = enrollment.nextEMI || { amount: 0, date: null, status: 'pending' };
+    return getAdjustedEMI(enrollment, baseEMI);
   };
 
   // Check if EMI should be displayed based on feeType
