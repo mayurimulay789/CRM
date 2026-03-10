@@ -1,26 +1,26 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { 
-  fetchAdmissions, 
-  updateAdmission, 
-  deleteAdmission, 
+import {
+  fetchAdmissions,
+  updateAdmission,
+  deleteAdmission,
   updateAdmissionStatus,
   clearError,
-  clearSuccess 
+  clearSuccess
 } from '../../../store/slices/admissionSlice';
 import AdmissionForm from './AdmissionForm';
 
 const AdmissionManagement = () => {
   const dispatch = useDispatch();
-  const { 
-    admissions, 
-    loading, 
-    error, 
-    operationSuccess, 
+  const {
+    admissions,
+    loading,
+    error,
+    operationSuccess,
     currentAdmission,
-    stats 
+    stats
   } = useSelector(state => state.admissions);
-  
+
   const [showForm, setShowForm] = useState(false);
   const [editingAdmission, setEditingAdmission] = useState(null);
   const [filterStatus, setFilterStatus] = useState('all');
@@ -52,7 +52,6 @@ const AdmissionManagement = () => {
     { key: 'trainingBranch', label: 'Branch', visible: true },
     { key: 'counsellor', label: 'Counsellor', visible: true },
     { key: 'status', label: 'Status', visible: true },
-    { key: 'priority', label: 'Priority', visible: true },
     { key: 'admissionDate', label: 'Admission Date', visible: true },
     { key: 'documents', label: 'Documents', visible: true },
     { key: 'appliedBatch', label: 'Applied Batch', visible: false },
@@ -95,19 +94,19 @@ const AdmissionManagement = () => {
   // Fixed click outside detection
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (showFilterMenu && 
-          filterMenuRef.current && 
-          !filterMenuRef.current.contains(event.target) &&
-          filterButtonRef.current &&
-          !filterButtonRef.current.contains(event.target)) {
+      if (showFilterMenu &&
+        filterMenuRef.current &&
+        !filterMenuRef.current.contains(event.target) &&
+        filterButtonRef.current &&
+        !filterButtonRef.current.contains(event.target)) {
         setShowFilterMenu(false);
       }
 
-      if (showColumnsMenu && 
-          columnsMenuRef.current && 
-          !columnsMenuRef.current.contains(event.target) &&
-          columnsButtonRef.current &&
-          !columnsButtonRef.current.contains(event.target)) {
+      if (showColumnsMenu &&
+        columnsMenuRef.current &&
+        !columnsMenuRef.current.contains(event.target) &&
+        columnsButtonRef.current &&
+        !columnsButtonRef.current.contains(event.target)) {
         setShowColumnsMenu(false);
       }
     };
@@ -136,9 +135,9 @@ const AdmissionManagement = () => {
   const handleStatusUpdate = async (admissionId, newStatus) => {
     if (window.confirm(`Are you sure you want to change status to ${newStatus.replace('_', ' ')}?`)) {
       try {
-        await dispatch(updateAdmissionStatus({ 
-          admissionId, 
-          statusData: { status: newStatus } 
+        await dispatch(updateAdmissionStatus({
+          admissionId,
+          statusData: { status: newStatus }
         })).unwrap();
         dispatch(fetchAdmissions());
       } catch (error) {
@@ -181,21 +180,21 @@ const AdmissionManagement = () => {
   };
 
   const toggleColumnVisibility = (columnKey) => {
-    setColumns(prevColumns => 
-      prevColumns.map(col => 
+    setColumns(prevColumns =>
+      prevColumns.map(col =>
         col.key === columnKey ? { ...col, visible: !col.visible } : col
       )
     );
   };
 
   const selectAllColumns = () => {
-    setColumns(prevColumns => 
+    setColumns(prevColumns =>
       prevColumns.map(col => ({ ...col, visible: true }))
     );
   };
 
   const deselectAllColumns = () => {
-    setColumns(prevColumns => 
+    setColumns(prevColumns =>
       prevColumns.map(col => ({ ...col, visible: false }))
     );
   };
@@ -203,17 +202,17 @@ const AdmissionManagement = () => {
   // Filter admissions based on active filters and search
   const filteredAdmissions = admissions.filter(admission => {
     const matchesStatus = filterStatus === 'all' || admission.status === filterStatus;
-    
-    const matchesSearch = 
+
+    const matchesSearch =
       admission.admissionNo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       admission.trainingBranch?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       admission.counsellor?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       admission.appliedBatch?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (admission.student && typeof admission.student === 'object' ? 
-        admission.student.name?.toLowerCase().includes(searchTerm.toLowerCase()) : 
+      (admission.student && typeof admission.student === 'object' ?
+        admission.student.name?.toLowerCase().includes(searchTerm.toLowerCase()) :
         false) ||
-      (admission.course && typeof admission.course === 'object' ? 
-        admission.course.name?.toLowerCase().includes(searchTerm.toLowerCase()) : 
+      (admission.course && typeof admission.course === 'object' ?
+        admission.course.name?.toLowerCase().includes(searchTerm.toLowerCase()) :
         false);
 
     return matchesStatus && matchesSearch;
@@ -246,7 +245,7 @@ const AdmissionManagement = () => {
   const getPageNumbers = () => {
     const pageNumbers = [];
     const maxVisiblePages = 5;
-    
+
     if (totalPages <= maxVisiblePages) {
       for (let i = 1; i <= totalPages; i++) {
         pageNumbers.push(i);
@@ -254,12 +253,12 @@ const AdmissionManagement = () => {
     } else {
       const startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
       const endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
-      
+
       for (let i = startPage; i <= endPage; i++) {
         pageNumbers.push(i);
       }
     }
-    
+
     return pageNumbers;
   };
 
@@ -272,30 +271,13 @@ const AdmissionManagement = () => {
     };
 
     const config = statusConfig[status] || statusConfig.pending;
-    
+
     return (
       <span className={`px-2 py-1 text-xs font-semibold rounded-full ${config.color}`}>
         {config.label}
       </span>
     );
   };
-
-  const getPriorityBadge = (priority) => {
-    const priorityConfig = {
-      low: { color: 'bg-gray-100 text-gray-800', label: 'Low' },
-      medium: { color: 'bg-blue-100 text-blue-800', label: 'Medium' },
-      high: { color: 'bg-orange-100 text-orange-800', label: 'High' }
-    };
-
-    const config = priorityConfig[priority] || priorityConfig.medium;
-    
-    return (
-      <span className={`px-2 py-1 text-xs font-semibold rounded-full ${config.color}`}>
-        {config.label}
-      </span>
-    );
-  };
-
   const formatDate = (dateString) => {
     if (!dateString) return '-';
     return new Date(dateString).toLocaleDateString('en-IN');
@@ -323,21 +305,37 @@ const AdmissionManagement = () => {
     return 'N/A';
   };
 
+  // ========== FIXED: getFilePreview with clickable PDF ==========
   const getFilePreview = (url, title = 'Document') => {
     if (!url) return null;
-    
+
     if (url.toLowerCase().endsWith('.pdf')) {
       return (
-        <div className="flex items-center space-x-2 text-blue-600">
+        <div
+          onClick={() => handleImageClick(url, title)}
+          className="flex items-center space-x-2 text-blue-600 cursor-pointer hover:text-blue-800 transition-colors duration-200"
+          title={`Click to view ${title}`}
+        >
           <span>📄</span>
           <span className="text-sm hidden lg:inline">PDF</span>
+        </div>
+      );
+    } else if (url.toLowerCase().endsWith('.jpeg') || url.toLowerCase().endsWith('.jpg') || url.toLowerCase().endsWith('.png') || url.toLowerCase().endsWith('.gif') || url.toLowerCase().endsWith('.bmp') || url.toLowerCase().endsWith('.webp') || url.toLowerCase().endsWith('.svg')) {
+      return (
+        <div
+          onClick={() => handleImageClick(url, title)}
+          className="flex items-center space-x-2 text-blue-600 cursor-pointer hover:text-blue-800 transition-colors duration-200"
+          title={`Click to view ${title}`}
+        >
+          <span>📄</span>
+          <span className="text-sm hidden lg:inline">Image</span>
         </div>
       );
     } else {
       return (
         <div className="flex justify-center">
-          <img 
-            src={url} 
+          <img
+            src={url}
             alt={title}
             className="w-6 h-6 lg:w-8 lg:h-8 object-cover rounded border cursor-pointer hover:opacity-80 transition-opacity duration-200"
             onClick={() => handleImageClick(url, title)}
@@ -363,19 +361,19 @@ const AdmissionManagement = () => {
     if (admission.status === 'pending') {
       return (
         <div className="flex flex-col lg:flex-row space-y-1 lg:space-y-0 lg:space-x-1">
-          <button 
+          <button
             onClick={() => handleStatusUpdate(admission._id, 'approved')}
             className="text-green-600 hover:text-green-900 px-1 lg:px-2 py-1 rounded hover:bg-green-50 transition-colors border border-green-200 text-xs w-full lg:w-auto"
           >
             ✅ Approve
           </button>
-          <button 
+          <button
             onClick={() => handleStatusUpdate(admission._id, 'rejected')}
             className="text-red-600 hover:text-red-900 px-1 lg:px-2 py-1 rounded hover:bg-red-50 transition-colors border border-red-200 text-xs w-full lg:w-auto"
           >
             ❌ Reject
           </button>
-          <button 
+          <button
             onClick={() => handleStatusUpdate(admission._id, 'waiting_list')}
             className="text-blue-600 hover:text-blue-900 px-1 lg:px-2 py-1 rounded hover:bg-blue-50 transition-colors border border-blue-200 text-xs w-full lg:w-auto"
           >
@@ -384,9 +382,9 @@ const AdmissionManagement = () => {
         </div>
       );
     }
-    
+
     return (
-      <button 
+      <button
         onClick={() => handleStatusUpdate(admission._id, 'pending')}
         className="text-gray-600 hover:text-gray-900 px-1 lg:px-2 py-1 rounded hover:bg-gray-50 transition-colors border border-gray-200 text-xs w-full lg:w-auto"
       >
@@ -404,7 +402,7 @@ const AdmissionManagement = () => {
       rejected: admissions.filter(a => a.status === 'rejected').length,
       waiting: admissions.filter(a => a.status === 'waiting_list').length
     };
-    
+
     return stats;
   };
 
@@ -427,7 +425,7 @@ const AdmissionManagement = () => {
             <div className="flex-1">
               <h1 className="text-xl lg:text-2xl font-bold text-gray-800">Admission Management</h1>
               <p className="text-gray-600 text-sm lg:text-base">Review and manage student admissions</p>
-              
+
               {/* Admin Stats */}
               <div className="flex flex-wrap gap-2 mt-2">
                 <div className="text-xs bg-blue-50 px-2 py-1 rounded-full">
@@ -448,7 +446,7 @@ const AdmissionManagement = () => {
               </div>
             </div>
           </div>
-          
+
           <div className="flex items-center space-x-2 lg:space-x-3 w-full lg:w-auto justify-between lg:justify-end">
             {/* Search Input - Mobile Only */}
             <div className="lg:hidden flex-1">
@@ -479,7 +477,7 @@ const AdmissionManagement = () => {
 
               {/* Filter Dropdown Menu */}
               {showFilterMenu && (
-                <div 
+                <div
                   ref={filterMenuRef}
                   className="absolute right-0 mt-2 w-64 lg:w-72 bg-white border border-gray-200 rounded-lg shadow-xl z-50"
                 >
@@ -502,7 +500,7 @@ const AdmissionManagement = () => {
                         </label>
                       ))}
                     </div>
-                    
+
                     <div className="mt-4 pt-3 border-t border-gray-200">
                       <h3 className="font-semibold text-gray-800 mb-3 text-sm lg:text-base">Search</h3>
                       <input
@@ -513,7 +511,7 @@ const AdmissionManagement = () => {
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                       />
                     </div>
-                    
+
                     <div className="mt-4 flex justify-between">
                       <button
                         onClick={() => {
@@ -554,7 +552,7 @@ const AdmissionManagement = () => {
 
               {/* Columns Dropdown Menu */}
               {showColumnsMenu && (
-                <div 
+                <div
                   ref={columnsMenuRef}
                   className="absolute right-0 mt-2 w-72 lg:w-80 bg-white border border-gray-200 rounded-lg shadow-xl z-50 max-h-96 overflow-y-auto"
                 >
@@ -576,7 +574,7 @@ const AdmissionManagement = () => {
                         </button>
                       </div>
                     </div>
-                    
+
                     <div className="space-y-2 max-h-64 overflow-y-auto">
                       {columns.map(column => (
                         <label key={column.key} className="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded cursor-pointer">
@@ -590,7 +588,7 @@ const AdmissionManagement = () => {
                         </label>
                       ))}
                     </div>
-                    
+
                     <div className="mt-4 pt-3 border-t border-gray-200 flex justify-end">
                       <button
                         onClick={() => setShowColumnsMenu(false)}
@@ -642,10 +640,10 @@ const AdmissionManagement = () => {
               <table className="min-w-full divide-y divide-gray-200 border-collapse">
                 <thead className="bg-gray-50 sticky top-0 z-10">
                   <tr>
-                    {columns.map(column => 
+                    {columns.map(column =>
                       column.visible && (
-                        <th 
-                          key={column.key} 
+                        <th
+                          key={column.key}
                           className="px-2 lg:px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap border-b border-gray-200 bg-gray-50"
                         >
                           {column.label}
@@ -657,8 +655,8 @@ const AdmissionManagement = () => {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {currentRecords.length === 0 ? (
                     <tr>
-                      <td 
-                        colSpan={columns.filter(col => col.visible).length} 
+                      <td
+                        colSpan={columns.filter(col => col.visible).length}
                         className="px-4 lg:px-6 py-8 lg:py-12 text-center"
                       >
                         <div className="text-gray-500">
@@ -667,8 +665,8 @@ const AdmissionManagement = () => {
                             {admissions.length === 0 ? 'No admissions found' : 'No matching admissions'}
                           </p>
                           <p className="text-xs lg:text-sm">
-                            {admissions.length === 0 
-                              ? 'Admissions will appear here once counsellors create them.' 
+                            {admissions.length === 0
+                              ? 'Admissions will appear here once counsellors create them.'
                               : 'Try adjusting your filters or search terms.'
                             }
                           </p>
@@ -685,34 +683,28 @@ const AdmissionManagement = () => {
                     </tr>
                   ) : (
                     currentRecords.map((admission, index) => (
-                      <tr 
-                        key={admission._id} 
-                        className={`transition-colors duration-150 ${
-                          index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
-                        } hover:bg-blue-50`}
+                      <tr
+                        key={admission._id}
+                        className={`transition-colors duration-150 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
+                          } hover:bg-blue-50`}
                       >
                         {columns.map(column => {
                           if (!column.visible) return null;
-                          
+
                           // Common cell styling
                           const baseCellClasses = "px-2 lg:px-4 py-2 lg:py-3 text-xs lg:text-sm border-b border-gray-200";
-                          
+
                           switch (column.key) {
                             case 'admissionNo':
                               return (
                                 <td key={column.key} className={`${baseCellClasses} font-semibold text-gray-900 whitespace-nowrap`}>
-                                  <button 
+                                  <button
                                     onClick={() => handleViewDetails(admission)}
                                     className="text-blue-600 hover:text-blue-800 hover:underline flex items-center space-x-1"
                                   >
                                     <span className="bg-blue-100 text-blue-800 text-xs px-1 lg:px-2 py-0.5 lg:py-1 rounded">
                                       #{admission.admissionNo}
                                     </span>
-                                    {admission.priority === 'high' && (
-                                      <span className="bg-orange-100 text-orange-800 text-xs px-1 py-0.5 rounded" title="High Priority">
-                                        ⚡
-                                      </span>
-                                    )}
                                   </button>
                                 </td>
                               );
@@ -755,12 +747,6 @@ const AdmissionManagement = () => {
                               return (
                                 <td key={column.key} className={`${baseCellClasses} text-center`}>
                                   {getStatusBadge(admission.status)}
-                                </td>
-                              );
-                            case 'priority':
-                              return (
-                                <td key={column.key} className={`${baseCellClasses} text-center`}>
-                                  {getPriorityBadge(admission.priority)}
                                 </td>
                               );
                             case 'admissionDate':
@@ -810,11 +796,10 @@ const AdmissionManagement = () => {
                             case 'emailVerified':
                               return (
                                 <td key={column.key} className={`${baseCellClasses} text-center`}>
-                                  <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                                    admission.emailVerified 
-                                      ? 'bg-green-100 text-green-800' 
-                                      : 'bg-yellow-100 text-yellow-800'
-                                  }`}>
+                                  <span className={`px-2 py-1 text-xs font-semibold rounded-full ${admission.emailVerified
+                                    ? 'bg-green-100 text-green-800'
+                                    : 'bg-yellow-100 text-yellow-800'
+                                    }`}>
                                     {admission.emailVerified ? '✅' : '⏳'}
                                     <span className="hidden lg:inline ml-1">{admission.emailVerified ? 'Verified' : 'Pending'}</span>
                                   </span>
@@ -830,17 +815,17 @@ const AdmissionManagement = () => {
                               return (
                                 <td key={column.key} className={`${baseCellClasses} text-center whitespace-nowrap`}>
                                   <div className="flex flex-row lg:flex-row items-center justify-center space-x-2 lg:space-y-0 lg:space-x-1">
-                                    <button 
-                                      onClick={() => handleEdit(admission)} 
-                                      className="text-blue-600 hover:text-blue-900 px-1 lg:px-2 py-1 rounded hover:bg-blue-50 transition-colors border border-blue-200 text-xs w-full lg:w-auto" 
+                                    <button
+                                      onClick={() => handleEdit(admission)}
+                                      className="text-blue-600 hover:text-blue-900 px-1 lg:px-2 py-1 rounded hover:bg-blue-50 transition-colors border border-blue-200 text-xs w-full lg:w-auto"
                                       title="Edit Admission"
                                     >
                                       Edit
                                     </button>
                                     {getStatusActions(admission)}
-                                    <button 
-                                      onClick={() => handleDelete(admission._id)} 
-                                      className="text-red-600 hover:text-red-900 px-1 lg:px-2 py-1 rounded hover:bg-red-50 transition-colors border border-red-200 text-xs w-full lg:w-auto" 
+                                    <button
+                                      onClick={() => handleDelete(admission._id)}
+                                      className="text-red-600 hover:text-red-900 px-1 lg:px-2 py-1 rounded hover:bg-red-50 transition-colors border border-red-200 text-xs w-full lg:w-auto"
                                       title="Delete Admission"
                                     >
                                       Delete
@@ -871,22 +856,21 @@ const AdmissionManagement = () => {
                 {/* Records Info */}
                 <div className="text-xs lg:text-sm text-gray-700">
                   Showing <span className="font-semibold">{currentRecords.length}</span> of{' '}
-                  <span className="font-semibold">{filteredAdmissions.length}</span> admissions 
+                  <span className="font-semibold">{filteredAdmissions.length}</span> admissions
                   (Page <span className="font-semibold">{currentPage}</span> of{' '}
                   <span className="font-semibold">{totalPages}</span>)
                 </div>
-                
+
                 {/* Pagination Controls */}
                 <div className="flex items-center space-x-2">
                   {/* Previous Button */}
                   <button
                     onClick={prevPage}
                     disabled={currentPage === 1}
-                    className={`px-3 py-1 lg:px-4 lg:py-2 rounded-lg border text-xs lg:text-sm font-medium transition-colors duration-200 ${
-                      currentPage === 1
-                        ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
-                        : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50 hover:border-gray-400'
-                    }`}
+                    className={`px-3 py-1 lg:px-4 lg:py-2 rounded-lg border text-xs lg:text-sm font-medium transition-colors duration-200 ${currentPage === 1
+                      ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
+                      : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50 hover:border-gray-400'
+                      }`}
                   >
                     Previous
                   </button>
@@ -897,11 +881,10 @@ const AdmissionManagement = () => {
                       <button
                         key={number}
                         onClick={() => paginate(number)}
-                        className={`px-2 lg:px-3 py-1 lg:py-2 rounded-lg border text-xs lg:text-sm font-medium transition-colors duration-200 ${
-                          currentPage === number
-                            ? 'bg-[#890c25] text-white border-blue-500'
-                            : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50 hover:border-gray-400'
-                        }`}
+                        className={`px-2 lg:px-3 py-1 lg:py-2 rounded-lg border text-xs lg:text-sm font-medium transition-colors duration-200 ${currentPage === number
+                          ? 'bg-[#890c25] text-white border-blue-500'
+                          : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50 hover:border-gray-400'
+                          }`}
                       >
                         {number}
                       </button>
@@ -912,11 +895,10 @@ const AdmissionManagement = () => {
                   <button
                     onClick={nextPage}
                     disabled={currentPage === totalPages}
-                    className={`px-3 py-1 lg:px-4 lg:py-2 rounded-lg border text-xs lg:text-sm font-medium transition-colors duration-200 ${
-                      currentPage === totalPages
-                        ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
-                        : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50 hover:border-gray-400'
-                    }`}
+                    className={`px-3 py-1 lg:px-4 lg:py-2 rounded-lg border text-xs lg:text-sm font-medium transition-colors duration-200 ${currentPage === totalPages
+                      ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
+                      : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50 hover:border-gray-400'
+                      }`}
                   >
                     Next
                   </button>
@@ -943,8 +925,8 @@ const AdmissionManagement = () => {
                 </h2>
                 <button onClick={handleCloseForm} className="text-gray-400 hover:text-gray-600 text-2xl">×</button>
               </div>
-              <AdmissionForm 
-                admission={editingAdmission} 
+              <AdmissionForm
+                admission={editingAdmission}
                 onClose={handleCloseForm}
                 isCounsellor={false}
               />
@@ -962,7 +944,7 @@ const AdmissionManagement = () => {
                 <h2 className="text-lg lg:text-xl font-bold text-gray-800">Admission Details</h2>
                 <button onClick={handleCloseDetails} className="text-gray-400 hover:text-gray-600 text-2xl">×</button>
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6">
                 {/* Personal Information */}
                 <div className="bg-blue-50 p-3 lg:p-4 rounded-lg">
@@ -999,12 +981,6 @@ const AdmissionManagement = () => {
                       <label className="block text-xs lg:text-sm font-medium text-gray-700">Status</label>
                       <div className="mt-1">
                         {getStatusBadge(selectedAdmission.status)}
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block text-xs lg:text-sm font-medium text-gray-700">Priority</label>
-                      <div className="mt-1">
-                        {getPriorityBadge(selectedAdmission.priority)}
                       </div>
                     </div>
                     <div>
@@ -1132,66 +1108,102 @@ const AdmissionManagement = () => {
 
       {/* Image Preview Modal */}
       {showImageModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center p-2 lg:p-4 z-[60]">
-          <div className="relative max-w-4xl max-h-[90vh] w-full h-full flex items-center justify-center">
-            <button
-              onClick={handleCloseImageModal}
-              className="absolute top-2 lg:top-4 right-2 lg:right-4 bg-white bg-opacity-20 hover:bg-opacity-30 text-white rounded-full p-1 lg:p-2 transition-all duration-200 z-10 backdrop-blur-sm"
-            >
-              <svg className="w-4 h-4 lg:w-6 lg:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center p-2 sm:p-4"
+          onClick={handleCloseImageModal} // close on backdrop click
+          role="dialog"
+          aria-modal="true"
+          aria-label={imageTitle || 'Document preview'}
+        >
+          {/* Backdrop with blur */}
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm transition-opacity" />
 
-            {imageTitle && (
-              <div className="absolute top-2 lg:top-4 left-2 lg:left-4 bg-black bg-opacity-50 text-white px-2 lg:px-3 py-1 rounded-lg text-xs lg:text-sm backdrop-blur-sm">
-                {imageTitle}
-              </div>
-            )}
-
-            <div className="relative w-full h-full flex items-center justify-center">
-              {selectedImage.toLowerCase().endsWith('.pdf') ? (
-                <div className="bg-white p-4 lg:p-8 rounded-lg max-w-2xl w-full">
-                  <div className="text-center">
-                    <div className="text-4xl lg:text-6xl mb-4">📄</div>
-                    <h3 className="text-lg lg:text-xl font-semibold text-gray-800 mb-2">PDF Document</h3>
-                    <p className="text-gray-600 mb-4 text-sm lg:text-base">This is a PDF file that cannot be previewed in the image viewer.</p>
-                    <a
-                      href={selectedImage}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center px-3 lg:px-4 py-2 bg-[#890c25] text-black rounded-lg hover:bg-[#890c25] transition-colors duration-200 text-sm lg:text-base"
-                    >
-                      <svg className="w-3 h-3 lg:w-4 lg:h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                      Download PDF
-                    </a>
-                  </div>
-                </div>
-              ) : (
-                <img
-                  src={selectedImage}
-                  alt={imageTitle}
-                  className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
-                  onClick={handleCloseImageModal}
-                />
-              )}
+          {/* Modal content */}
+          <div
+            className="relative bg-white dark:bg-gray-900 rounded-xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-hidden"
+            onClick={(e) => e.stopPropagation()} // prevent closing when clicking inside
+          >
+            {/* Header with title and close button */}
+            <div className="absolute top-0 left-0 right-0 flex items-center justify-between p-3 sm:p-4 bg-gradient-to-b from-black/50 to-transparent text-white z-10">
+              <span className="font-medium truncate pr-8 text-sm sm:text-base">
+                {imageTitle || 'Document'}
+              </span>
+              <button
+                onClick={handleCloseImageModal}
+                className="p-1.5 rounded-full bg-white/20 hover:bg-white/30 transition-colors focus:outline-none focus:ring-2 focus:ring-white"
+                aria-label="Close"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
             </div>
 
-            {!selectedImage.toLowerCase().endsWith('.pdf') && (
-              <a
-                href={selectedImage}
-                download
-                className="absolute bottom-2 lg:bottom-4 right-2 lg:right-4 bg-white bg-opacity-20 hover:bg-opacity-30 text-black rounded-lg px-2 lg:px-4 py-1 lg:py-2 transition-all duration-200 backdrop-blur-sm flex items-center space-x-1 lg:space-x-2 text-xs lg:text-sm"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <svg className="w-3 h-3 lg:w-4 lg:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                <span>Download</span>
-              </a>
-            )}
+            {/* Scrollable content area */}
+            <div className="h-full w-full overflow-auto bg-gray-100 dark:bg-gray-800 flex items-center justify-center p-4">
+              {selectedImage?.toLowerCase().endsWith('.pdf') ? (
+                // PDF preview card
+                <div className="text-center p-8 max-w-md">
+                  <div className="text-7xl mb-4">📄</div>
+                  <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                    PDF Document
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-300 mb-6">
+                    This file cannot be previewed inline. Download to view.
+                  </p>
+                  <a
+                    href={selectedImage}
+                    download
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                  >
+                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Download PDF
+                  </a>
+                </div>
+              ) : (
+                // Image display with loading/error handling
+                <div className="relative max-w-full max-h-full">
+                  <img
+                    src={selectedImage}
+                    alt={imageTitle || 'Document image'}
+                    className="max-w-full max-h-[calc(90vh-8rem)] object-contain rounded-lg shadow-lg"
+                    onLoad={(e) => {
+                      // Optional: hide loader on load
+                      e.currentTarget.style.opacity = '1';
+                    }}
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                      // Show error fallback
+                      const parent = e.currentTarget.parentElement;
+                      if (parent) {
+                        const fallback = document.createElement('div');
+                        fallback.className = 'text-center p-8';
+                        fallback.innerHTML = `
+                    <div class="text-5xl mb-10">🖼️</div>
+                  `;
+                        parent.appendChild(fallback);
+                      }
+                    }}
+                    style={{ opacity: 0, transition: 'opacity 0.2s' }}
+                  />
+                  {/* Download button for images */}
+                  <a
+                    href={selectedImage}
+                    download
+                    className="absolute bottom-4 right-4 bg-white/90 hover:bg-white text-gray-800 rounded-lg px-3 py-2 shadow-lg flex items-center space-x-2 text-sm font-medium backdrop-blur-sm transition-colors focus:ring-2 focus:ring-blue-500"
+                    onClick={(e) => e.stopPropagation()}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <span>Download</span>
+                  </a>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

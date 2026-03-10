@@ -184,7 +184,6 @@ const createAdmission = async (req, res) => {
       trainingBranch,
       counsellor,
       termsCondition,
-      priority,
       appliedBatch,
       source,
       notes
@@ -198,7 +197,6 @@ const createAdmission = async (req, res) => {
       trainingBranch,
       counsellor,
       termsCondition,
-      priority,
       appliedBatch,
       source
     });
@@ -342,7 +340,6 @@ const createAdmission = async (req, res) => {
       studentStatement: studentStatementUrl,
       confidentialForm: confidentialFormUrl,
       termsCondition: termsCondition || false,
-      priority: priority || 'medium',
       appliedBatch,
       source: source || 'website',
       notes,
@@ -422,7 +419,6 @@ const updateAdmission = async (req, res) => {
       trainingBranch,
       termsCondition,
       status,
-      priority,
       appliedBatch,
       source,
       notes
@@ -512,7 +508,6 @@ const updateAdmission = async (req, res) => {
       counsellor: req.user.FullName,
       termsCondition: termsCondition !== undefined ? termsCondition : admission.termsCondition,
       status: status || admission.status,
-      priority: priority || admission.priority,
       appliedBatch: appliedBatch !== undefined ? appliedBatch : admission.appliedBatch,
       source: source || admission.source,
       notes: notes !== undefined ? notes : admission.notes,

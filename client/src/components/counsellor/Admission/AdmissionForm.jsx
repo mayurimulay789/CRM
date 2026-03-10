@@ -3,19 +3,20 @@ import { useDispatch, useSelector } from 'react-redux';
 import { createAdmission, updateAdmission, clearError, clearSuccess } from '../../../store/slices/admissionSlice';
 import { fetchStudents } from '../../../store/slices/studentSlice';
 import { fetchCourses } from '../../../store/slices/courseSlice';
+import {getBatches} from '../../../store/slices/batchSlice';
 
 const AdmissionForm = ({ admission, onClose }) => {
   const dispatch = useDispatch();
   const { operationLoading, error, success } = useSelector(state => state.admissions);
   const { students } = useSelector(state => state.students);
   const { courses } = useSelector(state => state.courses);
-  
+  const { batches } = useSelector((state) => state.batch);
+
   const [formData, setFormData] = useState({
     student: '',
     course: '',
     trainingBranch: '',
     termsCondition: false,
-    priority: 'medium',
     appliedBatch: '',
     source: 'website',
     notes: ''
@@ -36,6 +37,7 @@ const AdmissionForm = ({ admission, onClose }) => {
     // Fetch students and courses for dropdowns
     dispatch(fetchStudents());
     dispatch(fetchCourses());
+    dispatch(getBatches());
   }, [dispatch]);
 
   useEffect(() => {
@@ -45,7 +47,6 @@ const AdmissionForm = ({ admission, onClose }) => {
         course: admission.course?._id || admission.course || '',
         trainingBranch: admission.trainingBranch || '',
         termsCondition: admission.termsCondition || false,
-        priority: admission.priority || 'medium',
         appliedBatch: admission.appliedBatch || '',
         source: admission.source || 'website',
         notes: admission.notes || ''
@@ -59,7 +60,7 @@ const AdmissionForm = ({ admission, onClose }) => {
       const timer = setTimeout(() => {
         onClose();
       }, 1000);
-      
+
       return () => clearTimeout(timer);
     }
   }, [success, onClose]);
@@ -83,7 +84,7 @@ const AdmissionForm = ({ admission, onClose }) => {
           delete newErrors.student;
         }
         break;
-      
+
       case 'course':
         if (!value) {
           newErrors.course = 'Course is required';
@@ -91,7 +92,7 @@ const AdmissionForm = ({ admission, onClose }) => {
           delete newErrors.course;
         }
         break;
-      
+
       case 'trainingBranch':
         if (!value.trim()) {
           newErrors.trainingBranch = 'Training branch is required';
@@ -99,7 +100,7 @@ const AdmissionForm = ({ admission, onClose }) => {
           delete newErrors.trainingBranch;
         }
         break;
-      
+
       case 'termsCondition':
         if (!value) {
           newErrors.termsCondition = 'Terms and conditions must be accepted';
@@ -107,7 +108,7 @@ const AdmissionForm = ({ admission, onClose }) => {
           delete newErrors.termsCondition;
         }
         break;
-      
+
       case 'studentStatement':
         if (value && value.length > 1000) {
           newErrors.studentStatement = 'Student statement must be less than 1000 characters';
@@ -115,7 +116,7 @@ const AdmissionForm = ({ admission, onClose }) => {
           delete newErrors.studentStatement;
         }
         break;
-      
+
       case 'notes':
         if (value && value.length > 500) {
           newErrors.notes = 'Notes must be less than 500 characters';
@@ -123,7 +124,7 @@ const AdmissionForm = ({ admission, onClose }) => {
           delete newErrors.notes;
         }
         break;
-      
+
       default:
         break;
     }
@@ -201,7 +202,7 @@ const AdmissionForm = ({ admission, onClose }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
@@ -214,7 +215,6 @@ const AdmissionForm = ({ admission, onClose }) => {
     submitFormData.append('course', formData.course);
     submitFormData.append('trainingBranch', formData.trainingBranch.trim());
     submitFormData.append('termsCondition', formData.termsCondition);
-    submitFormData.append('priority', formData.priority);
     submitFormData.append('appliedBatch', formData.appliedBatch.trim());
     submitFormData.append('source', formData.source);
     submitFormData.append('notes', formData.notes.trim());
@@ -249,7 +249,6 @@ const AdmissionForm = ({ admission, onClose }) => {
       course: '',
       trainingBranch: '',
       termsCondition: false,
-      priority: 'medium',
       appliedBatch: '',
       source: 'website',
       notes: ''
@@ -270,11 +269,11 @@ const AdmissionForm = ({ admission, onClose }) => {
   };
 
   const isFormValid = () => {
-    return formData.student && 
-           formData.course && 
-           formData.trainingBranch.trim() && 
-           formData.termsCondition && 
-           Object.keys(errors).length === 0;
+    return formData.student &&
+      formData.course &&
+      formData.trainingBranch.trim() &&
+      formData.termsCondition &&
+      Object.keys(errors).length === 0;
   };
 
   const getFileName = (file) => {
@@ -330,9 +329,8 @@ const AdmissionForm = ({ admission, onClose }) => {
               value={formData.student}
               onChange={handleChange}
               onBlur={handleBlur}
-              className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                errors.student ? 'border-red-300' : 'border-gray-300'
-              }`}
+              className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.student ? 'border-red-300' : 'border-gray-300'
+                }`}
               disabled={operationLoading}
             >
               <option value="">Select a student</option>
@@ -358,9 +356,8 @@ const AdmissionForm = ({ admission, onClose }) => {
               value={formData.course}
               onChange={handleChange}
               onBlur={handleBlur}
-              className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                errors.course ? 'border-red-300' : 'border-gray-300'
-              }`}
+              className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.course ? 'border-red-300' : 'border-gray-300'
+                }`}
               disabled={operationLoading}
             >
               <option value="">Select a course</option>
@@ -390,9 +387,8 @@ const AdmissionForm = ({ admission, onClose }) => {
               value={formData.trainingBranch}
               onChange={handleChange}
               onBlur={handleBlur}
-              className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                errors.trainingBranch ? 'border-red-300' : 'border-gray-300'
-              }`}
+              className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.trainingBranch ? 'border-red-300' : 'border-gray-300'
+                }`}
               placeholder="Enter training branch location"
               disabled={operationLoading}
             />
@@ -400,30 +396,6 @@ const AdmissionForm = ({ admission, onClose }) => {
               <p className="mt-1 text-sm text-red-600">{errors.trainingBranch}</p>
             )}
           </div>
-        </div>
-
-        {/* Priority and Source */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Priority */}
-          <div>
-            <label htmlFor="priority" className="block text-sm font-medium text-gray-700 mb-2">
-              Priority
-            </label>
-            <select
-              id="priority"
-              name="priority"
-              value={formData.priority}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              disabled={operationLoading}
-            >
-              <option value="low">Low</option>
-              <option value="medium">Medium</option>
-              <option value="high">High</option>
-            </select>
-          </div>
-
-          {/* Source */}
           <div>
             <label htmlFor="source" className="block text-sm font-medium text-gray-700 mb-2">
               Source
@@ -445,21 +417,26 @@ const AdmissionForm = ({ admission, onClose }) => {
           </div>
         </div>
 
+
         {/* Applied Batch */}
         <div>
           <label htmlFor="appliedBatch" className="block text-sm font-medium text-gray-700 mb-2">
             Applied Batch
           </label>
-          <input
-            type="text"
+          <select
             id="appliedBatch"
             name="appliedBatch"
             value={formData.appliedBatch}
             onChange={handleChange}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            placeholder="e.g., Morning Batch, Evening Batch"
-            disabled={operationLoading}
-          />
+          >
+            <option value="">Select batch</option>
+            {batches.map((batch) => (
+              <option key={batch._id} value={batch.name}>
+                {batch.name}
+              </option>
+            ))}
+          </select>
         </div>
 
         {/* Document Uploads */}
@@ -476,7 +453,7 @@ const AdmissionForm = ({ admission, onClose }) => {
                 id="admissionFrontPage"
                 name="admissionFrontPage"
                 onChange={handleFileChange}
-                accept="image/*,.pdf"
+                accept="image/*,.pdf,.jpeg,.png,.gif,.bmp,.webp,.svg"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 disabled={operationLoading}
               />
@@ -495,7 +472,7 @@ const AdmissionForm = ({ admission, onClose }) => {
                 id="admissionBackPage"
                 name="admissionBackPage"
                 onChange={handleFileChange}
-                accept="image/*,.pdf"
+                accept="image/*,.pdf,.jpeg,.png,.gif,.bmp,.webp,.svg"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 disabled={operationLoading}
               />
@@ -514,7 +491,7 @@ const AdmissionForm = ({ admission, onClose }) => {
                 id="studentStatement"
                 name="studentStatement"
                 onChange={handleFileChange}
-                accept="image/*,.pdf"
+                accept="image/*,.pdf,.jpeg,.png,.gif,.bmp,.webp,.svg"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 disabled={operationLoading}
               />
@@ -533,7 +510,7 @@ const AdmissionForm = ({ admission, onClose }) => {
                 id="confidentialForm"
                 name="confidentialForm"
                 onChange={handleFileChange}
-                accept="image/*,.pdf"
+                accept="image/*,.pdf,.jpeg,.png,.gif,.bmp,.webp,.svg"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 disabled={operationLoading}
               />
@@ -562,9 +539,8 @@ const AdmissionForm = ({ admission, onClose }) => {
             value={formData.notes}
             onChange={handleChange}
             onBlur={handleBlur}
-            className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none ${
-              errors.notes ? 'border-red-300' : 'border-gray-300'
-            }`}
+            className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none ${errors.notes ? 'border-red-300' : 'border-gray-300'
+              }`}
             placeholder="Additional notes or comments..."
             disabled={operationLoading}
           />
@@ -572,9 +548,8 @@ const AdmissionForm = ({ admission, onClose }) => {
             <p className="mt-1 text-sm text-red-600">{errors.notes}</p>
           )}
           <div className="flex justify-between mt-1">
-            <span className={`text-xs ${
-              notesCount > 500 ? 'text-red-600' : 'text-gray-500'
-            }`}>
+            <span className={`text-xs ${notesCount > 500 ? 'text-red-600' : 'text-gray-500'
+              }`}>
               {500 - notesCount} characters remaining
             </span>
           </div>
@@ -589,9 +564,8 @@ const AdmissionForm = ({ admission, onClose }) => {
             checked={formData.termsCondition}
             onChange={handleChange}
             onBlur={handleBlur}
-            className={`h-4 w-4 mt-1 text-blue-600 focus:ring-blue-500 border-gray-300 rounded ${
-              errors.termsCondition ? 'border-red-300' : ''
-            }`}
+            className={`h-4 w-4 mt-1 text-blue-600 focus:ring-blue-500 border-gray-300 rounded ${errors.termsCondition ? 'border-red-300' : ''
+              }`}
             disabled={operationLoading}
           />
           <div className="flex-1">
@@ -617,7 +591,7 @@ const AdmissionForm = ({ admission, onClose }) => {
           >
             Reset
           </button>
-          
+
           <button
             type="button"
             onClick={handleCancel}
@@ -626,7 +600,7 @@ const AdmissionForm = ({ admission, onClose }) => {
           >
             Cancel
           </button>
-          
+
           <button
             type="submit"
             disabled={operationLoading || !isFormValid()}

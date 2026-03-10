@@ -55,11 +55,6 @@ const admissionSchema = new mongoose.Schema({
     enum: ['pending', 'approved', 'rejected', 'waiting_list'],
     default: 'pending'
   },
-  priority: {
-    type: String,
-    enum: ['low', 'medium', 'high'],
-    default: 'medium'
-  },
   notes: String,
   appliedBatch: String,
   source: {
