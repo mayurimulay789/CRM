@@ -469,6 +469,9 @@ exports.submitGrievance = async (req, res) => {
 
     const grievance = await StudentGrievance.create(grievanceData);
 
+    const populatedGrievance = await StudentGrievance.findById(grievance._id).populate("counsellorId", "FullName email");
+    const counsellorName = populatedGrievance?.counsellorId?.FullName || "Your Counsellor";
+
     const submissionHtml = `
       <!DOCTYPE html>
       <html>
@@ -611,7 +614,7 @@ exports.submitGrievance = async (req, res) => {
                 </div>
                 <div class="detail-row">
                   <span class="detail-label">Counsellor:</span>
-                  <span class="detail-value">${grievance.counsellorName || 'N/A'}</span>
+                  <span class="detail-value">${counsellorName || 'N/A'}</span>
                 </div>
                 <div class="detail-row">
                   <span class="detail-label">Submission Date:</span>

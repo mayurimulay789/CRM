@@ -149,8 +149,7 @@ const BatchCard = ({ batch, onEditBatch, onDeleteBatch }) => {
       <div className={`absolute top-3 right-3 px-3 py-1 rounded-full text-xs font-semibold shadow-sm ${getStatusColor(batch.status)}`}>
         {batch.status}
       </div>
-      <h4 className="font-semibold text-gray-900 pr-20 text-lg">{batch.name}</h4>
-      <p className="text-sm text-gray-700 mt-2 font-medium">{batch.course}</p>
+      <h4 className="font-semibold text-gray-900 pr-20 text-md">{batch.name}</h4>
       <div className="mt-3 space-y-1">
         <p className="text-xs text-gray-600">
           📅 {batch.startDate ? new Date(batch.startDate).toLocaleDateString() : 'No start date'}
