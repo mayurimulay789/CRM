@@ -20,8 +20,8 @@ const EnrollmentForm = ({ enrollment, onClose, isCounsellor = true, counsellorId
     batch: '',
     trainingBranch: '',
     mode: 'Offline',
-    totalAmount: '',
     actualAmount: '',
+    totalAmount: '',
     feeType: 'one-time',
     firstEMI: { amount: 0, date: '', pending: 0 },
     secondEMI: { amount: 0, date: '', pending: 0 },
@@ -31,7 +31,8 @@ const EnrollmentForm = ({ enrollment, onClose, isCounsellor = true, counsellorId
     leadDate: new Date().toISOString().split('T')[0],
     leadSource: 'website',
     call: '',
-    status: 'active'
+    status: 'active',
+    admissionRegistrationPayment: 0
   });
 
   const [errors, setErrors] = useState({});
@@ -80,8 +81,10 @@ const EnrollmentForm = ({ enrollment, onClose, isCounsellor = true, counsellorId
         leadDate: formatDateForInput(enrollment.leadDate) || new Date().toISOString().split('T')[0],
         leadSource: enrollment.leadSource || 'website',
         call: enrollment.call || '',
-        status: enrollment.status || 'active'
+        status: enrollment.status || 'active',
+        admissionRegistrationPayment: enrollment.admissionRegistrationPayment || 0
       });
+              // ...existing code...
     }
   }, [enrollment]);
 
@@ -239,17 +242,22 @@ const EnrollmentForm = ({ enrollment, onClose, isCounsellor = true, counsellorId
   const validateEMITotals = () => {
     const newErrors = { ...errors };
 
-    if (formData.feeType === 'installment') {
-      const totalEMI = parseFloat(formData.firstEMI.amount || 0) + 
-                      parseFloat(formData.secondEMI.amount || 0) + 
-                      parseFloat(formData.thirdEMI.amount || 0);
-      const totalAmount = parseFloat(formData.totalAmount || 0);
-      
-      if (totalEMI !== totalAmount) {
-        newErrors.emiTotal = `EMI total (₹${totalEMI}) must match total amount (₹${totalAmount})`;
-      } else {
-        delete newErrors.emiTotal;
-      }
+  // EMI validation for installment fee type
+  if (formData.feeType === 'installment') {
+    // Calculate actual total including late fees and registration payment
+    const actualTotal = parseFloat(formData.totalAmount || 0) + 
+                       parseFloat(formData.charges || 0) + 
+                       parseFloat(formData.admissionRegistrationPayment || 0);
+    
+    const totalEMI = parseFloat(formData.firstEMI.amount || 0) + 
+                    parseFloat(formData.secondEMI.amount || 0) + 
+                    parseFloat(formData.thirdEMI.amount || 0);
+    
+    if (totalEMI !== actualTotal) {
+      newErrors.emiTotal = `EMI total (₹${totalEMI}) must match total amount (₹${actualTotal}) [Base: ₹${formData.totalAmount} + Late Fees: ₹${formData.charges || 0} + Registration: ₹${formData.admissionRegistrationPayment || 0}]`;
+    } else {
+      delete newErrors.emiTotal;
+    }
 
       // Validate individual EMI dates and amounts
       const emis = [
@@ -348,9 +356,9 @@ const EnrollmentForm = ({ enrollment, onClose, isCounsellor = true, counsellorId
       validateEMITotals();
     }
 
-    // Additional charges validation
+    // late fees validation
     if (formData.charges && parseFloat(formData.charges) < 0) {
-      newErrors.charges = 'Additional charges cannot be negative';
+      newErrors.charges = 'late fees cannot be negative';
     }
 
     setErrors(newErrors);
@@ -371,7 +379,8 @@ const EnrollmentForm = ({ enrollment, onClose, isCounsellor = true, counsellorId
       leadDate: formData.leadDate ? new Date(formData.leadDate) : new Date(),
       leadSource: formData.leadSource,
       call: formData.call,
-      status: formData.status
+      status: formData.status,
+      admissionRegistrationPayment: parseFloat(formData.admissionRegistrationPayment) || 0
     };
 
     // Add counsellor for new enrollments
@@ -456,6 +465,11 @@ const EnrollmentForm = ({ enrollment, onClose, isCounsellor = true, counsellorId
   const totalEMIAmount = parseFloat(formData.firstEMI.amount || 0) + 
                         parseFloat(formData.secondEMI.amount || 0) + 
                         parseFloat(formData.thirdEMI.amount || 0);
+
+  // Calculate actual total for EMI comparison
+  const actualTotalForEMI = parseFloat(formData.totalAmount || 0) + 
+                           parseFloat(formData.charges || 0) + 
+                           parseFloat(formData.admissionRegistrationPayment || 0);
 
   // Helper component for required field indicator
   const RequiredStar = () => <span className="text-red-500 ml-1">*</span>;
@@ -688,10 +702,36 @@ const EnrollmentForm = ({ enrollment, onClose, isCounsellor = true, counsellorId
             </div>
           </div>
 
-          {/* Additional Charges */}
+          {/* late fees */}
+                    {/* Admission Registration Payment */}
+                    <div className="mt-4">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Admission Registration Payment
+                      </label>
+                      <input
+                        type="number"
+                        name="admissionRegistrationPayment"
+                        value={formData.admissionRegistrationPayment}
+                        onChange={handleChange}
+                        onBlur={() => handleBlur('admissionRegistrationPayment')}
+                        className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                          errors.admissionRegistrationPayment ? 'border-red-500' : 'border-gray-300'
+                        }`}
+                        placeholder="Enter admission registration payment"
+                        min="0"
+                        step="1"
+                      />
+                      {errors.admissionRegistrationPayment && (
+                        <p className="text-red-500 text-xs mt-1 flex items-center">
+                          <span className="mr-1">⚠</span>
+                          {errors.admissionRegistrationPayment}
+                        </p>
+                      )}
+                    </div>
           <div className="mt-4">
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Additional Charges
+
+              Late Fees
             </label>
             <input
               type="number"
@@ -702,7 +742,7 @@ const EnrollmentForm = ({ enrollment, onClose, isCounsellor = true, counsellorId
               className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                 errors.charges ? 'border-red-500' : 'border-gray-300'
               }`}
-              placeholder="Enter additional charges"
+              placeholder="Enter late fees"
               min="0"
               step="1"
             />
@@ -776,14 +816,14 @@ const EnrollmentForm = ({ enrollment, onClose, isCounsellor = true, counsellorId
               </div>
               
               <div className={`mt-4 p-3 rounded-lg ${
-                totalEMIAmount === parseFloat(formData.totalAmount || 0) 
+                totalEMIAmount === actualTotalForEMI 
                   ? 'bg-green-50 border border-green-200 text-green-800'
                   : 'bg-yellow-50 border border-yellow-200 text-yellow-800'
               }`}>
                 <div className="text-sm">
                   <strong>EMI Summary:</strong> Total EMI Amount: ₹{totalEMIAmount} | 
-                  Course Amount: ₹{formData.totalAmount} | 
-                  {totalEMIAmount === parseFloat(formData.totalAmount || 0) ? (
+                  Total Amount: ₹{actualTotalForEMI} [Base: ₹{formData.totalAmount} + Late Fees: ₹{formData.charges || 0} + Registration: ₹{formData.admissionRegistrationPayment || 0}] | 
+                  {totalEMIAmount === actualTotalForEMI ? (
                     <span className="text-green-600"> ✓ Amounts match</span>
                   ) : (
                     <span className="text-yellow-600"> ⚠ Amounts don't match</span>

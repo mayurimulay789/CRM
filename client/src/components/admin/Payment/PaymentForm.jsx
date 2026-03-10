@@ -107,7 +107,7 @@ const PaymentForm = ({ onClose, isCounsellor = false }) => {
     }
 
     if (selectedEnrollment) {
-      const pendingAmount = selectedEnrollment.totalAmount - selectedEnrollment.amountReceived;
+      const pendingAmount = calculateActualPending(selectedEnrollment);
       if (parseFloat(formData.amountReceived) > pendingAmount) {
         newErrors.amountReceived = `Amount cannot exceed pending amount of ${pendingAmount}`;
       }
@@ -151,7 +151,20 @@ const PaymentForm = ({ onClose, isCounsellor = false }) => {
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
       currency: 'INR'
-    }).format(amount);
+    }).format(amount || 0);
+  };
+
+  // Calculate actual total including late fees and registration fees
+  const calculateActualTotal = (enrollment) => {
+    const baseAmount = enrollment.totalAmount || 0;
+    const lateFees = enrollment.charges || 0;
+    const registrationFees = enrollment.admissionRegistrationPayment || 0;
+    return baseAmount + lateFees + registrationFees;
+  };
+
+  // Calculate actual pending amount
+  const calculateActualPending = (enrollment) => {
+    return calculateActualTotal(enrollment) - (enrollment.amountReceived || 0);
   };
 
   return (
@@ -187,7 +200,7 @@ const PaymentForm = ({ onClose, isCounsellor = false }) => {
                 {allEnrollments.map(enrollment => (
                   <option key={enrollment._id} value={enrollment._id}>
                     {enrollment.enrollmentNo} - {enrollment.student?.name} - {enrollment.course?.name}
-                    {enrollment.pendingAmount > 0 && ` (Pending: ${formatCurrency(enrollment.pendingAmount)})`}
+                    {calculateActualPending(enrollment) > 0 && ` (Pending: ${formatCurrency(calculateActualPending(enrollment))})`}
                   </option>
                 ))}
               </select>
@@ -207,13 +220,29 @@ const PaymentForm = ({ onClose, isCounsellor = false }) => {
                     <div className="font-medium">{selectedEnrollment.course?.name}</div>
                   </div>
                   <div>
-                    <span className="text-blue-600">Total Fee:</span>
+                    <span className="text-blue-600">Base Amount:</span>
                     <div className="font-medium">{formatCurrency(selectedEnrollment.totalAmount)}</div>
+                  </div>
+                  {(selectedEnrollment.charges > 0) && (
+                    <div>
+                      <span className="text-blue-600">Late Fees:</span>
+                      <div className="font-medium text-orange-600">{formatCurrency(selectedEnrollment.charges)}</div>
+                    </div>
+                  )}
+                  {(selectedEnrollment.admissionRegistrationPayment > 0) && (
+                    <div>
+                      <span className="text-blue-600">Registration Fees:</span>
+                      <div className="font-medium text-purple-600">{formatCurrency(selectedEnrollment.admissionRegistrationPayment)}</div>
+                    </div>
+                  )}
+                  <div>
+                    <span className="text-blue-600">Total Amount:</span>
+                    <div className="font-medium text-gray-900">{formatCurrency(calculateActualTotal(selectedEnrollment))}</div>
                   </div>
                   <div>
                     <span className="text-blue-600">Pending:</span>
                     <div className="font-medium text-red-600">
-                      {formatCurrency(selectedEnrollment.pendingAmount)}
+                      {formatCurrency(calculateActualPending(selectedEnrollment))}
                     </div>
                   </div>
                   <div>

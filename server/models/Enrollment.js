@@ -41,6 +41,11 @@ const studentActivitySchema = new mongoose.Schema({
 });
 
 const enrollmentSchema = new mongoose.Schema({
+    admissionRegistrationPayment: {
+      type: Number,
+      default: 0,
+      description: 'Payment made at the time of admission registration.'
+    },
   enrollmentNo: {
     type: String,
     required: true,
@@ -108,12 +113,14 @@ const enrollmentSchema = new mongoose.Schema({
   pendingAmount: {
     type: Number,
     default: function() {
-      return (this.totalAmount - this.discount) - this.amountReceived;
+      const actualTotal = (this.totalAmount || 0) + (this.charges || 0) + (this.admissionRegistrationPayment || 0);
+      return (actualTotal - (this.discount || 0)) - (this.amountReceived || 0);
     }
   },
   charges: {
     type: Number,
-    default: 0
+    default: 0,
+    description: 'Late fees charged to the student for overdue payments'
   },
   upcomingEMIAmount: {
     type: Number,
@@ -217,9 +224,11 @@ enrollmentSchema.pre('save', async function(next) {
     this.enrollmentNo = `ENR${year}${(count + 1).toString().padStart(4, '0')}`;
   }
   
-  // Update pending amount based on approved payments
-  if (this.isModified('totalAmount') || this.isModified('discount') || this.isModified('amountReceived')) {
-    this.pendingAmount = (this.totalAmount - this.discount) - this.amountReceived;
+  // Update pending amount using actual total (including charges and registration payment)
+  if (this.isModified('totalAmount') || this.isModified('discount') || this.isModified('amountReceived') || 
+      this.isModified('charges') || this.isModified('admissionRegistrationPayment')) {
+    const actualTotal = this.calculateActualTotal();
+    this.pendingAmount = (actualTotal - this.discount) - this.amountReceived;
   }
   
   // Update upcoming EMI amount
@@ -241,11 +250,22 @@ enrollmentSchema.methods.addActivity = function(type, description, createdBy, pa
   return this.save();
 };
 
+// Helper method to calculate actual total including all fees
+enrollmentSchema.methods.calculateActualTotal = function() {
+  const baseAmount = this.totalAmount || 0;
+  const lateFees = this.charges || 0;
+  const registrationFees = this.admissionRegistrationPayment || 0;
+  return baseAmount + lateFees + registrationFees;
+};
+
 // Instance method to update enrollment after payment approval
 enrollmentSchema.methods.updateAfterPaymentApproval = async function(payment) {
   // Update amount received
   this.amountReceived += payment.amountReceived;
-  this.pendingAmount = (this.totalAmount - this.discount) - this.amountReceived;
+  
+  // Calculate pending amount using actual total (including all fees)
+  const actualTotal = this.calculateActualTotal();
+  this.pendingAmount = (actualTotal - this.discount) - this.amountReceived;
   
   // Update last payment details
   this.lastTransactionNo = payment.transactionNo || payment.paymentNo;

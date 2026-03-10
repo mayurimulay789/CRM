@@ -484,7 +484,7 @@ const StudentGrievance = () => {
   const [formData, setFormData] = useState({
     studentName: "",
     studentEmail: "",
-    title: "",
+    subject: "",
     complaint: "",
   });
 
@@ -499,7 +499,7 @@ const StudentGrievance = () => {
       Swal.fire("Success!", success, "success");
       setShowForm(false);
       setEditingGrievance(null);
-      setFormData({ studentName: "", studentEmail: "", title: "", complaint: "" });
+      setFormData({ studentName: "", studentEmail: "", subject: "", complaint: "" });
       setTimeout(() => dispatch(clearSuccess()), 2000);
     }
     if (error) {
@@ -523,6 +523,10 @@ const StudentGrievance = () => {
       return false;
     } else if (!/\S+@\S+\.\S+/.test(formData.studentEmail)) {
       Swal.fire("Warning", "Please enter a valid email address.", "warning");
+      return false;
+    }
+    if (!formData.subject.trim()) {
+      Swal.fire("Warning", "Please enter subject.", "warning");
       return false;
     }
     if (!formData.complaint.trim()) {
@@ -552,7 +556,7 @@ const StudentGrievance = () => {
     setFormData({
       studentName: g.studentName,
       studentEmail: g.studentEmail,
-      title: g.title,
+      subject: g.subject || "",
       complaint: g.complaint,
     });
     setShowForm(true);
@@ -583,6 +587,7 @@ const StudentGrievance = () => {
     const matchSearch =
       g.studentName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       g.complaint?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      g.subject?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       g.studentEmail?.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchStatus = filterStatus === "all" || g.status === filterStatus;
@@ -797,6 +802,7 @@ const StudentGrievance = () => {
                 setFormData({
                   studentName: "",
                   studentEmail: "",
+                  subject: "",
                   complaint: "",
                 });
               }}
@@ -843,6 +849,22 @@ const StudentGrievance = () => {
                 />
               </div>
 
+              {/* Subject */}
+              <div className="lg:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Subject *
+                </label>
+                <input
+                  type="text"
+                  value={formData.subject}
+                  onChange={(e) =>
+                    setFormData({ ...formData, subject: e.target.value })
+                  }
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                  placeholder="Enter grievance subject"
+                />
+              </div>
+
               {/* Complaint */}
               <div className="lg:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -873,6 +895,7 @@ const StudentGrievance = () => {
                   setFormData({
                     studentName: "",
                     studentEmail: "",
+                    subject: "",
                     complaint: "",
                   });
                 }}
@@ -1119,6 +1142,7 @@ const StudentGrievance = () => {
 
                   {/* Complaint */}
                   <div className="mb-4">
+                    <p className="text-gray-800 text-sm font-medium mb-1">{g.subject || ''}</p>
                     <p className="text-gray-700 text-sm line-clamp-3 leading-relaxed">{g.complaint}</p>
                     {g.adminResponse && (
                       <div className="mt-3 p-3 bg-blue-50 rounded-xl border border-blue-200">
@@ -1172,7 +1196,7 @@ const StudentGrievance = () => {
             <table className="w-full text-sm">
               <thead className="bg-gray-50">
                 <tr>
-                  {["Student", "Complaint", "Status", "Date", "Actions"].map(
+                  {["Student", "Subject", "Complaint", "Status", "Date", "Actions"].map(
                     (h) => (
                       <th
                         key={h}
@@ -1189,7 +1213,7 @@ const StudentGrievance = () => {
                 {currentGrievances.length === 0 ? (
                   <tr>
                     <td
-                      colSpan="5"
+                      colSpan="6"
                       className="text-center py-12 text-gray-500"
                     >
                       <div className="flex flex-col items-center">
@@ -1218,6 +1242,10 @@ const StudentGrievance = () => {
                         <div className="text-gray-500 text-xs mt-1">
                           {g.studentEmail}
                         </div>
+                      </td>
+
+                      <td className="px-6 py-4">
+                        <p className="text-gray-700 font-medium">{g.subject || 'N/A'}</p>
                       </td>
 
                       <td className="px-6 py-4 max-w-md">

@@ -1,22 +1,24 @@
 const Payment = require('../models/Payment');
 const Enrollment = require('../models/Enrollment');
 const Student = require('../models/Student');
-const sendMail = require('../utils/email');
+const { sendMail } = require('../utils/email');
 
 // @desc    Validate payment amount against enrollment fee structure - STRICT VERSION
 const validatePaymentAmountStrict = async (enrollment, amountReceived, feeType, emiNumber) => {
   // For one-time fee: STRICTLY require single full payment
   if (enrollment.feeType === 'one-time') {
-    const totalPending = enrollment.totalAmount - enrollment.amountReceived;
+    // Calculate actual total including late fees and registration fees
+    const actualTotal = calculateActualTotal(enrollment);
+    const totalPending = actualTotal - enrollment.amountReceived;
     
     // If ANY payment already exists, block new payments
     if (enrollment.amountReceived > 0) {
       return 'One-time fee already has payments. Cannot add more payments.';
     }
     
-    // Require full amount in single payment
-    if (amountReceived !== enrollment.totalAmount) {
-      return `One-time fee requires single full payment of ₹${enrollment.totalAmount}`;
+    // Require full amount in single payment (including all fees)
+    if (amountReceived !== actualTotal) {
+      return `One-time fee requires single full payment of ₹${actualTotal} (including all fees)`;
     }
     
     return null; // Validation passed
@@ -59,10 +61,19 @@ async function sendPaymentConfirmationEmail(payment) {
     // Populate payment with necessary data
     await payment.populate([
       { path: 'student', select: 'studentId name email phone' },
-      { path: 'enrollment', select: 'enrollmentNo courseName totalAmount amountReceived feeType firstEMI secondEMI thirdEMI' },
+      { path: 'enrollment', select: 'enrollmentNo courseName totalAmount amountReceived feeType charges admissionRegistrationPayment firstEMI secondEMI thirdEMI' },
       { path: 'receivedBy', select: 'name email' }
     ]);
-    const { student, enrollment } = payment; 
+    const { student, enrollment } = payment;
+    // Debug: Log enrollment data
+    console.log('📧 Email Debug - Enrollment data:', {
+      enrollmentNo: enrollment?.enrollmentNo,
+      totalAmount: enrollment?.totalAmount,
+      charges: enrollment?.charges,
+      admissionRegistrationPayment: enrollment?.admissionRegistrationPayment,
+      amountReceived: enrollment?.amountReceived
+    });
+    
     if (!student || !student.email) {
       console.error('❌ Student email not found for payment:', payment.paymentNo);
       return false;
@@ -86,9 +97,51 @@ async function sendPaymentConfirmationEmail(payment) {
   }
 }
 /**
+ * Calculate actual total including late fees and registration fees
+ */
+function calculateActualTotal(enrollment) {
+  const baseAmount = enrollment.totalAmount || 0;
+  const lateFees = enrollment.charges || 0;
+  const registrationFees = enrollment.admissionRegistrationPayment || 0;
+  return baseAmount + lateFees + registrationFees;
+}
+
+/**
+ * Generate fee breakdown HTML – always shows all fee components
+ */
+function generateFeeBreakdown(enrollment) {
+  const base = enrollment.totalAmount || 0;
+  const late = enrollment.charges || 0;
+  const reg = enrollment.admissionRegistrationPayment || 0;
+  const actualTotal = base + late + reg;
+  const actualPending = actualTotal - (enrollment.amountReceived || 0);
+
+  let breakdownHtml = `
+    <div class="detail-row">
+      <span class="detail-label">Base Course Fee:</span>
+      <span class="detail-value">₹${base}</span>
+    </div>
+    <div class="detail-row">
+      <span class="detail-label">Late Fees:</span>
+      <span class="detail-value" style="color: ${late > 0 ? '#ff6b6b' : '#6c757d'};">₹${late}</span>
+    </div>
+    <div class="detail-row">
+      <span class="detail-label">Registration Fees:</span>
+      <span class="detail-value" style="color: ${reg > 0 ? '#9c88ff' : '#6c757d'};">₹${reg}</span>
+    </div>
+    <div class="detail-row" style="border-top: 2px solid #dee2e6; margin-top: 10px; padding-top: 10px;">
+      <span class="detail-label" style="font-weight: bold;">Total Amount:</span>
+      <span class="detail-value" style="font-weight: bold;">₹${actualTotal}</span>
+    </div>`;
+
+  return { breakdownHtml, actualTotal, actualPending };
+}
+
+/**
  * Generate email for one-time payment
  */
 function generateOneTimePaymentEmail(payment, student, enrollment) {
+  const { breakdownHtml, actualTotal, actualPending } = generateFeeBreakdown(enrollment);
   const subject = `🎉 Payment Confirmed - Full Fee Received | ${payment.paymentNo}`;
   
   const html = `
@@ -216,7 +269,15 @@ function generateOneTimePaymentEmail(payment, student, enrollment) {
             ₹${payment.amountReceived}
           </div>
 
+          <!-- Fee Breakdown Section -->
+          <div class="payment-details" style="margin-bottom: 20px;">
+            <h3 style="color: #495057; margin-bottom: 15px; text-align: center;">💰 Fee Breakdown</h3>
+            ${breakdownHtml}
+          </div>
+          
+          <!-- Payment Details Section -->
           <div class="payment-details">
+            <h3 style="color: #495057; margin-bottom: 15px; text-align: center;">📋 Payment Details</h3>
             <div class="detail-row">
               <span class="detail-label">Student Name:</span>
               <span class="detail-value">${student.name}</span>
@@ -246,12 +307,8 @@ function generateOneTimePaymentEmail(payment, student, enrollment) {
               <span class="detail-value">${payment.transactionNo || 'N/A'}</span>
             </div>
             <div class="detail-row">
-              <span class="detail-label">Total Course Fee:</span>
-              <span class="detail-value">₹${enrollment.totalAmount}</span>
-            </div>
-            <div class="detail-row">
               <span class="detail-label">Amount Received:</span>
-              <span class="detail-value">₹${payment.amountReceived}</span>
+              <span class="detail-value" style="color: #28a745; font-weight: bold;">₹${payment.amountReceived}</span>
             </div>
             <div class="detail-row">
               <span class="detail-label">Pending Amount:</span>
@@ -288,6 +345,7 @@ function generateOneTimePaymentEmail(payment, student, enrollment) {
  * Generate email for installment payment
  */
 function generateInstallmentPaymentEmail(payment, student, enrollment) {
+  const { breakdownHtml, actualTotal, actualPending } = generateFeeBreakdown(enrollment);
   const emiNumberMap = {
     'first': '1st',
     'second': '2nd', 
@@ -447,7 +505,15 @@ function generateInstallmentPaymentEmail(payment, student, enrollment) {
             ₹${payment.amountReceived}
           </div>
 
+          <!-- Fee Breakdown Section -->
+          <div class="payment-details" style="margin-bottom: 20px;">
+            <h3 style="color: #495057; margin-bottom: 15px; text-align: center;">💰 Fee Breakdown</h3>
+            ${breakdownHtml}
+          </div>
+          
+          <!-- Payment Details Section -->
           <div class="payment-details">
+            <h3 style="color: #495057; margin-bottom: 15px; text-align: center;">📋 Payment Details</h3>
             <div class="detail-row">
               <span class="detail-label">Student Name:</span>
               <span class="detail-value">${student.name}</span>
@@ -469,23 +535,19 @@ function generateInstallmentPaymentEmail(payment, student, enrollment) {
               <span class="detail-value">${payment.paymentMode}</span>
             </div>
             <div class="detail-row">
-              <span class="detail-label">Total Course Fee:</span>
-              <span class="detail-value">₹${enrollment.totalAmount}</span>
-            </div>
-            <div class="detail-row">
               <span class="detail-label">Total Paid:</span>
-              <span class="detail-value">₹${enrollment.amountReceived}</span>
+              <span class="detail-value" style="color: #28a745; font-weight: bold;">₹${enrollment.amountReceived}</span>
             </div>
             <div class="detail-row">
               <span class="detail-label">Pending Amount:</span>
-              <span class="detail-value">₹${enrollment.pendingAmount}</span>
+              <span class="detail-value" style="color: ${actualPending > 0 ? '#dc3545' : '#28a745'}; font-weight: bold;">₹${actualPending}</span>
             </div>
           </div>
 
           <!-- EMI Progress -->
           <h3 style="text-align: center; margin-bottom: 10px;">Payment Progress</h3>
           <div class="progress-container">
-            <div class="progress-bar" style="width: ${(enrollment.amountReceived / enrollment.totalAmount) * 100}%"></div>
+            <div class="progress-bar" style="width: ${(enrollment.amountReceived / actualTotal) * 100}%"></div>
           </div>
           
           <div class="emi-status">
@@ -524,6 +586,7 @@ function generateInstallmentPaymentEmail(payment, student, enrollment) {
  * Generate generic payment email (fallback)
  */
 function generateGenericPaymentEmail(payment, student, enrollment) {
+  const { breakdownHtml, actualTotal, actualPending } = generateFeeBreakdown(enrollment);
   const subject = `✅ Payment Received | ${payment.paymentNo}`;
   
   const html = `
@@ -631,7 +694,15 @@ function generateGenericPaymentEmail(payment, student, enrollment) {
             ₹${payment.amountReceived}
           </div>
 
+          <!-- Fee Breakdown Section -->
+          <div class="payment-details" style="margin-bottom: 20px;">
+            <h3 style="color: #495057; margin-bottom: 15px; text-align: center;">💰 Fee Breakdown</h3>
+            ${breakdownHtml}
+          </div>
+          
+          <!-- Payment Details Section -->
           <div class="payment-details">
+            <h3 style="color: #495057; margin-bottom: 15px; text-align: center;">📋 Payment Details</h3>
             <div class="detail-row">
               <span class="detail-label">Student Name:</span>
               <span class="detail-value">${student.name}</span>
@@ -650,7 +721,11 @@ function generateGenericPaymentEmail(payment, student, enrollment) {
             </div>
             <div class="detail-row">
               <span class="detail-label">Amount Received:</span>
-              <span class="detail-value">₹${payment.amountReceived}</span>
+              <span class="detail-value" style="color: #007bff; font-weight: bold;">₹${payment.amountReceived}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Pending Amount:</span>
+              <span class="detail-value" style="color: ${actualPending > 0 ? '#dc3545' : '#28a745'}; font-weight: bold;">₹${actualPending}</span>
             </div>
           </div>
 
@@ -711,7 +786,7 @@ function generateEMIStatusPills(enrollment) {
   }).join('');
 }
 
-// YOUR EXISTING FUNCTIONS - UPDATED WITH EMAIL INTEGRATION
+// ==================== Controller Functions ====================
 
 const recordPayment = async (req, res) => {
   try {
@@ -728,6 +803,9 @@ const recordPayment = async (req, res) => {
       remarks,
       emiNumber // REQUIRED for installment payments
     } = req.body;
+
+    // Convert empty string to null for emiNumber (for one-time payments)
+    const normalizedEmiNumber = emiNumber === '' ? null : emiNumber;
 
     // Verify enrollment exists and belongs to counsellor
     const enrollmentDoc = await Enrollment.findById(enrollment);
@@ -751,7 +829,7 @@ const recordPayment = async (req, res) => {
       enrollmentDoc, 
       amountReceived, 
       feeType, 
-      emiNumber
+      normalizedEmiNumber
     );
     
     if (validationError) {
@@ -791,7 +869,7 @@ const recordPayment = async (req, res) => {
       paymentMode,
       paymentBank,
       transactionNo,
-      emiNumber, // Store which EMI this payment is for
+      emiNumber: normalizedEmiNumber, // Store which EMI this payment is for
       trainingBranch: enrollmentDoc.trainingBranch,
       trainingMode: enrollmentDoc.mode,
       admissionBranch: enrollmentDoc.trainingBranch,
@@ -869,9 +947,9 @@ const getPayments = async (req, res) => {
     const skip = (pageNum - 1) * limitNum;
 
     const payments = await Payment.find(query)
-      .populate('enrollment', 'enrollmentNo courseName totalAmount amountReceived feeType')
+      .populate('enrollment', 'enrollmentNo courseName totalAmount amountReceived feeType charges admissionRegistrationPayment')
       .populate('student', 'studentId name email phone')
-      .populate('receivedBy', 'FullName email')
+      .populate('receivedBy', 'name email')
       .populate('counsellor', 'name email')
       .populate('verifiedBy', 'name email')
       .sort({ date: -1 })
@@ -1180,12 +1258,12 @@ const deleteAllPayments = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: 'payment deleted successfully'
+      message: 'All payments deleted successfully'
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: 'Error deleting course',
+      message: 'Error deleting payments',
       error: error.message
     });
   }

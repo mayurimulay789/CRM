@@ -168,9 +168,16 @@ const AdmissionManagement = () => {
   };
 
   const handleImageClick = (imageUrl, title) => {
+    console.log('📄 Opening document:', title, imageUrl);
     setSelectedImage(imageUrl);
     setImageTitle(title);
     setShowImageModal(true);
+  };
+
+  // Alternative: Direct PDF opening in new tab (can be used for quick access)
+  const handlePdfClick = (pdfUrl, title) => {
+    console.log('📄 Opening PDF in new tab:', title, pdfUrl);
+    window.open(pdfUrl, '_blank', 'noopener,noreferrer');
   };
 
   const handleCloseImageModal = () => {
@@ -318,6 +325,10 @@ const AdmissionManagement = () => {
         >
           <span>📄</span>
           <span className="text-sm hidden lg:inline">PDF</span>
+          {/* Tooltip */}
+          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap">
+            Click to view PDF
+          </div>
         </div>
       );
     } else if (url.toLowerCase().endsWith('.jpeg') || url.toLowerCase().endsWith('.jpg') || url.toLowerCase().endsWith('.png') || url.toLowerCase().endsWith('.gif') || url.toLowerCase().endsWith('.bmp') || url.toLowerCase().endsWith('.webp') || url.toLowerCase().endsWith('.svg')) {

@@ -6,6 +6,8 @@ const {
   getCurrentUser,
   updateUserProfile,
   getAllCounsellor,
+  deleteCounsellor,  // Add this import
+
   // New password reset controllers
   searchUserByEmailAndReset,
   verifyOtp,
@@ -40,5 +42,6 @@ router.put('/myprofile', protect, updateUserProfile);
 
 // Get all counsellors (requires admin)
 router.get('/allCounsellor', protect, admin, getAllCounsellor);
+router.delete('/counsellor/:id', protect, admin, deleteCounsellor);
 
 module.exports = router;
