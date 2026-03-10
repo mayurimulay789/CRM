@@ -62,16 +62,12 @@ async function sendPaymentConfirmationEmail(payment) {
       { path: 'enrollment', select: 'enrollmentNo courseName totalAmount amountReceived feeType firstEMI secondEMI thirdEMI' },
       { path: 'receivedBy', select: 'name email' }
     ]);
-
-    const { student, enrollment } = payment;
-    
+    const { student, enrollment } = payment; 
     if (!student || !student.email) {
       console.error('❌ Student email not found for payment:', payment.paymentNo);
       return false;
     }
-
     let subject, html;
-
     // Different email templates based on fee type
     if (enrollment.feeType === 'one-time') {
       ({ subject, html } = generateOneTimePaymentEmail(payment, student, enrollment));
@@ -80,19 +76,15 @@ async function sendPaymentConfirmationEmail(payment) {
     } else {
       ({ subject, html } = generateGenericPaymentEmail(payment, student, enrollment));
     }
-
     // Send email to student with BCC
-    await sendMail(student.email, subject, html, true);
-    
+    await sendMail(student.email, subject, html, true);   
     console.log(`✅ Payment confirmation email sent to ${student.email} with BCC`);
     return true;
-
   } catch (error) {
     console.error('❌ Failed to send payment confirmation email:', error.message);
     return false;
   }
 }
-
 /**
  * Generate email for one-time payment
  */
@@ -290,10 +282,8 @@ function generateOneTimePaymentEmail(payment, student, enrollment) {
     </body>
     </html>
   `;
-
   return { subject, html };
 }
-
 /**
  * Generate email for installment payment
  */

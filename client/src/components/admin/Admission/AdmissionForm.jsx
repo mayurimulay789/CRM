@@ -606,7 +606,7 @@ const AdmissionForm = ({ admission, onClose, isCounsellor = false }) => {
                   id="admissionFrontPage"
                   name="admissionFrontPage"
                   onChange={handleFileChange}
-                  accept="image/*,.pdf"
+                  accept="image/*,.pdf,.png,.jpg,.jpeg"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   disabled={operationLoading}
                 />
