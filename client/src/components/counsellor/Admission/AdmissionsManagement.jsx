@@ -1,26 +1,26 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { 
-  fetchAdmissions, 
-  createAdmission, 
-  updateAdmission, 
-  deleteAdmission, 
+import {
+  fetchAdmissions,
+  createAdmission,
+  updateAdmission,
+  deleteAdmission,
   clearError,
-  clearSuccess 
+  clearSuccess
 } from '../../../store/slices/admissionSlice';
 import AdmissionForm from './AdmissionForm';
 
 const AdmissionsManagement = () => {
   const dispatch = useDispatch();
-  const { 
-    admissions, 
-    loading, 
-    error, 
-    operationSuccess, 
+  const {
+    admissions,
+    loading,
+    error,
+    operationSuccess,
     currentAdmission,
-    stats 
+    stats
   } = useSelector(state => state.admissions);
-  
+
   const [showForm, setShowForm] = useState(false);
   const [editingAdmission, setEditingAdmission] = useState(null);
   const [filterStatus, setFilterStatus] = useState('all');
@@ -56,7 +56,6 @@ const AdmissionsManagement = () => {
     { key: 'trainingBranch', label: 'Branch', visible: true },
     { key: 'counsellor', label: 'Counsellor', visible: true },
     { key: 'status', label: 'Status', visible: true },
-    { key: 'priority', label: 'Priority', visible: true },
     { key: 'admissionDate', label: 'Admission Date', visible: true },
     { key: 'documents', label: 'Documents', visible: true },
     { key: 'appliedBatch', label: 'Applied Batch', visible: false },
@@ -99,19 +98,19 @@ const AdmissionsManagement = () => {
   // Fixed click outside detection
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (showFilterMenu && 
-          filterMenuRef.current && 
-          !filterMenuRef.current.contains(event.target) &&
-          filterButtonRef.current &&
-          !filterButtonRef.current.contains(event.target)) {
+      if (showFilterMenu &&
+        filterMenuRef.current &&
+        !filterMenuRef.current.contains(event.target) &&
+        filterButtonRef.current &&
+        !filterButtonRef.current.contains(event.target)) {
         setShowFilterMenu(false);
       }
 
-      if (showColumnsMenu && 
-          columnsMenuRef.current && 
-          !columnsMenuRef.current.contains(event.target) &&
-          columnsButtonRef.current &&
-          !columnsButtonRef.current.contains(event.target)) {
+      if (showColumnsMenu &&
+        columnsMenuRef.current &&
+        !columnsMenuRef.current.contains(event.target) &&
+        columnsButtonRef.current &&
+        !columnsButtonRef.current.contains(event.target)) {
         setShowColumnsMenu(false);
       }
     };
@@ -137,10 +136,10 @@ const AdmissionsManagement = () => {
     }
   };
 
-  // UPDATED: Counsellor can edit pending AND rejected admissions
+  // Counsellor can edit pending AND rejected admissions
   const handleEdit = (admission) => {
     const editableStatuses = ['pending', 'rejected'];
-    
+
     if (!editableStatuses.includes(admission.status)) {
       alert('You can only edit admissions that are in pending or rejected status.');
       return;
@@ -178,21 +177,21 @@ const AdmissionsManagement = () => {
   };
 
   const toggleColumnVisibility = (columnKey) => {
-    setColumns(prevColumns => 
-      prevColumns.map(col => 
+    setColumns(prevColumns =>
+      prevColumns.map(col =>
         col.key === columnKey ? { ...col, visible: !col.visible } : col
       )
     );
   };
 
   const selectAllColumns = () => {
-    setColumns(prevColumns => 
+    setColumns(prevColumns =>
       prevColumns.map(col => ({ ...col, visible: true }))
     );
   };
 
   const deselectAllColumns = () => {
-    setColumns(prevColumns => 
+    setColumns(prevColumns =>
       prevColumns.map(col => ({ ...col, visible: false }))
     );
   };
@@ -200,17 +199,17 @@ const AdmissionsManagement = () => {
   // Filter admissions based on active filters and search
   const filteredAdmissions = admissions.filter(admission => {
     const matchesStatus = filterStatus === 'all' || admission.status === filterStatus;
-    
-    const matchesSearch = 
+
+    const matchesSearch =
       admission.admissionNo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       admission.trainingBranch?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       admission.counsellor?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       admission.appliedBatch?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (admission.student && typeof admission.student === 'object' ? 
-        admission.student.name?.toLowerCase().includes(searchTerm.toLowerCase()) : 
+      (admission.student && typeof admission.student === 'object' ?
+        admission.student.name?.toLowerCase().includes(searchTerm.toLowerCase()) :
         false) ||
-      (admission.course && typeof admission.course === 'object' ? 
-        admission.course.name?.toLowerCase().includes(searchTerm.toLowerCase()) : 
+      (admission.course && typeof admission.course === 'object' ?
+        admission.course.name?.toLowerCase().includes(searchTerm.toLowerCase()) :
         false);
 
     return matchesStatus && matchesSearch;
@@ -243,7 +242,7 @@ const AdmissionsManagement = () => {
   const getPageNumbers = () => {
     const pageNumbers = [];
     const maxVisiblePages = 5;
-    
+
     if (totalPages <= maxVisiblePages) {
       for (let i = 1; i <= totalPages; i++) {
         pageNumbers.push(i);
@@ -251,12 +250,12 @@ const AdmissionsManagement = () => {
     } else {
       const startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
       const endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
-      
+
       for (let i = startPage; i <= endPage; i++) {
         pageNumbers.push(i);
       }
     }
-    
+
     return pageNumbers;
   };
 
@@ -269,23 +268,7 @@ const AdmissionsManagement = () => {
     };
 
     const config = statusConfig[status] || statusConfig.pending;
-    
-    return (
-      <span className={`px-2 py-1 text-xs font-semibold rounded-full ${config.color}`}>
-        {config.label}
-      </span>
-    );
-  };
 
-  const getPriorityBadge = (priority) => {
-    const priorityConfig = {
-      low: { color: 'bg-gray-100 text-gray-800', label: 'Low' },
-      medium: { color: 'bg-blue-100 text-blue-800', label: 'Medium' },
-      high: { color: 'bg-orange-100 text-orange-800', label: 'High' }
-    };
-
-    const config = priorityConfig[priority] || priorityConfig.medium;
-    
     return (
       <span className={`px-2 py-1 text-xs font-semibold rounded-full ${config.color}`}>
         {config.label}
@@ -320,28 +303,43 @@ const AdmissionsManagement = () => {
     return 'N/A';
   };
 
+  // UPDATED: getFilePreview with proper PDF detection
   const getFilePreview = (url, title = 'Document') => {
     if (!url) return null;
-    
-    if (url.toLowerCase().endsWith('.pdf')) {
+
+    const isPdf = url.toLowerCase().endsWith('.pdf');
+    const isImage = /\.(jpeg|jpg|png|gif|bmp|webp|svg)$/i.test(url);
+
+    if (isPdf) {
       return (
-        <div className="flex items-center space-x-2 text-blue-600">
+        <div
+          onClick={() => handleImageClick(url, title)}
+          className="flex items-center space-x-2 text-blue-600 cursor-pointer hover:text-blue-800 transition-colors duration-200"
+          title={`Click to view ${title}`}
+        >
           <span>📄</span>
           <span className="text-sm hidden lg:inline">PDF</span>
         </div>
       );
-    } else {
+    } else if (isImage) {
       return (
-        <div className="flex justify-center">
-          <img 
-            src={url} 
-            alt={title}
-            className="w-6 h-6 lg:w-8 lg:h-8 object-cover rounded border cursor-pointer hover:opacity-80 transition-opacity duration-200"
-            onClick={() => handleImageClick(url, title)}
-            onError={(e) => {
-              e.target.style.display = 'none';
-            }}
-          />
+        <div    className="flex items-center space-x-2 text-blue-600 cursor-pointer hover:text-blue-800 transition-colors duration-200"
+          onClick={() => handleImageClick(url, title)}
+        >
+          <span>📄</span>
+          <span className="text-sm hidden lg:inline">Image</span>
+        </div>
+      );
+    } else {
+      // For other file types
+      return (
+        <div
+          onClick={() => handleImageClick(url, title)}
+          className="flex items-center space-x-2 text-gray-600 cursor-pointer hover:text-gray-800 transition-colors duration-200"
+          title={`Click to view ${title}`}
+        >
+          <span>📎</span>
+          <span className="text-sm hidden lg:inline">File</span>
         </div>
       );
     }
@@ -356,13 +354,13 @@ const AdmissionsManagement = () => {
     return count;
   };
 
-  // UPDATED: Check if admission can be edited by counsellor
+  // Check if admission can be edited by counsellor
   const canEditAdmission = (admission) => {
     const editableStatuses = ['pending', 'rejected'];
     return editableStatuses.includes(admission.status);
   };
 
-  //Delete :check if status not equal to approved
+  // Delete: not allowed if status = approved
   const canDeleteAdmission = (admission) => {
     return admission.status !== 'approved';
   };
@@ -383,19 +381,56 @@ const AdmissionsManagement = () => {
       waiting: admissions.filter(a => a.status === 'waiting_list').length,
       editable: admissions.filter(a => canEditAdmission(a)).length
     };
-    
+
     return stats;
   };
 
   const counsellorStats = getCounsellorStats();
 
-  if (loading && admissions.length === 0) {
+  // Document Card Component (for details modal)
+  const DocumentCard = ({ title, url, onImageClick }) => {
+    if (!url) return null;
+
+    const isPdf = url.toLowerCase().endsWith('.pdf');
+    const isImage = /\.(jpeg|jpg|png|gif|bmp|webp|svg)$/i.test(url);
+
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+      <div
+        onClick={() => onImageClick(url, title)}
+        className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 cursor-pointer hover:shadow-md transition-shadow duration-200"
+      >
+        <div className="flex flex-col items-center space-y-2">
+          {/* Preview / Icon */}
+          <div className="w-16 h-16 flex items-center justify-center">
+            {isPdf ? (
+              <span className="text-4xl text-red-500">📄</span>
+            ) : isImage ? (
+              <img
+                src={url}
+                alt={title}
+                className="max-w-full max-h-full object-contain rounded"
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.style.display = 'none';
+                  e.target.parentNode.innerHTML = '<span class="text-4xl">🖼️</span>';
+                }}
+              />
+            ) : (
+              <span className="text-4xl text-gray-500">📎</span>
+            )}
+          </div>
+          {/* Title */}
+          <span className="text-sm font-medium text-gray-700 text-center">
+            {title}
+          </span>
+          {/* Badge */}
+          <span className="text-xs px-2 py-1 bg-purple-100 text-purple-700 rounded-full">
+            {isPdf ? 'PDF' : isImage ? 'Image' : 'File'}
+          </span>
+        </div>
       </div>
     );
-  }
+  };
 
   return (
     <div className="h-full flex flex-col">
@@ -406,7 +441,7 @@ const AdmissionsManagement = () => {
             <div className="flex-1">
               <h1 className="text-xl lg:text-2xl font-bold text-gray-800">Admission Management - Counsellor</h1>
               <p className="text-gray-600 text-sm lg:text-base">Create and manage student admissions</p>
-              
+
               {/* Counsellor Stats */}
               <div className="flex flex-wrap gap-2 mt-2">
                 <div className="text-xs bg-blue-50 px-2 py-1 rounded-full">
@@ -426,7 +461,7 @@ const AdmissionsManagement = () => {
                 </div>
               </div>
             </div>
-            
+
             {/* Add New Admission Button - ONLY FOR COUNSELLOR */}
             <button
               onClick={() => setShowForm(true)}
@@ -436,7 +471,7 @@ const AdmissionsManagement = () => {
               <span>New Admission</span>
             </button>
           </div>
-          
+
           <div className="flex items-center space-x-2 lg:space-x-3 w-full lg:w-auto justify-between lg:justify-end">
             {/* Search Input - Mobile Only */}
             <div className="lg:hidden flex-1">
@@ -467,7 +502,7 @@ const AdmissionsManagement = () => {
 
               {/* Filter Dropdown Menu */}
               {showFilterMenu && (
-                <div 
+                <div
                   ref={filterMenuRef}
                   className="absolute right-0 mt-2 w-64 lg:w-72 bg-white border border-gray-200 rounded-lg shadow-xl z-50"
                 >
@@ -490,7 +525,7 @@ const AdmissionsManagement = () => {
                         </label>
                       ))}
                     </div>
-                    
+
                     <div className="mt-4 pt-3 border-t border-gray-200">
                       <h3 className="font-semibold text-gray-800 mb-3 text-sm lg:text-base">Search</h3>
                       <input
@@ -501,7 +536,7 @@ const AdmissionsManagement = () => {
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                       />
                     </div>
-                    
+
                     <div className="mt-4 flex justify-between">
                       <button
                         onClick={() => {
@@ -542,7 +577,7 @@ const AdmissionsManagement = () => {
 
               {/* Columns Dropdown Menu */}
               {showColumnsMenu && (
-                <div 
+                <div
                   ref={columnsMenuRef}
                   className="absolute right-0 mt-2 w-72 lg:w-80 bg-white border border-gray-200 rounded-lg shadow-xl z-50 max-h-96 overflow-y-auto"
                 >
@@ -564,7 +599,7 @@ const AdmissionsManagement = () => {
                         </button>
                       </div>
                     </div>
-                    
+
                     <div className="space-y-2 max-h-64 overflow-y-auto">
                       {columns.map(column => (
                         <label key={column.key} className="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded cursor-pointer">
@@ -578,7 +613,7 @@ const AdmissionsManagement = () => {
                         </label>
                       ))}
                     </div>
-                    
+
                     <div className="mt-4 pt-3 border-t border-gray-200 flex justify-end">
                       <button
                         onClick={() => setShowColumnsMenu(false)}
@@ -630,10 +665,10 @@ const AdmissionsManagement = () => {
               <table className="min-w-full divide-y divide-gray-200 border-collapse">
                 <thead className="bg-gray-50 sticky top-0 z-10">
                   <tr>
-                    {columns.map(column => 
+                    {columns.map(column =>
                       column.visible && (
-                        <th 
-                          key={column.key} 
+                        <th
+                          key={column.key}
                           className="px-2 lg:px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap border-b border-gray-200 bg-gray-50"
                         >
                           {column.label}
@@ -645,8 +680,8 @@ const AdmissionsManagement = () => {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {currentRecords.length === 0 ? (
                     <tr>
-                      <td 
-                        colSpan={columns.filter(col => col.visible).length} 
+                      <td
+                        colSpan={columns.filter(col => col.visible).length}
                         className="px-4 lg:px-6 py-8 lg:py-12 text-center"
                       >
                         <div className="text-gray-500">
@@ -655,8 +690,8 @@ const AdmissionsManagement = () => {
                             {admissions.length === 0 ? 'No admissions found' : 'No matching admissions'}
                           </p>
                           <p className="text-xs lg:text-sm">
-                            {admissions.length === 0 
-                              ? 'Get started by creating your first admission' 
+                            {admissions.length === 0
+                              ? 'Get started by creating your first admission'
                               : 'Try adjusting your filters or search terms.'
                             }
                           </p>
@@ -673,36 +708,30 @@ const AdmissionsManagement = () => {
                     </tr>
                   ) : (
                     currentRecords.map((admission, index) => (
-                      <tr 
-                        key={admission._id} 
-                        className={`transition-colors duration-150 ${
-                          index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
-                        } hover:bg-blue-50`}
+                      <tr
+                        key={admission._id}
+                        className={`transition-colors duration-150 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
+                          } hover:bg-blue-50`}
                       >
                         {columns.map(column => {
                           if (!column.visible) return null;
-                          
+
                           // Common cell styling
                           const baseCellClasses = "px-2 lg:px-4 py-2 lg:py-3 text-xs lg:text-sm border-b border-gray-200";
                           const canEdit = canEditAdmission(admission);
                           const canDelete = canDeleteAdmission(admission);
-                          
+
                           switch (column.key) {
                             case 'admissionNo':
                               return (
                                 <td key={column.key} className={`${baseCellClasses} font-semibold text-gray-900 whitespace-nowrap`}>
-                                  <button 
+                                  <button
                                     onClick={() => handleViewDetails(admission)}
                                     className="text-blue-600 hover:text-blue-800 hover:underline flex items-center space-x-1"
                                   >
                                     <span className="bg-blue-100 text-blue-800 text-xs px-1 lg:px-2 py-0.5 lg:py-1 rounded">
                                       #{admission.admissionNo}
                                     </span>
-                                    {admission.priority === 'high' && (
-                                      <span className="bg-orange-100 text-orange-800 text-xs px-1 py-0.5 rounded" title="High Priority">
-                                        ⚡
-                                      </span>
-                                    )}
                                   </button>
                                 </td>
                               );
@@ -739,7 +768,7 @@ const AdmissionsManagement = () => {
                                   {admission.student && typeof admission.student === 'object' ?
                                     (admission.student.dateOfBirth ? formatDate(admission.student.dateOfBirth) : 'N/A') : 'N/A'}
                                 </td>
-                              );  
+                              );
                             case 'gender':
                               return (
                                 <td key={column.key} className={`${baseCellClasses} text-gray-700 whitespace-nowrap capitalize`}>
@@ -776,18 +805,12 @@ const AdmissionsManagement = () => {
                                     {getStatusBadge(admission.status)}
                                     {admission.status !== 'pending' && (
                                       <span className="text-xs text-gray-500 mt-1 hidden lg:block">
-                                        {admission.status === 'approved' ? '✅ Approved by Admin' : 
-                                         admission.status === 'rejected' ? '❌ Rejected by Admin - Can be edited' : 
-                                         '⏳ In Waiting List'}
+                                        {admission.status === 'approved' ? '✅ Approved by Admin' :
+                                          admission.status === 'rejected' ? '❌ Rejected by Admin - Can be edited' :
+                                            '⏳ In Waiting List'}
                                       </span>
                                     )}
                                   </div>
-                                </td>
-                              );
-                            case 'priority':
-                              return (
-                                <td key={column.key} className={`${baseCellClasses} text-center`}>
-                                  {getPriorityBadge(admission.priority)}
                                 </td>
                               );
                             case 'admissionDate':
@@ -837,11 +860,10 @@ const AdmissionsManagement = () => {
                             case 'emailVerified':
                               return (
                                 <td key={column.key} className={`${baseCellClasses} text-center`}>
-                                  <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                                    admission.emailVerified 
-                                      ? 'bg-green-100 text-green-800' 
-                                      : 'bg-yellow-100 text-yellow-800'
-                                  }`}>
+                                  <span className={`px-2 py-1 text-xs font-semibold rounded-full ${admission.emailVerified
+                                    ? 'bg-green-100 text-green-800'
+                                    : 'bg-yellow-100 text-yellow-800'
+                                    }`}>
                                     {admission.emailVerified ? '✅' : '⏳'}
                                     <span className="hidden lg:inline ml-1">{admission.emailVerified ? 'Verified' : 'Pending'}</span>
                                   </span>
@@ -857,28 +879,25 @@ const AdmissionsManagement = () => {
                               return (
                                 <td key={column.key} className={`${baseCellClasses} text-center whitespace-nowrap`}>
                                   <div className="flex flex-row lg:flex-row items-center justify-center space-x-1 lg:space-y-0 lg:space-x-1">
-                                    {/* UPDATED: Edit button for pending AND rejected */}
-                                    <button 
-                                      onClick={() => handleEdit(admission)} 
-                                      className={`px-1 lg:px-2 py-1 rounded transition-colors border text-xs w-full lg:w-auto ${
-                                        canEdit
-                                          ? admission.status === 'pending' 
-                                            ? 'text-blue-600 hover:text-blue-900 hover:bg-blue-50 border-blue-200' 
-                                            : 'text-orange-600 hover:text-orange-900 hover:bg-orange-50 border-orange-200'
-                                          : 'text-gray-400 border-gray-200 cursor-not-allowed'
-                                      }`}
+                                    <button
+                                      onClick={() => handleEdit(admission)}
+                                      className={`px-1 lg:px-2 py-1 rounded transition-colors border text-xs w-full lg:w-auto ${canEdit
+                                        ? admission.status === 'pending'
+                                          ? 'text-blue-600 hover:text-blue-900 hover:bg-blue-50 border-blue-200'
+                                          : 'text-orange-600 hover:text-orange-900 hover:bg-orange-50 border-orange-200'
+                                        : 'text-gray-400 border-gray-200 cursor-not-allowed'
+                                        }`}
                                       title={getEditButtonTitle(admission)}
                                       disabled={!canEdit}
                                     >
                                       {admission.status === 'rejected' ? '🔄 Resubmit' : '✏️ Edit'}
                                     </button>
-                                    <button 
-                                      onClick={() => handleDelete(admission._id)} 
-                                      className={`px-1 lg:px-2 py-1 rounded transition-colors border text-xs w-full lg:w-auto ${
-                                        canDelete
-                                          ? 'text-red-600 hover:text-red-900 hover:bg-red-50 border-red-200'
-                                          : 'text-gray-400 border-gray-200 cursor-not-allowed'
-                                      }`} 
+                                    <button
+                                      onClick={() => handleDelete(admission._id)}
+                                      className={`px-1 lg:px-2 py-1 rounded transition-colors border text-xs w-full lg:w-auto ${canDelete
+                                        ? 'text-red-600 hover:text-red-900 hover:bg-red-50 border-red-200'
+                                        : 'text-gray-400 border-gray-200 cursor-not-allowed'
+                                        }`}
                                       title="Delete Admission"
                                       disabled={!canDelete}
                                     >
@@ -910,22 +929,21 @@ const AdmissionsManagement = () => {
                 {/* Records Info */}
                 <div className="text-xs lg:text-sm text-gray-700">
                   Showing <span className="font-semibold">{currentRecords.length}</span> of{' '}
-                  <span className="font-semibold">{filteredAdmissions.length}</span> admissions 
+                  <span className="font-semibold">{filteredAdmissions.length}</span> admissions
                   (Page <span className="font-semibold">{currentPage}</span> of{' '}
                   <span className="font-semibold">{totalPages}</span>)
                 </div>
-                
+
                 {/* Pagination Controls */}
                 <div className="flex items-center space-x-2">
                   {/* Previous Button */}
                   <button
                     onClick={prevPage}
                     disabled={currentPage === 1}
-                    className={`px-3 py-1 lg:px-4 lg:py-2 rounded-lg border text-xs lg:text-sm font-medium transition-colors duration-200 ${
-                      currentPage === 1
-                        ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
-                        : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50 hover:border-gray-400'
-                    }`}
+                    className={`px-3 py-1 lg:px-4 lg:py-2 rounded-lg border text-xs lg:text-sm font-medium transition-colors duration-200 ${currentPage === 1
+                      ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
+                      : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50 hover:border-gray-400'
+                      }`}
                   >
                     Previous
                   </button>
@@ -936,11 +954,10 @@ const AdmissionsManagement = () => {
                       <button
                         key={number}
                         onClick={() => paginate(number)}
-                        className={`px-2 lg:px-3 py-1 lg:py-2 rounded-lg border text-xs lg:text-sm font-medium transition-colors duration-200 ${
-                          currentPage === number
-                            ? 'bg-[#890c25] text-white border-blue-500'
-                            : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50 hover:border-gray-400'
-                        }`}
+                        className={`px-2 lg:px-3 py-1 lg:py-2 rounded-lg border text-xs lg:text-sm font-medium transition-colors duration-200 ${currentPage === number
+                          ? 'bg-[#890c25] text-white border-blue-500'
+                          : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50 hover:border-gray-400'
+                          }`}
                       >
                         {number}
                       </button>
@@ -951,11 +968,10 @@ const AdmissionsManagement = () => {
                   <button
                     onClick={nextPage}
                     disabled={currentPage === totalPages}
-                    className={`px-3 py-1 lg:px-4 lg:py-2 rounded-lg border text-xs lg:text-sm font-medium transition-colors duration-200 ${
-                      currentPage === totalPages
-                        ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
-                        : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50 hover:border-gray-400'
-                    }`}
+                    className={`px-3 py-1 lg:px-4 lg:py-2 rounded-lg border text-xs lg:text-sm font-medium transition-colors duration-200 ${currentPage === totalPages
+                      ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
+                      : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50 hover:border-gray-400'
+                      }`}
                   >
                     Next
                   </button>
@@ -978,15 +994,15 @@ const AdmissionsManagement = () => {
             <div className="p-4 lg:p-6">
               <div className="flex justify-between items-center mb-4 lg:mb-6">
                 <h2 className="text-lg lg:text-xl font-bold text-gray-800">
-                  {editingAdmission ? 
-                    (editingAdmission.status === 'rejected' ? 'Resubmit Rejected Admission' : 'Edit Admission') 
+                  {editingAdmission ?
+                    (editingAdmission.status === 'rejected' ? 'Resubmit Rejected Admission' : 'Edit Admission')
                     : 'Create New Admission'
                   }
                 </h2>
                 <button onClick={handleCloseForm} className="text-gray-400 hover:text-gray-600 text-2xl">×</button>
               </div>
-              <AdmissionForm 
-                admission={editingAdmission} 
+              <AdmissionForm
+                admission={editingAdmission}
                 onClose={handleCloseForm}
                 isCounsellor={true}
               />
@@ -1004,7 +1020,7 @@ const AdmissionsManagement = () => {
                 <h2 className="text-lg lg:text-xl font-bold text-gray-800">Admission Details</h2>
                 <button onClick={handleCloseDetails} className="text-gray-400 hover:text-gray-600 text-2xl">×</button>
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6">
                 {/* Personal Information */}
                 <div className="bg-blue-50 p-3 lg:p-4 rounded-lg">
@@ -1044,10 +1060,6 @@ const AdmissionsManagement = () => {
                       </div>
                     </div>
                     <div>
-                      <label className="block text-xs lg:text-sm font-medium text-gray-700">Priority</label>
-                      <div className="mt-1">
-                        {getPriorityBadge(selectedAdmission.priority)}
-                      </div>
                     </div>
                     <div>
                       <label className="block text-xs lg:text-sm font-medium text-gray-700">Admission Date</label>
@@ -1064,90 +1076,44 @@ const AdmissionsManagement = () => {
                   </div>
                 </div>
 
-                {/* Documents Section */}
-                <div className="bg-purple-50 p-3 lg:p-4 rounded-lg md:col-span-2">
-                  <h3 className="text-base lg:text-lg font-semibold text-purple-800 mb-3 lg:mb-4">Documents</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 lg:gap-4">
-                    {/* Admission Front Page */}
-                    <div>
-                      <label className="block text-xs lg:text-sm font-medium text-gray-700 mb-2">Admission Front Page</label>
-                      <div className="mt-1">
-                        {selectedAdmission.admissionFrontPage ? (
-                          <div className="flex items-center space-x-2">
-                            {getFilePreview(selectedAdmission.admissionFrontPage, 'Front Page')}
-                            <button
-                              onClick={() => handleImageClick(selectedAdmission.admissionFrontPage, 'Admission Front Page')}
-                              className="text-blue-600 hover:text-blue-800 underline text-xs lg:text-sm"
-                            >
-                              View Document
-                            </button>
-                          </div>
-                        ) : (
-                          <span className="text-gray-400 text-xs lg:text-sm">Not uploaded</span>
-                        )}
-                      </div>
-                    </div>
+                {/* Documents Section - Enhanced with Document Cards */}
+                <div className="bg-purple-50 p-4 rounded-lg md:col-span-2">
+                  <h3 className="text-lg font-semibold text-purple-800 mb-4">Uploaded Documents</h3>
 
-                    {/* Admission Back Page */}
-                    <div>
-                      <label className="block text-xs lg:text-sm font-medium text-gray-700 mb-2">Admission Back Page</label>
-                      <div className="mt-1">
-                        {selectedAdmission.admissionBackPage ? (
-                          <div className="flex items-center space-x-2">
-                            {getFilePreview(selectedAdmission.admissionBackPage, 'Back Page')}
-                            <button
-                              onClick={() => handleImageClick(selectedAdmission.admissionBackPage, 'Admission Back Page')}
-                              className="text-blue-600 hover:text-blue-800 underline text-xs lg:text-sm"
-                            >
-                              View Document
-                            </button>
-                          </div>
-                        ) : (
-                          <span className="text-gray-400 text-xs lg:text-sm">Not uploaded</span>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Student Statement */}
-                    <div>
-                      <label className="block text-xs lg:text-sm font-medium text-gray-700 mb-2">Student Statement</label>
-                      <div className="mt-1">
-                        {selectedAdmission.studentStatement ? (
-                          <div className="flex items-center space-x-2">
-                            {getFilePreview(selectedAdmission.studentStatement, 'Student Statement')}
-                            <button
-                              onClick={() => handleImageClick(selectedAdmission.studentStatement, 'Student Statement')}
-                              className="text-blue-600 hover:text-blue-800 underline text-xs lg:text-sm"
-                            >
-                              View Document
-                            </button>
-                          </div>
-                        ) : (
-                          <span className="text-gray-400 text-xs lg:text-sm">Not uploaded</span>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Confidential Form */}
-                    <div>
-                      <label className="block text-xs lg:text-sm font-medium text-gray-700 mb-2">Confidential Form</label>
-                      <div className="mt-1">
-                        {selectedAdmission.confidentialForm ? (
-                          <div className="flex items-center space-x-2">
-                            {getFilePreview(selectedAdmission.confidentialForm, 'Confidential Form')}
-                            <button
-                              onClick={() => handleImageClick(selectedAdmission.confidentialForm, 'Confidential Form')}
-                              className="text-blue-600 hover:text-blue-800 underline text-xs lg:text-sm"
-                            >
-                              View Document
-                            </button>
-                          </div>
-                        ) : (
-                          <span className="text-gray-400 text-xs lg:text-sm">Not uploaded</span>
-                        )}
-                      </div>
-                    </div>
+                  {/* Document Cards Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <DocumentCard
+                      title="Front Page"
+                      url={selectedAdmission.admissionFrontPage}
+                      onImageClick={handleImageClick}
+                    />
+                    <DocumentCard
+                      title="Back Page"
+                      url={selectedAdmission.admissionBackPage}
+                      onImageClick={handleImageClick}
+                    />
+                    <DocumentCard
+                      title="Student Statement"
+                      url={selectedAdmission.studentStatement}
+                      onImageClick={handleImageClick}
+                    />
+                    <DocumentCard
+                      title="Confidential Form"
+                      url={selectedAdmission.confidentialForm}
+                      onImageClick={handleImageClick}
+                    />
                   </div>
+
+                  {/* If no documents at all */}
+                  {!selectedAdmission.admissionFrontPage &&
+                    !selectedAdmission.admissionBackPage &&
+                    !selectedAdmission.studentStatement &&
+                    !selectedAdmission.confidentialForm && (
+                      <div className="text-center py-8 text-gray-500">
+                        <span className="text-4xl mb-2 block">📂</span>
+                        <p>No documents have been uploaded for this admission.</p>
+                      </div>
+                    )}
                 </div>
 
                 {/* Notes Section */}
@@ -1172,68 +1138,125 @@ const AdmissionsManagement = () => {
         </div>
       )}
 
-      {/* Image Preview Modal */}
       {showImageModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center p-2 lg:p-4 z-[60]">
-          <div className="relative max-w-4xl max-h-[90vh] w-full h-full flex items-center justify-center">
-            <button
-              onClick={handleCloseImageModal}
-              className="absolute top-2 lg:top-4 right-2 lg:right-4 bg-white bg-opacity-20 hover:bg-opacity-30 text-white rounded-full p-1 lg:p-2 transition-all duration-200 z-10 backdrop-blur-sm"
-            >
-              <svg className="w-4 h-4 lg:w-6 lg:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center p-2 sm:p-4"
+          onClick={handleCloseImageModal}
+          role="dialog"
+          aria-modal="true"
+          aria-label={imageTitle || 'Document preview'}
+        >
+          {/* Backdrop with blur */}
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm transition-opacity" />
 
-            {imageTitle && (
-              <div className="absolute top-2 lg:top-4 left-2 lg:left-4 bg-black bg-opacity-50 text-white px-2 lg:px-3 py-1 rounded-lg text-xs lg:text-sm backdrop-blur-sm">
-                {imageTitle}
-              </div>
-            )}
-
-            <div className="relative w-full h-full flex items-center justify-center">
-              {selectedImage.toLowerCase().endsWith('.pdf') ? (
-                <div className="bg-white p-4 lg:p-8 rounded-lg max-w-2xl w-full">
-                  <div className="text-center">
-                    <div className="text-4xl lg:text-6xl mb-4">📄</div>
-                    <h3 className="text-lg lg:text-xl font-semibold text-gray-800 mb-2">PDF Document</h3>
-                    <p className="text-gray-600 mb-4 text-sm lg:text-base">This is a PDF file that cannot be previewed in the image viewer.</p>
-                    <a
-                      href={selectedImage}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center px-3 lg:px-4 py-2 bg-[#890c25] text-black rounded-lg hover:bg-[#890c25] transition-colors duration-200 text-sm lg:text-base"
-                    >
-                      <svg className="w-3 h-3 lg:w-4 lg:h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                      Download PDF
-                    </a>
-                  </div>
-                </div>
-              ) : (
-                <img
-                  src={selectedImage}
-                  alt={imageTitle}
-                  className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
-                  onClick={handleCloseImageModal}
-                />
-              )}
+          {/* Modal content */}
+          <div
+            className="relative bg-white dark:bg-gray-900 rounded-xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="absolute top-0 left-0 right-0 flex items-center justify-between p-3 sm:p-4 bg-gradient-to-b from-black/50 to-transparent text-white z-10">
+              <span className="font-medium truncate pr-8 text-sm sm:text-base">
+                {imageTitle || 'Document'}
+              </span>
+              <button
+                onClick={handleCloseImageModal}
+                className="p-1.5 rounded-full bg-white/20 hover:bg-white/30 transition-colors focus:outline-none focus:ring-2 focus:ring-white"
+                aria-label="Close"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
             </div>
 
-            {!selectedImage.toLowerCase().endsWith('.pdf') && (
-              <a
-                href={selectedImage}
-                download
-                className="absolute bottom-2 lg:bottom-4 right-2 lg:right-4 bg-white bg-opacity-20 hover:bg-opacity-30 text-black rounded-lg px-2 lg:px-4 py-1 lg:py-2 transition-all duration-200 backdrop-blur-sm flex items-center space-x-1 lg:space-x-2 text-xs lg:text-sm"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <svg className="w-3 h-3 lg:w-4 lg:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                <span>Download</span>
-              </a>
-            )}
+            {/* Scrollable content */}
+            <div className="h-full w-full overflow-auto bg-gray-100 dark:bg-gray-800 flex items-center justify-center p-4">
+              {selectedImage?.toLowerCase().endsWith('.pdf') ? (
+                // PDF Preview using iframe with fallback
+                <div className="w-full h-full min-h-[500px] flex flex-col items-center justify-center">
+                  <iframe
+                    src={`https://docs.google.com/viewer?url=${encodeURIComponent(selectedImage)}&embedded=true`}
+                    className="w-full h-full rounded-lg border-0"
+                    title={imageTitle}
+                    onLoad={(e) => {
+                      // Hide any loading spinner if added
+                      e.currentTarget.style.opacity = '1';
+                    }}
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                      // Show fallback message
+                      const parent = e.currentTarget.parentElement;
+                      if (parent) {
+                        const fallback = document.createElement('div');
+                        fallback.className = 'text-center p-8';
+                        fallback.innerHTML = `
+                    <div class="text-6xl mb-4">📄</div>
+                    <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">PDF Preview Unavailable</h3>
+                    <p class="text-gray-600 dark:text-gray-300 mb-6">Please download the file to view it.</p>
+                  `;
+                        parent.appendChild(fallback);
+                      }
+                    }}
+                    style={{ opacity: 0, transition: 'opacity 0.2s' }}
+                  />
+                  {/* Download button for PDF */}
+                  <a
+                    href={selectedImage}
+                    download
+                    className="mt-4 inline-flex items-center px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                    onClick={(e) => e.stopPropagation()}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Download PDF
+                  </a>
+                </div>
+              ) : (
+                // Image preview
+                <div className="relative max-w-full max-h-full">
+                  <img
+                    src={selectedImage}
+                    alt={imageTitle || 'Document image'}
+                    className="max-w-full max-h-[calc(90vh-8rem)] object-contain rounded-lg shadow-lg"
+                    onLoad={(e) => {
+                      e.currentTarget.style.opacity = '1';
+                    }}
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                      const parent = e.currentTarget.parentElement;
+                      if (parent) {
+                        const fallback = document.createElement('div');
+                        fallback.className = 'text-center p-8';
+                        fallback.innerHTML = `
+                    <div class="text-5xl mb-10">🖼️</div>
+
+                  `;
+                        parent.appendChild(fallback);
+                      }
+                    }}
+                    style={{ opacity: 0, transition: 'opacity 0.2s' }}
+                  />
+                  {/* Download button for images */}
+                  <a
+                    href={selectedImage}
+                    download
+                    className="absolute bottom-4 right-4 bg-white/90 hover:bg-white text-gray-800 rounded-lg px-3 py-2 shadow-lg flex items-center space-x-2 text-sm font-medium backdrop-blur-sm transition-colors focus:ring-2 focus:ring-blue-500"
+                    onClick={(e) => e.stopPropagation()}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <span>Download</span>
+                  </a>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

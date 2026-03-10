@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   DndContext,
@@ -24,10 +24,27 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { getBatches, updateBatch } from '../../../store/slices/batchSlice';
 
+// ---------- Helper: determine correct status by date ----------
+const getStatusByDate = (batch) => {
+  if (!batch.startDate || !batch.endDate) return batch.status; // fallback if dates missing
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0); // normalise to start of day
+
+  const start = new Date(batch.startDate);
+  start.setHours(0, 0, 0, 0);
+  const end = new Date(batch.endDate);
+  end.setHours(0, 0, 0, 0);
+
+  if (today < start) return 'Upcoming';
+  if (today >= start && today <= end) return 'Running';
+  if (today > end) return 'Closed';
+  return batch.status;
+};
+
+// ---------- Column Component ----------
 const KanbanColumn = ({ id, title, items, onEditBatch, onDeleteBatch }) => {
-  const { setNodeRef, isOver } = useDroppable({
-    id,
-  });
+  const { setNodeRef, isOver } = useDroppable({ id });
 
   const getColumnColor = (id) => {
     switch (id) {
@@ -81,6 +98,7 @@ const KanbanColumn = ({ id, title, items, onEditBatch, onDeleteBatch }) => {
   );
 };
 
+// ---------- Batch Card Component ----------
 const BatchCard = ({ batch, onEditBatch, onDeleteBatch }) => {
   const {
     attributes,
@@ -153,7 +171,10 @@ const BatchCard = ({ batch, onEditBatch, onDeleteBatch }) => {
       <p className="text-sm text-gray-700 mt-2 font-medium">{batch.course}</p>
       <div className="mt-3 space-y-1">
         <p className="text-xs text-gray-600">
-          📅 {batch.startDate ? new Date(batch.startDate).toLocaleDateString() : 'No start date'}
+          📅 Start: {batch.startDate ? new Date(batch.startDate).toLocaleDateString() : 'No start date'}
+        </p>
+        <p className="text-xs text-gray-600">
+          📅 End: {batch.endDate ? new Date(batch.endDate).toLocaleDateString() : 'No end date'}
         </p>
         <p className="text-xs text-gray-600">
           👥 Students: {batch.enrolledCount ?? batch.studentsActive ?? 0}
@@ -163,6 +184,7 @@ const BatchCard = ({ batch, onEditBatch, onDeleteBatch }) => {
   );
 };
 
+// ---------- Main Kanban Board ----------
 const KanbanBoard = ({ onEditBatch, onDeleteBatch }) => {
   const dispatch = useDispatch();
   const { batches, loading, error } = useSelector((state) => state.batch);
@@ -170,33 +192,57 @@ const KanbanBoard = ({ onEditBatch, onDeleteBatch }) => {
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 5,
-      },
+      activationConstraint: { distance: 5 },
     }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
   );
 
-  // Remove the useEffect that was dispatching getBatches
-  // Batches are now preloaded in BatchManagement component
+  // ---------- Automatic status update based on dates ----------
+  const updateStatusesByDate = useCallback(() => {
+    batches.forEach(batch => {
+      const correctStatus = getStatusByDate(batch);
+      if (batch.status !== correctStatus) {
+        dispatch(updateBatch({ id: batch._id, batchData: { status: correctStatus } }));
+      }
+    });
+  }, [batches, dispatch]);
 
+  // Run on mount and whenever batches change
+  useEffect(() => {
+    updateStatusesByDate();
+  }, [updateStatusesByDate]);
+
+  // Optional: periodic check (e.g., every hour) to catch date changes while app is open
+  useEffect(() => {
+    const interval = setInterval(updateStatusesByDate, 60 * 60 * 1000); // 1 hour
+    return () => clearInterval(interval);
+  }, [updateStatusesByDate]);
+
+  // ---------- Sort batches by start date within each column ----------
   const columns = useMemo(() => {
+    // First, sort all batches by start date (ascending)
+    const sortedAll = [...batches].sort((a, b) => {
+      if (!a.startDate) return 1;
+      if (!b.startDate) return -1;
+      return new Date(a.startDate) - new Date(b.startDate);
+    });
+
     return {
-      upcoming: batches.filter(batch => batch.status === 'Upcoming'),
-      running: batches.filter(batch => batch.status === 'Running'),
-      closed: batches.filter(batch => batch.status === 'Closed'),
+      upcoming: sortedAll.filter(batch => batch.status === 'Upcoming'),
+      running: sortedAll.filter(batch => batch.status === 'Running'),
+      closed: sortedAll.filter(batch => batch.status === 'Closed'),
     };
   }, [batches]);
 
+  // ---------- Drag & Drop Handlers ----------
   const handleDragStart = (event) => {
     setActiveId(event.active.id);
   };
 
   const handleDragEnd = (event) => {
     const { active, over } = event;
-
     if (!over) {
       setActiveId(null);
       return;
@@ -222,15 +268,12 @@ const KanbanBoard = ({ onEditBatch, onDeleteBatch }) => {
       }
     }
 
-    // Determine destination column - check if overId is a column or a batch
+    // Determine destination column
     let destColumn = null;
     const columnIds = ['upcoming', 'running', 'closed'];
-    
     if (columnIds.includes(overId)) {
-      // Dropped directly on column
       destColumn = overId;
     } else {
-      // Dropped on a batch, find which column it belongs to
       for (const key of columnKeys) {
         if (columns[key].some(batch => batch._id === overId)) {
           destColumn = key;
@@ -244,25 +287,42 @@ const KanbanBoard = ({ onEditBatch, onDeleteBatch }) => {
       return;
     }
 
-    // Check if move is allowed per business rules
+    // 1. Basic status flow rule
     const allowedMoves = {
-      upcoming: ['running'],      // Upcoming -> Running only
-      running: ['closed'],        // Running -> Closed only
+      upcoming: ['running'],      // Upcoming → Running only
+      running: ['closed'],        // Running → Closed only
       closed: [],                 // Closed cannot move
     };
 
     if (!allowedMoves[sourceColumn]?.includes(destColumn)) {
       setActiveId(null);
-      return; // Move not allowed
+      return;
     }
 
-    // Update batch status
+    // 2. Date‑based validation
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const start = activeBatch.startDate ? new Date(activeBatch.startDate) : null;
+    const end = activeBatch.endDate ? new Date(activeBatch.endDate) : null;
+
+    if (destColumn === 'running' && start && today < start) {
+      alert('Cannot move to Running – start date has not arrived yet.');
+      setActiveId(null);
+      return;
+    }
+
+    if (destColumn === 'closed' && end && today <= end) {
+      alert('Cannot move to Closed – end date has not passed yet.');
+      setActiveId(null);
+      return;
+    }
+
+    // 3. Update batch status
     const statusMap = {
       upcoming: 'Upcoming',
       running: 'Running',
       closed: 'Closed',
     };
-
     const newStatus = statusMap[destColumn];
     if (activeBatch.status !== newStatus) {
       dispatch(updateBatch({ id: activeId, batchData: { status: newStatus } }));
@@ -274,11 +334,7 @@ const KanbanBoard = ({ onEditBatch, onDeleteBatch }) => {
   const activeBatch = activeId ? batches.find(batch => batch._id === activeId) : null;
 
   if (error) {
-    return (
-      <div className="text-center text-red-600 p-4">
-        Error loading batches: {error}
-      </div>
-    );
+    return <div className="text-center text-red-600 p-4">Error loading batches: {error}</div>;
   }
 
   return (

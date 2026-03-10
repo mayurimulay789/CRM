@@ -26,26 +26,20 @@ const CounsellorManagement = () => {
     },
     success
   } = useSelector(state => state.auth);
-
   const [searchTerm, setSearchTerm] = useState('');
   const [showFilterMenu, setShowFilterMenu] = useState(false);
   const [showColumnsMenu, setShowColumnsMenu] = useState(false);
   const [selectedCounsellor, setSelectedCounsellor] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [openpop, setopenpopUp] = useState(false); // registration modal state
-  const [validationErrors, setValidationErrors] = useState({}); // For field-specific errors
-  const [deleteConfirmModal, setDeleteConfirmModal] = useState({ show: false, counsellor: null }); // Delete confirmation modal
-
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [recordsPerPage] = useState(7);
-
   // Refs for dropdown menus
   const filterMenuRef = useRef(null);
   const columnsMenuRef = useRef(null);
   const filterButtonRef = useRef(null);
   const columnsButtonRef = useRef(null);
-
   // Define all available columns
   const allColumns = [
     { key: 'FullName', label: 'Full Name', visible: true },
