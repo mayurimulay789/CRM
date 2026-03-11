@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { getAllCounsellors } from '../../../store/slices/authSlice';
 import {
   fetchOneToOneDemos,
   addOneToOneDemo,
@@ -32,7 +33,15 @@ const OneToOneDemo = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { rows, searchQuery } = useSelector((state) => state.oneToOne);
-  const { user } = useSelector((state) => state.auth);
+  const { user, counsellors: counsellorState } = useSelector((state) => state.auth);
+    // Fetch counsellors using Redux (same as LiveClassDemo)
+    useEffect(() => {
+      dispatch(getAllCounsellors());
+    }, [dispatch]);
+
+    const counsellors = counsellorState.list || [];
+    const counsellorLoading = counsellorState.loading;
+    const counsellorError = counsellorState.error;
   const { trainers } = useSelector((state) => state.trainer);
 
   // Role checks
@@ -1081,26 +1090,28 @@ const OneToOneDemo = () => {
                 )}
               </div>
 
-              {/* Counselor */}
+              {/* Counselor Dropdown (Redux-powered, matches LiveClassDemo) */}
               <div className="md:col-span-1">
                 <label className="block text-sm font-medium mb-1">Counselor</label>
-                <input
-                  type="text"
+                <select
                   name="counselor"
                   value={formData.counselor}
                   onChange={(e) => handleInputChange("counselor", e.target.value)}
                   className={`w-full border rounded px-3 py-2 text-sm ${
                     getFieldError("counselor") ? "border-red-500 bg-red-50" : "border-gray-300"
                   } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
-                  placeholder="Counselor name"
-                  maxLength="50"
-                />
+                >
+                  <option value="">Select Counselor</option>
+                  {counsellorLoading && <option disabled>Loading...</option>}
+                  {counsellorError && <option disabled>{counsellorError}</option>}
+                  {counsellors && counsellors.length > 0 &&
+                    counsellors.map((c) => (
+                      <option key={c._id} value={c.FullName}>{c.FullName} ({c.email})</option>
+                    ))}
+                </select>
                 {getFieldError("counselor") && (
                   <p className="text-red-500 text-xs mt-1">{getFieldError("counselor")}</p>
                 )}
-                <div className="text-xs text-gray-500 text-right mt-1">
-                  {formData.counselor.length}/50
-                </div>
               </div>
 
               {/* Status */}

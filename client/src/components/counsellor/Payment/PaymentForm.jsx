@@ -29,7 +29,6 @@ const PaymentForm = ({ onClose }) => {
 
   const [errors, setErrors] = useState({});
   const [selectedEnrollment, setSelectedEnrollment] = useState(null);
-  const [isAmountAutoSet, setIsAmountAutoSet] = useState(false);
 
   useEffect(() => {
     dispatch(fetchEnrollments());
@@ -59,22 +58,16 @@ const PaymentForm = ({ onClose }) => {
         setFormData(prev => ({
           ...prev,
           receivedBranch: enrollment.trainingBranch || prev.receivedBranch,
-          emiNumber: enrollment.nextEMI?.number || prev.emiNumber,
-          amountReceived: enrollment.nextEMI?.amount?.toString() || prev.amountReceived
         }));
-        setIsAmountAutoSet(!!enrollment.nextEMI?.amount);
       }
     } else {
       setSelectedEnrollment(null);
-      setIsAmountAutoSet(false);
     }
   }, [formData.enrollment, enrollments]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    if (name === 'amountReceived' && isAmountAutoSet) {
-      setIsAmountAutoSet(false);
-    }
+    
     setFormData(prev => ({ ...prev, [name]: value }));
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
@@ -137,9 +130,7 @@ const PaymentForm = ({ onClose }) => {
           newErrors.emiNumber = 'EMI number is required for installment payments';
         }
         const nextEMI = getNextEMI(selectedEnrollment);
-        if (parseFloat(formData.amountReceived) !== nextEMI.amount && !isAmountAutoSet) {
-          newErrors.amountReceived = `For installment payments, amount should match the next EMI amount of ${formatCurrency(nextEMI.amount)}`;
-        }
+        
       }
     }
 
@@ -318,11 +309,8 @@ const PaymentForm = ({ onClose }) => {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Amount Received *
-                {isAmountAutoSet && (
-                  <span className="ml-2 text-xs text-green-600 bg-green-100 px-2 py-1 rounded-full">
-                    Auto-set from Next EMI
-                  </span>
-                )}
+                
+              
               </label>
               <div className="relative">
                 <input
@@ -332,23 +320,13 @@ const PaymentForm = ({ onClose }) => {
                   onChange={handleChange}
                   className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                     errors.amountReceived ? 'border-red-500' : 'border-gray-300'
-                  } ${isAmountAutoSet ? 'bg-green-50 border-green-200' : ''}`}
+                  } `}
                   placeholder="Enter amount"
                   min="0"
                   step="1"
                 />
-                {isAmountAutoSet && (
-                  <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-                    <span className="text-green-500 text-sm">💡</span>
-                  </div>
-                )}
-              </div>
-              {errors.amountReceived && <p className="text-red-500 text-xs mt-1">{errors.amountReceived}</p>}
-              {selectedEnrollment?.feeType === 'installment' && !isAmountAutoSet && (
-                <p className="text-yellow-600 text-xs mt-1">
-                  💡 For installment payments, the amount should match the next EMI amount
-                </p>
-              )}
+                
+              </div>        
             </div>
 
             {/* EMI Number - Show only for installment enrollments */}
@@ -369,6 +347,9 @@ const PaymentForm = ({ onClose }) => {
                   <option value="first">First EMI</option>
                   <option value="second">Second EMI</option>
                   <option value="third">Third EMI</option>
+                  <option value="fourth">Fourth EMI</option>
+                  <option value="fifth">Fifth EMI</option>
+                  <option value="sixth">Sixth EMI</option>
                 </select>
                 {errors.emiNumber && <p className="text-red-500 text-xs mt-1">{errors.emiNumber}</p>}
               </div>

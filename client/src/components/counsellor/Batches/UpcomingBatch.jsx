@@ -24,14 +24,7 @@ const UpcomingBatch = () => {
         <td className="px-6 py-4 whitespace-nowrap">
           <div className="text-sm font-semibold text-gray-900">{batch.name}</div>
         </td>
-        {/* Description - Truncated, full text visible on hover */}
-        <td className="px-6 py-4 max-w-[200px] truncate">
-          <div className="text-sm text-gray-600" title={batch.description}>{batch.description || 'N/A'}</div>
-        </td>
-        {/* Course */}
-        <td className="px-6 py-4 whitespace-nowrap">
-          <div className="text-sm text-gray-900">{batch.course || 'N/A'}</div>
-        </td>
+        
         {/* Trainer */}
         <td className="px-6 py-4 whitespace-nowrap">
           <div className="text-sm text-gray-900">{batch.trainer || 'N/A'}</div>
@@ -68,10 +61,7 @@ const UpcomingBatch = () => {
         <td className="px-6 py-4 whitespace-nowrap text-center">
           <div className="text-sm font-bold text-indigo-600">{batch.enrolledCount ?? batch.studentsActive ?? 0}</div>
         </td>
-        {/* Batch Days */}
-        <td className="px-6 py-4 whitespace-nowrap">
-          <div className="text-sm text-gray-900">{batch.batchDays || 'N/A'}</div>
-        </td>
+       
         {/* Start Date - Emphasized for Upcoming */}
         <td className="px-6 py-4 whitespace-nowrap">
           <div className="text-sm font-semibold text-amber-700">
@@ -93,14 +83,6 @@ const UpcomingBatch = () => {
           <div className="text-sm text-gray-600">
             {batch.mergingTill ? new Date(batch.mergingTill).toLocaleDateString() : 'N/A'}
           </div>
-        </td>
-        {/* Batch Exten Approval */}
-        <td className="px-6 py-4 whitespace-nowrap">
-          <div className="text-sm text-gray-900">{batch.batchExtenApproval || 'N/A'}</div>
-        </td>
-        {/* Approval Status */}
-        <td className="px-6 py-4 whitespace-nowrap">
-          <div className="text-sm text-gray-900">{batch.approvalStatus || 'N/A'}</div>
         </td>
         {/* Status Badge (Yellow/Amber for Upcoming) */}
         <td className="px-6 py-4 whitespace-nowrap">
@@ -155,11 +137,11 @@ const UpcomingBatch = () => {
               <thead className="bg-[#890c25] sticky top-0 z-10">
                 <tr>
                   {[
-                    'Batch Name', 'Description', 'Course', 'Trainer', 'Branch',
+                    'Batch Name',  'Trainer', 'Branch',
                     'Class Room', 'Code', 'Timing', 'Mode', 'Country',
-                    'Batch Type', 'Students', 'Batch Days', 'Start Date', 'End Date',
+                    'Batch Type', 'Students',  'Start Date', 'End Date',
                     'Merging Status', 'Merging Till',
-                    'Batch Exten Approval', 'Approval Status', 'Status'
+                    'Status'
                   ].map((header) => (
                     <th
                       key={header}

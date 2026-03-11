@@ -46,33 +46,18 @@ const EnrollmentManagement = () => {
     { key: 'course', label: 'Course', visible: true },
     { key: 'batch', label: 'Batch', visible: true },
     { key: 'timing', label: 'Timing', visible: true },
-    { key: 'trainingBranch', label: 'Branch', visible: true },
     { key: 'mode', label: 'Mode', visible: true },
     { key: 'counsellor', label: 'Counsellor', visible: true},
     { key: 'status', label: 'Status', visible: true },
     { key: 'feeStatus', label: 'Fee Status', visible: true },
-    { key: 'feeType', label: 'Fee Type', visible: true },
     { key: 'totalAmount', label: 'Total Amount', visible: true },
     { key: 'amountReceived', label: 'Amount Received', visible: true },
     { key: 'pendingAmount', label: 'Pending Amount', visible: true },
     { key: 'admissionRegistrationPayment', label: 'Registration Payment', visible: true },
     { key: 'enrollmentDate', label: 'Enrollment Date', visible: true },
-    { key: 'charges', label: 'Late Fees', visible: true },
-    { key: 'dueDate', label: 'Due Date', visible: false },
+    { key: 'dueDate', label: 'Due Date', visible: true },
     { key: 'paymentMode', label: 'Payment Mode', visible: false },
-    { key: 'notes', label: 'Notes', visible: false },  
-    { key: '1stEmiAmount', label: '1st EMI', visible: false },
-    { key: '1stEmiDate', label: '1st EMI Date', visible: false },
-    { key: '1stEmiStatus', label: '1st EMI Status', visible: false },
-    { key: '2ndEmiAmount', label: '2nd EMI', visible: false },
-    { key: '2ndEmiDate', label: '2nd EMI Date', visible: false },
-    { key: '2ndEmiStatus', label: '2nd EMI Status', visible: false },
-    { key: '3rdEmiAmount', label: '3rd EMI', visible: false },
-    { key: '3rdEmiDate', label: '3rd EMI Date', visible: false },
-    { key: '3rdEmiStatus', label: '3rd EMI Status', visible: false },
-    { key: 'nextEmiAmount', label: 'Next EMI', visible: true },
-    { key: 'nextEmiDate', label: 'Next EMI Date', visible: true },
-    { key: 'nextEmiStatus', label: 'Next EMI Status', visible: true },
+    { key: 'notes', label: 'Notes', visible: false },
     { key: 'actions', label: 'Actions', visible: true },
   ];
 
@@ -281,45 +266,14 @@ const EnrollmentManagement = () => {
   };
 
   const getFeeStatus = (enrollment) => {
-    if (enrollment.pendingAmount === 0) {
+    const pending = (enrollment.totalAmount || 0) - (enrollment.admissionRegistrationPayment || 0);
+    if (pending <= 0) {
       return { color: 'bg-green-100 text-green-800', label: 'Paid' };
     } else if (enrollment.dueDate && new Date(enrollment.dueDate) < new Date()) {
       return { color: 'bg-red-100 text-red-800', label: 'Overdue' };
     } else {
       return { color: 'bg-yellow-100 text-yellow-800', label: 'Pending' };
     }
-  };
-
-  const emiFeeStatusColor = (status) => {
-    if (status === "paid") {
-      return { color: 'bg-green-100 text-green-800', label: 'Paid' };
-    } else if (status === "pending") {
-      return { color: 'bg-yellow-100 text-yellow-800', label: 'Pending' };
-    } else {
-      return { color: 'bg-red-100 text-red-800', label: 'Overdue' };
-    }
-  };
-
-  // Safe EMI data accessor functions
-  const getFirstEMI = (enrollment) => {
-    return enrollment.firstEMI || { amount: 0, date: null, status: 'pending' };
-  };
-
-  const getSecondEMI = (enrollment) => {
-    return enrollment.secondEMI || { amount: 0, date: null, status: 'pending' };
-  };
-
-  const getThirdEMI = (enrollment) => {
-    return enrollment.thirdEMI || { amount: 0, date: null, status: 'pending' };
-  };
-
-  const getNextEMI = (enrollment) => {
-    return enrollment.nextEMI || { amount: 0, date: null, status: 'pending' };
-  };
-
-  // Check if EMI should be displayed based on feeType
-  const shouldDisplayEMI = (enrollment) => {
-    return enrollment.feeType !== 'one-time';
   };
 
   const formatCurrency = (amount) => {
@@ -329,12 +283,9 @@ const EnrollmentManagement = () => {
     }).format(amount || 0);
   };
 
-  // Calculate actual total including late fees and registration fees
+  // Returns the total amount entered in the form
   const calculateActualTotal = (enrollment) => {
-    const baseAmount = enrollment.totalAmount || 0;
-    const lateFees = enrollment.charges || 0;
-    const registrationFees = enrollment.admissionRegistrationPayment || 0;
-    return baseAmount + lateFees + registrationFees;
+    return enrollment.totalAmount || 0;
   };
 
   const formatDate = (dateString) => {
@@ -432,8 +383,8 @@ const EnrollmentManagement = () => {
     total: userEnrollments.length,
     active: userEnrollments.filter(e => e.status === 'active').length,
     completed: userEnrollments.filter(e => e.status === 'completed').length,
-    pendingPayments: userEnrollments.filter(e => e.pendingAmount > 0).length,
-    totalRevenue: userEnrollments.reduce((sum, e) => sum + (e.amountReceived || 0), 0)
+    pendingPayments: userEnrollments.filter(e => (e.totalAmount || 0) - (e.admissionRegistrationPayment || 0) > 0).length,
+    totalRevenue: userEnrollments.reduce((sum, e) => sum + (e.admissionRegistrationPayment || 0), 0)
   };
 
   // Check if enrollment can be deleted by counsellor
@@ -444,7 +395,7 @@ const EnrollmentManagement = () => {
       enrollment.counsellor?._id === user?._id || 
       enrollment.counsellor === user?._id;
     
-    return isOwnEnrollment && enrollment.amountReceived === 0;
+    return isOwnEnrollment && (enrollment.admissionRegistrationPayment || 0) === 0;
   };
 
   const resetFilters = () => {
@@ -764,7 +715,6 @@ const EnrollmentManagement = () => {
                           // Common cell styling
                           const baseCellClasses = "px-2 lg:px-4 py-2 lg:py-3 text-xs lg:text-sm border-b border-gray-200";
                           const canDelete = canDeleteEnrollment(enrollment);
-                          const displayEMI = shouldDisplayEMI(enrollment);
                           
                           switch (column.key) {
                             case 'enrollmentNo':
@@ -845,37 +795,34 @@ const EnrollmentManagement = () => {
                                   <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getFeeStatus(enrollment).color}`}>
                                     {getFeeStatus(enrollment).label}
                                   </span>
-                                  {enrollment.pendingAmount > 0 && (
+                                  {((enrollment.totalAmount || 0) - (enrollment.admissionRegistrationPayment || 0)) > 0 && (
                                     <div className="text-xs text-gray-500 mt-1 hidden lg:block">
-                                      Due: {formatCurrency(calculateActualTotal(enrollment) - (enrollment.amountReceived || 0))}
+                                      Due: {formatCurrency((enrollment.totalAmount || 0) - (enrollment.admissionRegistrationPayment || 0))}
                                     </div>
                                   )}
                                 </td>
                               );
-                            case 'feeType':
-                              return (
-                                <td key={column.key} className={`${baseCellClasses} text-gray-700 whitespace-nowrap capitalize`}>
-                                  {enrollment.feeType || '-'}
-                                </td>
-                              );
+
                             case 'totalAmount':
-                              const actualTotal = calculateActualTotal(enrollment);
+                              // Show exact value entered in the form
                               return (
-                                <td key={column.key} className={`${baseCellClasses} text-gray-900 font-semibold whitespace-nowrap`} title={`Base: ${formatCurrency(enrollment.totalAmount)} + Late Fees: ${formatCurrency(enrollment.charges || 0)} + Registration: ${formatCurrency(enrollment.admissionRegistrationPayment || 0)}`}>
-                                  {formatCurrency(actualTotal)}
+                                <td key={column.key} className={`${baseCellClasses} text-gray-900 font-semibold whitespace-nowrap`}>
+                                  {formatCurrency(enrollment.totalAmount || 0)}
                                 </td>
                               );
                             case 'amountReceived':
+                              // Amount received = admission registration payment
                               return (
                                 <td key={column.key} className={`${baseCellClasses} text-green-600 font-semibold whitespace-nowrap`}>
-                                  {formatCurrency(enrollment.amountReceived)}
+                                  {formatCurrency(enrollment.admissionRegistrationPayment || 0)}
                                 </td>
                               );
                             case 'pendingAmount':
-                              const actualPending = calculateActualTotal(enrollment) - (enrollment.amountReceived || 0);
+                              // Pending = total amount - admission registration payment
+                              const pendingAmt = Math.max((enrollment.totalAmount || 0) - (enrollment.admissionRegistrationPayment || 0), 0);
                               return (
                                 <td key={column.key} className={`${baseCellClasses} text-red-600 font-semibold whitespace-nowrap`}>
-                                  {formatCurrency(actualPending)}
+                                  {formatCurrency(pendingAmt)}
                                 </td>
                               );
                             case 'charges':
@@ -912,158 +859,6 @@ const EnrollmentManagement = () => {
                               return (
                                 <td key={column.key} className={`${baseCellClasses} text-gray-600`}>
                                   {truncateText(enrollment.notes)}
-                                </td>
-                              );
-                            case '1stEmiAmount':
-                              if (!displayEMI) return (
-                                <td key={column.key} className={`${baseCellClasses} text-gray-500 whitespace-nowrap`}>
-                                  -
-                                </td>
-                              );
-                              const firstEMI = getFirstEMI(enrollment);
-                              return (
-                                <td key={column.key} className={`${baseCellClasses} text-gray-900 font-semibold whitespace-nowrap`}>
-                                  {formatCurrency(firstEMI.amount)}
-                                </td>
-                              );
-                            case '1stEmiDate':
-                              if (!displayEMI) return (
-                                <td key={column.key} className={`${baseCellClasses} text-gray-500 whitespace-nowrap`}>
-                                  -
-                                </td>
-                              );
-                              const firstEMIDate = getFirstEMI(enrollment);
-                              return (
-                                <td key={column.key} className={`${baseCellClasses} text-gray-500 whitespace-nowrap`}>
-                                  {formatDate(firstEMIDate.date)}
-                                </td>
-                              );
-                            case '1stEmiStatus':
-                              if (!displayEMI) return (
-                                <td key={column.key} className={`${baseCellClasses} text-center`}>
-                                  -
-                                </td>
-                              );
-                              const firstEMIStatus = getFirstEMI(enrollment);
-                              return (
-                                <td key={column.key} className={`${baseCellClasses} text-center`}>
-                                  <span className={`px-2 py-1 text-xs font-semibold rounded-full ${emiFeeStatusColor(firstEMIStatus.status).color}`}>
-                                    {emiFeeStatusColor(firstEMIStatus.status).label}
-                                  </span>
-                                </td>
-                              );
-                            case '2ndEmiAmount':
-                              if (!displayEMI) return (
-                                <td key={column.key} className={`${baseCellClasses} text-gray-500 whitespace-nowrap`}>
-                                  -
-                                </td>
-                              );
-                              const secondEMI = getSecondEMI(enrollment);
-                              return (
-                                <td key={column.key} className={`${baseCellClasses} text-gray-900 font-semibold whitespace-nowrap`}>
-                                  {formatCurrency(secondEMI.amount)}
-                                </td>
-                              );
-                            case '2ndEmiDate':
-                              if (!displayEMI) return (
-                                <td key={column.key} className={`${baseCellClasses} text-gray-500 whitespace-nowrap`}>
-                                  -
-                                </td>
-                              );
-                              const secondEMIDate = getSecondEMI(enrollment);
-                              return (
-                                <td key={column.key} className={`${baseCellClasses} text-gray-500 whitespace-nowrap`}>
-                                  {formatDate(secondEMIDate.date)}
-                                </td>
-                              );
-                            case '2ndEmiStatus':
-                              if (!displayEMI) return (
-                                <td key={column.key} className={`${baseCellClasses} text-center`}>
-                                  -
-                                </td>
-                              );
-                              const secondEMIStatus = getSecondEMI(enrollment);
-                              return (
-                                <td key={column.key} className={`${baseCellClasses} text-center`}>
-                                  <span className={`px-2 py-1 text-xs font-semibold rounded-full ${emiFeeStatusColor(secondEMIStatus.status).color}`}>
-                                    {emiFeeStatusColor(secondEMIStatus.status).label}
-                                  </span>
-                                </td>
-                              );
-                            case '3rdEmiAmount':
-                              if (!displayEMI) return (
-                                <td key={column.key} className={`${baseCellClasses} text-gray-500 whitespace-nowrap`}>
-                                  -
-                                </td>
-                              );
-                              const thirdEMI = getThirdEMI(enrollment);
-                              return (
-                                <td key={column.key} className={`${baseCellClasses} text-gray-900 font-semibold whitespace-nowrap`}>
-                                  {formatCurrency(thirdEMI.amount)}
-                                </td>
-                              );
-                            case '3rdEmiDate':
-                              if (!displayEMI) return (
-                                <td key={column.key} className={`${baseCellClasses} text-gray-500 whitespace-nowrap`}>
-                                  -
-                                </td>
-                              );
-                              const thirdEMIDate = getThirdEMI(enrollment);
-                              return (
-                                <td key={column.key} className={`${baseCellClasses} text-gray-500 whitespace-nowrap`}>
-                                  {formatDate(thirdEMIDate.date)}
-                                </td>
-                              );
-                            case '3rdEmiStatus':
-                              if (!displayEMI) return (
-                                <td key={column.key} className={`${baseCellClasses} text-center`}>
-                                  -
-                                </td>
-                              );
-                              const thirdEMIStatus = getThirdEMI(enrollment);
-                              return (
-                                <td key={column.key} className={`${baseCellClasses} text-center`}>
-                                  <span className={`px-2 py-1 text-xs font-semibold rounded-full ${emiFeeStatusColor(thirdEMIStatus.status).color}`}>
-                                    {emiFeeStatusColor(thirdEMIStatus.status).label}
-                                  </span>
-                                </td>
-                              );
-                            case 'nextEmiAmount':
-                              if (!displayEMI) return (
-                                <td key={column.key} className={`${baseCellClasses} text-gray-500 whitespace-nowrap`}>
-                                  -
-                                </td>
-                              );
-                              const nextEMI = getNextEMI(enrollment);
-                              return (
-                                <td key={column.key} className={`${baseCellClasses} text-gray-900 font-semibold whitespace-nowrap`}>
-                                  {formatCurrency(nextEMI.amount)}
-                                </td>
-                              );
-                            case 'nextEmiDate':
-                              if (!displayEMI) return (
-                                <td key={column.key} className={`${baseCellClasses} text-gray-500 whitespace-nowrap`}>
-                                  -
-                                </td>
-                              );
-                              const nextEMIDate = getNextEMI(enrollment);
-                              return (
-                                <td key={column.key} className={`${baseCellClasses} text-gray-500 whitespace-nowrap`}>
-                                  {formatDate(nextEMIDate.date)}
-                                </td>
-                              );
-                            case 'nextEmiStatus':
-                              if (!displayEMI) return (
-                                <td key={column.key} className={`${baseCellClasses} text-center`}>
-                                  -
-                                </td>
-                              );
-                              const nextEMIStatus = getNextEMI(enrollment);
-                              return (
-                                <td key={column.key} className={`${baseCellClasses} text-center`}>
-                                  <span className={`px-2 py-1 text-xs font-semibold rounded-full ${emiFeeStatusColor(nextEMIStatus.status).color}`}>
-                                    {emiFeeStatusColor(nextEMIStatus.status).label}
-                                  </span>
                                 </td>
                               );
                             case 'actions':

@@ -359,20 +359,6 @@ const BatchReports = () => {
           </ResponsiveContainer>
         </div>
       </div>
-
-      {/* Course Distribution */}
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <h3 className="text-lg font-semibold text-gray-800 mb-4">Batches by Course</h3>
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={courseChartData}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="course" fontSize={12} />
-            <YAxis />
-            <Tooltip />
-            <Bar dataKey="count" fill="#8884d8" />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
       </div>
     </div>
   );

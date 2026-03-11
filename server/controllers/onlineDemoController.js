@@ -47,7 +47,11 @@ const OfflineDemo = require("../models/OfflineDemo");
 // ➕ Create new demo
 exports.createOnlineDemo = async (req, res) => {
   try {
-    const demo = await OnlineDemo.create(req.body);
+    const { name, mobile, email, address, course, date, time, mode, medium, trainer, counselor } = req.body;
+    if (!name || !mobile || !address || !course || !date || !time || !mode || !medium || !trainer) {
+      return res.status(400).json({ message: "Missing required fields" });
+    }
+    const demo = await OnlineDemo.create({ name, mobile, email, address, course, date, time, mode, medium, trainer, counselor });
     res.status(201).json(demo);
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -96,7 +100,15 @@ exports.updateOnlineDemo = async (req, res) => {
     }
 
     // If mode stays online, just update
-    const updatedDemo = await OnlineDemo.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const { name, mobile, email, address, course, date, time, mode, medium, trainer, counselor } = req.body;
+    if (!name || !mobile || !address || !course || !date || !time || !mode || !medium || !trainer) {
+      return res.status(400).json({ message: "Missing required fields" });
+    }
+    const updatedDemo = await OnlineDemo.findByIdAndUpdate(
+      req.params.id,
+      { name, mobile, email, address, course, date, time, mode, medium, trainer, counselor },
+      { new: true }
+    );
     res.status(200).json(updatedDemo);
   } catch (error) {
     res.status(400).json({ message: error.message });

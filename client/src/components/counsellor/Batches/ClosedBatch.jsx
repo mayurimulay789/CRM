@@ -19,12 +19,7 @@ const ClosedBatch = () => {
         <td className="px-6 py-4 whitespace-nowrap">
           <div className="text-sm font-semibold text-gray-900">{batch.name}</div>
         </td>
-        <td className="px-6 py-4 max-w-[200px] truncate">
-          <div className="text-sm text-gray-600" title={batch.description}>{batch.description || 'N/A'}</div>
-        </td>
-        <td className="px-6 py-4 whitespace-nowrap">
-          <div className="text-sm text-gray-900">{batch.course || 'N/A'}</div>
-        </td>
+     
         <td className="px-6 py-4 whitespace-nowrap">
           <div className="text-sm text-gray-900">{batch.trainer || 'N/A'}</div>
         </td>
@@ -52,9 +47,7 @@ const ClosedBatch = () => {
         <td className="px-6 py-4 whitespace-nowrap text-center">
           <div className="text-sm font-bold text-indigo-600">{batch.enrolledCount ?? batch.studentsActive ?? 0}</div>
         </td>
-        <td className="px-6 py-4 whitespace-nowrap">
-          <div className="text-sm text-gray-900">{batch.batchDays || 'N/A'}</div>
-        </td>
+       
         <td className="px-6 py-4 whitespace-nowrap">
           <div className="text-sm text-gray-600">
             {batch.startDate ? new Date(batch.startDate).toLocaleDateString() : 'N/A'}
@@ -77,12 +70,6 @@ const ClosedBatch = () => {
           <div className="text-sm text-gray-600">
             {batch.mergingTill ? new Date(batch.mergingTill).toLocaleDateString() : 'N/A'}
           </div>
-        </td>
-        <td className="px-6 py-4 whitespace-nowrap">
-          <div className="text-sm text-gray-900">{batch.batchExtenApproval || 'N/A'}</div>
-        </td>
-        <td className="px-6 py-4 whitespace-nowrap">
-          <div className="text-sm text-gray-900">{batch.approvalStatus || 'N/A'}</div>
         </td>
         <td className="px-6 py-4 whitespace-nowrap">
           <span className="inline-flex items-center px-3 py-1 text-xs font-bold leading-5 rounded-full bg-green-100 text-green-800 border border-green-300">
@@ -133,11 +120,11 @@ const ClosedBatch = () => {
                 <thead className="bg-[#890c25] sticky top-0 z-10">
                   <tr>
                     {[
-                      'Batch Name', 'Description', 'Course', 'Trainer', 'Branch',
+                      'Batch Name',  'Trainer', 'Branch',
                       'Class Room', 'Code', 'Timing', 'Mode', 'Country',
-                      'Batch Type', 'Students', 'Batch Days', 'Start Date', 'End Date',
+                      'Batch Type', 'Students',  'Start Date', 'End Date',
                       'Completion Date', 'Merging Status', 'Merging Till',
-                      'Exten Approval', 'Approval Status', 'Status'
+                       'Status'
                     ].map((header) => (
                       <th key={header} className="px-6 py-3 text-left text-xs font-bold text-white uppercase tracking-wider">{header}</th>
                     ))}

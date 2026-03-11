@@ -19,9 +19,7 @@ const RunningBatch = () => {
         <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
           {batch.name || 'N/A'}
         </td>
-        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-          {batch.course || 'N/A'}
-        </td>
+       
         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
           {batch.trainer || 'N/A'}
         </td>
@@ -94,9 +92,7 @@ const RunningBatch = () => {
                   <th className="px-6 py-3 text-left text-xs font-bold text-white uppercase tracking-wider">
                     Name
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-bold text-white uppercase tracking-wider">
-                    Course
-                  </th>
+                  
                   <th className="px-6 py-3 text-left text-xs font-bold text-white uppercase tracking-wider">
                     Trainer
                   </th>

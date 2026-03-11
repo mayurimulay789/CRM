@@ -13,16 +13,11 @@ const createEnrollment = async (req, res) => {
     const {
       admission,
       batch,
-      trainingBranch,
+     
       mode,
       totalAmount,
-      discount = 0,
       feeType,
-      firstEMI,
-      secondEMI,
-      thirdEMI,
       dueDate,
-      charges,
       leadDate,
       leadSource,
       call,
@@ -55,39 +50,10 @@ const createEnrollment = async (req, res) => {
       });
     }
 
-    // Calculate actual total including late fees and registration payment
-    const actualTotal = (totalAmount || 0) + (charges || 0) + (admissionRegistrationPayment || 0);
+    // Calculate actual total including registration payment
+    const actualTotal = (totalAmount || 0) + (admissionRegistrationPayment || 0);
 
-    // EMI validation for installment fee type
-    if (feeType === 'installment') {
-      const firstEMIAmount = firstEMI?.amount || 0;
-      const secondEMIAmount = secondEMI?.amount || 0;
-      const thirdEMIAmount = thirdEMI?.amount || 0;
-      const totalEMI = firstEMIAmount + secondEMIAmount + thirdEMIAmount;
-
-      if (totalEMI !== actualTotal) {
-        return res.status(400).json({
-          success: false,
-          message: `EMI total (₹${totalEMI}) must match total amount (₹${actualTotal}). [Base: ₹${totalAmount} + Late Fees: ₹${charges || 0} + Registration: ₹${admissionRegistrationPayment || 0}]`
-        });
-      }
-
-      // Validate EMI dates if amounts are provided
-      const emis = [
-        { name: 'First EMI', data: firstEMI },
-        { name: 'Second EMI', data: secondEMI },
-        { name: 'Third EMI', data: thirdEMI }
-      ];
-
-      for (const emi of emis) {
-        if (emi.data?.amount > 0 && !emi.data?.date) {
-          return res.status(400).json({
-            success: false,
-            message: `${emi.name} date is required when amount is provided`
-          });
-        }
-      }
-    }
+    // EMI and dueDate validation removed
 
     // Generate enrollment number
     const currentYear = new Date().getFullYear();
@@ -114,16 +80,10 @@ const createEnrollment = async (req, res) => {
       student: admissionDetails.student.toString(),
       course: admissionDetails.course.toString(),
       batch,
-      trainingBranch,
       mode,
       totalAmount,
-      discount,
       feeType,
-      firstEMI,
-      secondEMI,
-      thirdEMI,
-      dueDate,
-      charges: charges || 0,
+      dueDate: dueDate || null,
       leadDate,
       leadSource,
       call,
