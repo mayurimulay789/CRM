@@ -1096,6 +1096,40 @@ async function sendAdmissionConfirmationEmail(admission) {
     .imgformate{
         width:1200px;
     }
+        .contact-footer {
+    background: #fae1e1;
+    padding: 18px 25px;
+    border-radius: 30px;
+    color: #6d3131;
+    font-size: 15px;
+    margin: 20px 0;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 12px 8px; /* space between items */
+    word-break: break-word;
+}
+
+.contact-footer a {
+    color: #a13030;
+    text-decoration: underline;
+    white-space: nowrap; /* prevent phone numbers from breaking */
+}
+
+/* Responsive stacking on small screens */
+@media only screen and (max-width: 480px) {
+    .contact-footer {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        gap: 8px;
+    }
+    .contact-footer a {
+        white-space: normal;
+    }
+}
   </style>
 </head>
 <body>
@@ -1165,9 +1199,12 @@ async function sendAdmissionConfirmationEmail(admission) {
       </div>
 
       <!-- contact info (as in original screenshots) -->
-      <div style="background: #fae1e1; padding: 18px 25px; border-radius: 30px; color: #6d3131; font-size: 15px; margin: 20px 0;display:flex;flex-direction:row; justify-content:center ;align-items: center;">
-        +91-9873336133  <a href="mailto:services@rymaacademy.com" style="color: #a13030; margin-left: 8px;">services@rymaacademy.com</a>  <a href="#" style="color: #a13030;margin-left: 8px; margin-right: 5px;">www.rymaacademy.com</a>  📍 D-7/32, 1st Floor, Main Vishram Chowk, Sec-6, Rohini, Delhi – 110085
-      </div>
+      <div class="contact-footer">
+    +91-9873336133
+    <a href="mailto:services@rymaacademy.com">services@rymaacademy.com</a>
+    <a href="#">www.rymaacademy.com</a>
+    📍 D-7/32, 1st Floor, Main Vishram Chowk, Sec-6, Rohini, Delhi – 110085
+</div>
 
       <!-- small note about image placeholder (can be removed) -->
       <div class="note-placeholder">

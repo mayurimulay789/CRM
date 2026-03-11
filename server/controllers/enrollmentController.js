@@ -37,7 +37,6 @@ const createEnrollment = async (req, res) => {
         message: 'Enrollment already exists for this admission'
       });
     }
-
     // Extract student and course from admission details
     const admissionDetails = await Admission.findById(admission);
     if (!admissionDetails) {
@@ -135,9 +134,9 @@ const createEnrollment = async (req, res) => {
     await enrollment.save();
     // Populate the saved enrollment
     await enrollment.populate([
-      { path: 'student', select: 'studentId name email phone' },
+      { path: 'student', select: 'studentId name email phone dateOfBirth' },
       { path: 'course', select: 'name fee duration' },
-      { path: 'batch', select: 'name timing' },
+      { path: 'batch', select: 'name timing code' },
       { path: 'admission', select: 'admissionNo' }
     ]);
 
@@ -428,12 +427,46 @@ const createEnrollment = async (req, res) => {
             margin-top: 8px;
             text-align: center;
         }
+          .contact-footer {
+    background: #fae1e1;
+    padding: 18px 25px;
+    border-radius: 30px;
+    color: #6d3131;
+    font-size: 15px;
+    margin: 20px 0;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 12px 8px; /* space between items */
+    word-break: break-word;
+}
+
+.contact-footer a {
+    color: #a13030;
+    text-decoration: underline;
+    white-space: nowrap; /* prevent phone numbers from breaking */
+}
+
+/* Responsive stacking on small screens */
+@media only screen and (max-width: 480px) {
+    .contact-footer {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        gap: 8px;
+    }
+    .contact-footer a {
+        white-space: normal;
+    }
+}
     </style>
 </head>
 
 <body>
     <div class="enrollment-container">
-        <img src=${server/assets/header.png} alt="RYMA ACADEMY" style="width: 100%; max-width: 1200px;">
+        <img src=${server / assets / header.png} alt="RYMA ACADEMY" style="width: 100%; max-width: 1200px;">
         <!-- Header image area: replace src with your actual banner/logo -->
 
         <div class="content">
@@ -467,7 +500,7 @@ const createEnrollment = async (req, res) => {
                 </tr>
                 <tr>
                     <td class="label-cell">Date of Birth</td>
-                    <td class="value-cell"><strong>${enrollment.student.dateOfBirth}</strong></td>
+                    <td class="value-cell"><strong>${formatDateToDDMMYYYY(enrollment.student.dateOfBirth)}</strong></td>
                 </tr>
                 <tr>
                     <td class="label-cell">Registered Mobile</td>
@@ -542,13 +575,12 @@ const createEnrollment = async (req, res) => {
             </div>
 
             <!-- contact block (with icons as text) -->
-            <div
-                style="background: #fae1e1; padding: 18px 25px; border-radius: 30px; color: #6d3131; font-size: 15px; margin: 20px 0;display:flex;flex-direction:row; justify-content:center ;align-items: center;">
-                +91-9873336133 <a href="mailto:services@rymaacademy.com"
-                    style="color: #a13030; margin-left: 8px;">services@rymaacademy.com</a> <a href="#"
-                    style="color: #a13030;margin-left: 8px; margin-right: 5px;">www.rymaacademy.com</a> 📍 D-7/32, 1st
-                Floor, Main Vishram Chowk, Sec-6, Rohini, Delhi – 110085
-            </div>
+            <div class="contact-footer">
+    +91-9873336133
+    <a href="mailto:services@rymaacademy.com">services@rymaacademy.com</a>
+    <a href="#">www.rymaacademy.com</a>
+    📍 D-7/32, 1st Floor, Main Vishram Chowk, Sec-6, Rohini, Delhi – 110085
+</div>
 
             <!-- small note about image placeholder (can be removed in production) -->
             <div class="note-placeholder">
