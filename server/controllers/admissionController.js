@@ -3,7 +3,7 @@ const Student = require('../models/Student');
 const Course = require('../models/Course');
 const { uploadToCloudinary, deleteFromCloudinary } = require('../utils/cloudinary');
 const sendMail = require('../utils/email').sendMail;
-
+const path = require('path');
 // Helper function to convert Cloudinary URLs to viewable/downloadable format
 const makeViewableUrl = (url) => {
   if (!url || !url.includes('res.cloudinary.com')) {
@@ -17,15 +17,15 @@ const makeViewableUrl = (url) => {
     if (url.includes('/raw/upload/')) {
       const baseUrl = url.split('/raw/upload/')[0];
       let resourcePath = url.split('/raw/upload/')[1];
-      
+
       // Remove version if present
       resourcePath = resourcePath.replace(/^v\d+\//, '');
-      
+
       // Ensure .pdf extension
       if (!resourcePath.endsWith('.pdf')) {
         resourcePath += '.pdf';
       }
-      
+
       // Optimized URL for iframe viewing (no download flags, just format specification)
       const viewableUrl = `${baseUrl}/raw/upload/f_pdf,fl_immutable_cache,q_auto/${resourcePath}`;
       console.log(`✅ Generated iframe-optimized PDF URL: ${viewableUrl}`);
@@ -36,13 +36,13 @@ const makeViewableUrl = (url) => {
       console.log(`✅ Processed image upload URL for iframe PDF viewing: ${viewableUrl}`);
       return viewableUrl;
     }
-    
+
     // For regular uploads, return as-is
     console.log(`📋 Returning original URL (standard format): ${url}`);
     return url;
   } catch (error) {
     console.error('❌ Error processing URL for iframe viewing:', error);
-    
+
     // Fallback: try basic iframe-compatible format
     try {
       if (url.includes('cloudinary.com') && url.includes('upload')) {
@@ -56,7 +56,7 @@ const makeViewableUrl = (url) => {
     } catch (fallbackError) {
       console.error('❌ Fallback processing failed:', fallbackError);
     }
-    
+
     return url;
   }
 };
@@ -64,9 +64,9 @@ const makeViewableUrl = (url) => {
 // Helper function to process admission document URLs
 const processAdmissionDocuments = (admission) => {
   if (!admission) return admission;
-  
+
   const processed = admission.toObject ? admission.toObject() : { ...admission };
-  
+
   // Process document URLs for viewing
   if (processed.admissionFrontPage) {
     processed.admissionFrontPage = makeViewableUrl(processed.admissionFrontPage);
@@ -80,15 +80,15 @@ const processAdmissionDocuments = (admission) => {
   if (processed.confidentialForm) {
     processed.confidentialForm = makeViewableUrl(processed.confidentialForm);
   }
-  
+
   return processed;
 };
 
 const getAllAdmissions = async (req, res) => {
   try {
-    const { 
-      page = 1, 
-      limit = 10, 
+    const {
+      page = 1,
+      limit = 10,
       search = '',
       status,
       counsellor,
@@ -99,7 +99,7 @@ const getAllAdmissions = async (req, res) => {
 
     // Build filter object
     const filter = {};
-    
+
     // Search filter
     if (search) {
       filter.$or = [
@@ -268,7 +268,6 @@ const getAdmissionsByCourse = async (req, res) => {
 
 const createAdmission = async (req, res) => {
   console.log('=== ADMISSION CREATION STARTED ===');
-  
   try {
     const {
       student,
@@ -280,7 +279,6 @@ const createAdmission = async (req, res) => {
       source,
       notes
     } = req.body;
-
     console.log('1. Reading request body...');
     console.log('Request body data:', {
       student,
@@ -291,48 +289,40 @@ const createAdmission = async (req, res) => {
       appliedBatch,
       source
     });
-
     console.log('2. Checking uploaded files...');
     console.log('Files received:', req.files ? Object.keys(req.files) : 'No files');
-
     // Handle file uploads to Cloudinary
     let admissionFrontPageUrl = '';
     let admissionBackPageUrl = '';
     let studentStatementUrl = '';
     let confidentialFormUrl = '';
-
     if (req.files) {
       try {
         console.log('3. Starting file uploads to Cloudinary...');
-
         if (req.files.admissionFrontPage && req.files.admissionFrontPage[0]) {
           const file = req.files.admissionFrontPage[0];
           console.log('📄 Uploading admission front page:', file.originalname);
           admissionFrontPageUrl = await uploadToCloudinary(file.buffer, 'lms/admissions/front-pages', file.originalname);
           console.log('✅ Admission front page uploaded:', admissionFrontPageUrl);
         }
-
         if (req.files.admissionBackPage && req.files.admissionBackPage[0]) {
           const file = req.files.admissionBackPage[0];
           console.log('📄 Uploading admission back page:', file.originalname);
           admissionBackPageUrl = await uploadToCloudinary(file.buffer, 'lms/admissions/back-pages', file.originalname);
           console.log('✅ Admission back page uploaded:', admissionBackPageUrl);
         }
-
         if (req.files.studentStatement && req.files.studentStatement[0]) {
           const file = req.files.studentStatement[0];
           console.log('📄 Uploading student statement:', file.originalname);
           studentStatementUrl = await uploadToCloudinary(file.buffer, 'lms/admissions/statements', file.originalname);
           console.log('✅ Student statement uploaded:', studentStatementUrl);
         }
-
         if (req.files.confidentialForm && req.files.confidentialForm[0]) {
           const file = req.files.confidentialForm[0];
           console.log('📄 Uploading confidential form:', file.originalname);
           confidentialFormUrl = await uploadToCloudinary(file.buffer, 'lms/admissions/confidential-forms', file.originalname);
           console.log('✅ Confidential form uploaded:', confidentialFormUrl);
         }
-
         console.log('4. File uploads completed successfully');
       } catch (uploadError) {
         console.error('❌ File upload error:', uploadError);
@@ -342,7 +332,6 @@ const createAdmission = async (req, res) => {
         });
       }
     }
-
     // Check if student exists
     console.log('5. Checking student existence...');
     const studentExists = await Student.findById(student);
@@ -354,7 +343,6 @@ const createAdmission = async (req, res) => {
         message: 'Student not found'
       });
     }
-
     // Check if course exists
     console.log('6. Checking course existence...');
     const courseExists = await Course.findById(course);
@@ -366,7 +354,6 @@ const createAdmission = async (req, res) => {
         message: 'Course not found'
       });
     }
-
     // Check if student already has a pending admission for this course
     console.log('7. Checking existing admissions...');
     const existingAdmission = await Admission.findOne({
@@ -375,7 +362,6 @@ const createAdmission = async (req, res) => {
       status: { $in: ['pending', 'approved'] }
     });
     console.log('Existing admission found:', existingAdmission ? 'Yes' : 'No');
-    
     if (existingAdmission) {
       console.log('❌ Existing admission found:', existingAdmission._id);
       return res.status(400).json({
@@ -383,19 +369,16 @@ const createAdmission = async (req, res) => {
         message: 'Student already has an active admission for this course'
       });
     }
-
     // Generate admission number
     console.log('8. Generating admission number...');
     const generateAdmissionNo = async () => {
       const year = new Date().getFullYear();
-      
       // Find highest sequential number for current year
       const lastAdmission = await Admission.findOne(
         { admissionNo: new RegExp(`^ADM${year}\\d{4}$`) },
         { admissionNo: 1 },
         { sort: { admissionNo: -1 } }
       );
-
       if (lastAdmission && lastAdmission.admissionNo) {
         const lastNumber = parseInt(lastAdmission.admissionNo.slice(-4));
         if (!isNaN(lastNumber)) {
@@ -403,7 +386,6 @@ const createAdmission = async (req, res) => {
           return `ADM${year}${nextNumber.toString().padStart(4, '0')}`;
         }
       }
-
       // Fallback: count-based
       const count = await Admission.countDocuments({
         admissionNo: new RegExp(`^ADM${year}`),
@@ -412,21 +394,16 @@ const createAdmission = async (req, res) => {
           $lt: new Date(year + 1, 0, 1)
         }
       });
-      
       return `ADM${year}${(count + 1).toString().padStart(4, '0')}`;
     };
-
     const admissionNo = await generateAdmissionNo();
     console.log(`9. Final admission number: ${admissionNo}`);
-
     console.log('10. Preparing admission data...');
     // Prepare attachments array
     // Helper to create download link with filename
     function makeDownloadUrl(url, filename) {
       if (!url) return url;
-      
       console.log(`🔗 Processing URL for PDF download: ${url}`);
-      
       // For Cloudinary URLs, create proper download link with PDF format
       if (url.includes('res.cloudinary.com')) {
         try {
@@ -435,21 +412,21 @@ const createAdmission = async (req, res) => {
             // Split the URL to insert transformation parameters
             const baseUrl = url.split('/raw/upload/')[0];
             let resourcePath = url.split('/raw/upload/')[1];
-            
+
             // Remove version if present (v1234567890/)
             resourcePath = resourcePath.replace(/^v\d+\//, '');
-            
+
             // Ensure the resource path ends with .pdf
             if (!resourcePath.endsWith('.pdf')) {
               resourcePath = resourcePath + '.pdf';
             }
-            
+
             // Create download URL with proper attachment and format flags
             const downloadUrl = `${baseUrl}/raw/upload/fl_attachment:${filename}/f_pdf/${resourcePath}`;
             console.log(`📎 Generated PDF download URL: ${downloadUrl}`);
             return downloadUrl;
           }
-          
+
           // Handle regular image uploads (shouldn't happen for PDFs, but just in case)
           else if (url.includes('/upload/')) {
             return url.replace('/upload/', `/upload/fl_attachment:${filename}/f_pdf/`);
@@ -458,7 +435,7 @@ const createAdmission = async (req, res) => {
           console.error('❌ Error processing PDF URL:', error);
         }
       }
-      
+
       // Fallback: ensure URL ends with .pdf
       let fallbackUrl = url;
       if (!fallbackUrl.endsWith('.pdf')) {
@@ -469,7 +446,7 @@ const createAdmission = async (req, res) => {
     }
 
     const attachments = [];
-    
+
     // Log original URLs for debugging
     console.log('🔍 Original URLs:');
     if (admissionFrontPageUrl) console.log(`   Front Page: ${admissionFrontPageUrl}`);
@@ -480,32 +457,32 @@ const createAdmission = async (req, res) => {
     // Create attachment objects with both transformed and original URLs
     if (admissionFrontPageUrl) {
       const transformedUrl = makeDownloadUrl(admissionFrontPageUrl, 'Admission_Front_Page.pdf');
-      attachments.push({ 
-        type: 'Admission Front Page', 
+      attachments.push({
+        type: 'Admission Front Page',
         url: transformedUrl,
         originalUrl: admissionFrontPageUrl  // Keep original as fallback
       });
     }
     if (admissionBackPageUrl) {
       const transformedUrl = makeDownloadUrl(admissionBackPageUrl, 'Admission_Back_Page.pdf');
-      attachments.push({ 
-        type: 'Admission Back Page', 
+      attachments.push({
+        type: 'Admission Back Page',
         url: transformedUrl,
         originalUrl: admissionBackPageUrl
       });
     }
     if (studentStatementUrl) {
       const transformedUrl = makeDownloadUrl(studentStatementUrl, 'Student_Statement.pdf');
-      attachments.push({ 
-        type: 'Student Statement', 
+      attachments.push({
+        type: 'Student Statement',
         url: transformedUrl,
         originalUrl: studentStatementUrl
       });
     }
     if (confidentialFormUrl) {
       const transformedUrl = makeDownloadUrl(confidentialFormUrl, 'Confidential_Form.pdf');
-      attachments.push({ 
-        type: 'Confidential Form', 
+      attachments.push({
+        type: 'Confidential Form',
         url: transformedUrl,
         originalUrl: confidentialFormUrl
       });
@@ -561,6 +538,15 @@ const createAdmission = async (req, res) => {
     delete admissionResponse.__v;
 
     // Send email to student with PDF/Cloudinary URLs
+    const filePathforPolicy = path.join(__dirname, '..', 'assets', 'policy.pdf');
+    const fileNameforPolicy = 'policy.pdf';
+
+    let policyattachments = [
+      {
+        filename: fileNameforPolicy,
+        path: 'https://drive.google.com/file/d/1YicXxjX89HJjPE1yjSQxqxMCTZTgOfaa/view?usp=sharing'
+      }
+    ];
     try {
       const studentEmail = admissionResponse.student?.email;
       if (studentEmail) {
@@ -598,7 +584,9 @@ const createAdmission = async (req, res) => {
                   </a>` : ''}
                   <br>
                   <small style="color: #6c757d;">Right-click and "Save As" if download doesn't start automatically</small>
-                </li>`;
+                </li>           
+                `
+            ;
         });
 
         emailHtml += `
@@ -616,29 +604,23 @@ const createAdmission = async (req, res) => {
             <p>Thank you!</p>
           </div>`;
 
-        await sendMail(studentEmail, 'Your Admission PDF Documents', emailHtml);
-        console.log('✅ Admission document email sent to student:', studentEmail);
+        await sendMail(studentEmail, 'Your Admission PDF Documents', emailHtml, false, policyattachments);
+        console.log('✅ Admission document email sent to student:', studentEmail, policyattachments);
       }
     } catch (mailError) {
       console.error('❌ Error sending admission email:', mailError);
     }
-
-    console.log('=== ADMISSION CREATION COMPLETED SUCCESSFULLY ===');
-    
     // Process document URLs for management interface viewing
     const processedResponse = processAdmissionDocuments(savedAdmission);
-
     res.status(201).json({
       success: true,
       message: 'Admission created successfully',
       data: processedResponse
     });
-
   } catch (error) {
     console.log('=== ERROR OCCURRED ===');
     console.log('Error type:', error.name);
     console.log('Error message:', error.message);
-
     if (error.name === 'ValidationError') {
       const messages = Object.values(error.errors).map(val => val.message);
       return res.status(400).json({
@@ -647,14 +629,12 @@ const createAdmission = async (req, res) => {
         errors: messages
       });
     }
-
     if (error.code === 11000 && error.keyPattern?.admissionNo) {
       return res.status(400).json({
         success: false,
         message: 'System error: Please try again in a moment'
       });
     }
-
     res.status(500).json({
       success: false,
       message: 'Error creating admission',
@@ -662,7 +642,6 @@ const createAdmission = async (req, res) => {
     });
   }
 };
-
 const updateAdmission = async (req, res) => {
   try {
     const {
@@ -673,11 +652,6 @@ const updateAdmission = async (req, res) => {
       source,
       notes
     } = req.body;
-
-    console.log('=== ADMISSION UPDATE STARTED ===');
-    console.log('Request body:', req.body);
-    console.log('Files received:', req.files ? Object.keys(req.files) : 'No files');
-
     // Check if admission exists
     const admission = await Admission.findById(req.params.id);
     if (!admission) {
@@ -686,18 +660,15 @@ const updateAdmission = async (req, res) => {
         message: 'Admission not found'
       });
     }
-
     // Handle file uploads for updates
     let fileUpdateData = {};
     if (req.files) {
       try {
-        console.log('Starting file uploads for update...');
-        
         if (req.files.admissionFrontPage && req.files.admissionFrontPage[0]) {
           const file = req.files.admissionFrontPage[0];
           console.log('📄 Uploading new admission front page:', file.originalname);
           fileUpdateData.admissionFrontPage = await uploadToCloudinary(file.buffer, 'lms/admissions/front-pages', file.originalname);
-          
+
           // Delete old file if exists
           if (admission.admissionFrontPage) {
             await deleteFromCloudinary(admission.admissionFrontPage);
@@ -709,7 +680,7 @@ const updateAdmission = async (req, res) => {
           const file = req.files.admissionBackPage[0];
           console.log('📄 Uploading new admission back page:', file.originalname);
           fileUpdateData.admissionBackPage = await uploadToCloudinary(file.buffer, 'lms/admissions/back-pages', file.originalname);
-          
+
           // Delete old file if exists
           if (admission.admissionBackPage) {
             await deleteFromCloudinary(admission.admissionBackPage);
@@ -721,7 +692,7 @@ const updateAdmission = async (req, res) => {
           const file = req.files.studentStatement[0];
           console.log('📄 Uploading new student statement:', file.originalname);
           fileUpdateData.studentStatement = await uploadToCloudinary(file.buffer, 'lms/admissions/statements', file.originalname);
-          
+
           // Delete old file if exists
           if (admission.studentStatement) {
             await deleteFromCloudinary(admission.studentStatement);
@@ -733,7 +704,7 @@ const updateAdmission = async (req, res) => {
           const file = req.files.confidentialForm[0];
           console.log('📄 Uploading new confidential form:', file.originalname);
           fileUpdateData.confidentialForm = await uploadToCloudinary(file.buffer, 'lms/admissions/confidential-forms', file.originalname);
-          
+
           // Delete old file if exists
           if (admission.confidentialForm) {
             await deleteFromCloudinary(admission.confidentialForm);
@@ -768,14 +739,14 @@ const updateAdmission = async (req, res) => {
     const updatedAdmission = await Admission.findByIdAndUpdate(
       req.params.id,
       updateData,
-      { 
-        new: true, 
-        runValidators: true 
+      {
+        new: true,
+        runValidators: true
       }
     )
-    .populate('student', 'studentId name email phone')
-    .populate('course', 'name code fee duration')
-    .select('-__v');
+      .populate('student', 'studentId name email phone')
+      .populate('course', 'name code fee duration')
+      .select('-__v');
 
     console.log('✅ Admission updated successfully');
 
@@ -789,7 +760,7 @@ const updateAdmission = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Update error:', error);
-    
+
     if (error.name === 'ValidationError') {
       const messages = Object.values(error.errors).map(val => val.message);
       return res.status(400).json({
@@ -842,9 +813,9 @@ const updateAdmissionStatus = async (req, res) => {
       updateData,
       { new: true }
     )
-    .populate('student', 'studentId name email phone')
-    .populate('course', 'name code fee duration')
-    .select('-__v');
+      .populate('student', 'studentId name email phone')
+      .populate('course', 'name code fee duration')
+      .select('-__v');
 
     // Send admission confirmation email if status changed to approved
     if (status === 'approved' && admission.status !== 'approved') {
@@ -887,10 +858,10 @@ const updateAdmissionStatus = async (req, res) => {
  */
 async function sendAdmissionConfirmationEmail(admission) {
   console.log(`📧 Starting admission confirmation email for: ${admission.admissionNo}`);
-  
+
   try {
     const { student, course } = admission;
-    
+
     console.log(`📋 Email details:`, {
       admissionNo: admission.admissionNo,
       studentName: student?.name,
@@ -899,7 +870,7 @@ async function sendAdmissionConfirmationEmail(admission) {
       hasStudent: !!student,
       hasCourse: !!course
     });
-    
+
     if (!student || !student.email) {
       const error = `❌ Student email not found for admission: ${admission.admissionNo}`;
       console.error(error);
@@ -925,242 +896,335 @@ async function sendAdmissionConfirmationEmail(admission) {
     ].filter(doc => doc.url); // only include those with a URL
 
     // Email subject
-    const subject = `🎉 Admission Confirmed - ${course.name} | ${admission.admissionNo}`;
+    const subject = `🎓 Welcome to RYMA ACADEMY | Your Admission is Officially Confirmed`;
 
     // Email HTML content
     const html = `
       <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Admission Confirmation</title>
-        <style>
-          body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            margin: 0;
-            padding: 0;
-            background-color: #f4f4f4;
-          }
-          .container {
-            max-width: 600px;
-            margin: 0 auto;
-            background-color: #ffffff;
-            border-radius: 10px;
-            overflow: hidden;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-          }
-          .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 30px 20px;
-            text-align: center;
-          }
-          .header h1 {
-            margin: 0;
-            font-size: 28px;
-            font-weight: 600;
-          }
-          .content {
-            padding: 30px;
-          }
-          .congrats {
-            text-align: center;
-            margin-bottom: 30px;
-          }
-          .congrats h2 {
-            color: #28a745;
-            font-size: 24px;
-            margin-bottom: 10px;
-          }
-          .details {
-            background-color: #f8f9fa;
-            border-radius: 8px;
-            padding: 20px;
-            margin: 20px 0;
-          }
-          .detail-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 10px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #e9ecef;
-          }
-          .detail-row:last-child {
-            border-bottom: none;
-            margin-bottom: 0;
-            padding-bottom: 0;
-          }
-          .detail-label {
-            font-weight: 600;
-            color: #495057;
-          }
-          .detail-value {
-            color: #212529;
-            text-align: right;
-          }
-          .documents-section {
-            margin: 20px 0;
-            padding: 20px;
-            background-color: #f0f8ff;
-            border-radius: 8px;
-          }
-          .documents-section h3 {
-            color: #007bff;
-            margin-top: 0;
-          }
-          .documents-section ul {
-            list-style: none;
-            padding: 0;
-          }
-          .documents-section li {
-            margin-bottom: 10px;
-          }
-          .documents-section a {
-            color: #007bff;
-            text-decoration: none;
-          }
-          .documents-section a:hover {
-            text-decoration: underline;
-          }
-          .next-steps {
-            background-color: #e7f3ff;
-            border-left: 4px solid #007bff;
-            padding: 15px 20px;
-            margin: 20px 0;
-            border-radius: 4px;
-          }
-          .next-steps h3 {
-            color: #007bff;
-            margin-top: 0;
-          }
-          .footer {
-            text-align: center;
-            padding: 20px;
-            background-color: #f8f9fa;
-            color: #6c757d;
-            font-size: 14px;
-          }
-          .contact-info {
-            background-color: #fff3cd;
-            border: 1px solid #ffeaa7;
-            border-radius: 5px;
-            padding: 15px;
-            margin: 20px 0;
-          }
-          .badge {
-            display: inline-block;
-            padding: 5px 10px;
-            background-color: #28a745;
-            color: white;
-            border-radius: 15px;
-            font-size: 12px;
-            font-weight: 600;
-          }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1>🎓 Admission Confirmed</h1>
-          </div>
-          
-          <div class="content">
-            <div class="congrats">
-              <h2>Congratulations, ${student.name}! 🎉</h2>
-              <p>Your admission has been successfully approved. Welcome to Ryma Academy!</p>
-              <span class="badge">Admission No: ${admission.admissionNo}</span>
-            </div>
+    <html>
+    <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RYMA ACADEMY – Admission (header image)</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #f3e5e5;
+      font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    }
+    .email-container {
+      max-width: 1200px;
+      margin:  auto;
+      background-color: #ffffff;
+      overflow: hidden;
+      box-shadow: 0 12px 28px rgba(150, 30, 30, 0.2);
+    }
+    /* header image area */
+    .header-image {
+      width: 100%;
+      background-color: #b31b1b; /* fallback color */
+      text-align: center;
+      padding: 0;
+      line-height: 0; /* removes extra space below image */
+    }
+    .header-image img {
+      width: 100%;
+      height: auto;
+      display: block;
+      max-height: 180px;
+      object-fit: cover;
+      background-color: #8a1e1e; /* while image loads */
+    }
+    /* if image is not provided, show a styled placeholder */
+    .img-placeholder {
+      display: inline-block;
+      width: 100%;
+      background: linear-gradient(145deg, #b22222, #8b1a1a);
+      color: white;
+      font-size: 32px;
+      font-weight: 800;
+      text-align: center;
+      padding: 40px 20px;
+      box-sizing: border-box;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      border-bottom: 4px solid #f3c3c3;
+    }
+    .content {
+      padding: 28px 32px 32px;
+    }
+    .greeting {
+      font-size: 18px;
+      font-weight: 500;
+      color: #3b2323;
+      margin-bottom: 16px;
+    }
+    .greeting strong {
+      color: #b13e3e;
+    }
+    .congrats-big {
+      font-size: 30px;
+      font-weight: 800;
+      color: #aa2d2d;
+      margin: 5px 0 10px;
+      text-transform: uppercase;
+      line-height: 1.2;
+    }
+    .message {
+      font-size: 16px;
+      color: #3a2a2a;
+      line-height: 1.5;
+      margin: 15px 0 10px;
+    }
+    .family-block {
+      background: #fef0f0;
+      padding: 16px 20px;
+      border-radius: 30px 10px 30px 10px;
+      margin: 20px 0;
+      border-left: 6px solid #b13e3e;
+      color: #572626;
+      font-weight: 500;
+    }
+    .director-quote {
+      background: #fff3f3;
+      border-radius: 40px 12px 40px 12px;
+      padding: 22px 26px;
+      margin: 20px 0 25px;
+      border: 1px solid #e6b2b2;
+      box-shadow: 0 6px 14px rgba(170, 60, 60, 0.1);
+    }
+    .quote-mark {
+      font-size: 40px;
+      color: #b44848;
+      font-family: 'Times New Roman', serif;
+      line-height: 0.6;
+      margin-right: 4px;
+    }
+    .director-quote p {
+      font-size: 18px;
+      font-style: italic;
+      color: #592b2b;
+      margin: 8px 0 10px 0;
+      font-weight: 500;
+    }
+    .director-name {
+      font-weight: 700;
+      color: #862b2b;
+      text-align: right;
+      font-size: 16px;
+    }
+    .section-title {
+      font-size: 22px;
+      font-weight: 700;
+      color: #aa2929;
+      border-bottom: 3px solid #e0adad;
+      padding-bottom: 10px;
+      margin: 30px 0 20px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .admission-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #ffffff;
+      border-radius: 24px;
+      overflow: hidden;
+      box-shadow: 0 6px 18px rgba(150, 40, 40, 0.1);
+      border: 1px solid #e9c1c1;
+    }
+    .admission-table td {
+      padding: 14px 20px;
+      border-bottom: 1px solid #f2d6d6;
+      font-size: 16px;
+    }
+    .admission-table tr:last-child td {
+      border-bottom: none;
+    }
+    .label-cell {
+      background-color: #fde5e5;
+      color: #892b2b;
+      font-weight: 700;
+      width: 42%;
+      border-right: 1px solid #e2b2b2;
+    }
+    .value-cell {
+      background-color: #fffbfb;
+      color: #2e1c1c;
+      font-weight: 500;
+    }
+    .value-cell strong {
+      color: #b33838;
+    }
+    .footnote {
+      background: #ffebeb;
+      padding: 18px 24px;
+      border-radius: 60px 10px 60px 10px;
+      margin: 28px 0 20px;
+      color: #792e2e;
+      font-size: 15px;
+      text-align: center;
+      border: 1px solid #e2acac;
+    }
+    hr {
+      border: none;
+      height: 2px;
+      background: linear-gradient(to right, #efc2c2, #c96666, #efc2c2);
+      margin: 28px 0;
+    }
+    .footer-red {
+      background-color: #8f2626;
+      padding: 18px 28px;
+      text-align: center;
+      color: #ffd7d7;
+      font-size: 14px;
+      border-top: 3px solid #b33a3a;
+    }
+    .footer-red a {
+      color: #ffe0e0;
+      text-decoration: underline;
+    }
+    .note-placeholder {
+      font-size: 13px;
+      color: #777;
+      background: #faf0f0;
+      padding: 6px 10px;
+      border-radius: 50px;
+      margin-top: 8px;
+      text-align: center;
+    }
+    .imgformate{
+        width:1200px;
+    }
+        .contact-footer {
+    background: #fae1e1;
+    padding: 18px 25px;
+    border-radius: 30px;
+    color: #6d3131;
+    font-size: 15px;
+    margin: 20px 0;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 12px 8px; /* space between items */
+    word-break: break-word;
+}
 
-            <div class="details">
-              <div class="detail-row">
-                <span class="detail-label">Student Name:</span>
-                <span class="detail-value">${student.name}</span>
-              </div>
-              <div class="detail-row">
-                <span class="detail-label">Student ID:</span>
-                <span class="detail-value">${student.studentId}</span>
-              </div>
-              <div class="detail-row">
-                <span class="detail-label">Course:</span>
-                <span class="detail-value">${course.name}</span>
-              </div>
-              <div class="detail-row">
-                <span class="detail-label">Duration:</span>
-                <span class="detail-value">${course.duration}</span>
-              </div>
-              <div class="detail-row">
-                <span class="detail-label">Course Fee:</span>
-                <span class="detail-value">₹${course.fee}</span>
-              </div>
-              <div class="detail-row">
-                <span class="detail-label">Training Branch:</span>
-                <span class="detail-value">${admission.trainingBranch}</span>
-              </div>
-              <div class="detail-row">
-                <span class="detail-label">Applied Batch:</span>
-                <span class="detail-value">${admission.appliedBatch || 'To be assigned'}</span>
-              </div>
-              <div class="detail-row">
-                <span class="detail-label">Counsellor:</span>
-                <span class="detail-value">${admission.counsellor}</span>
-              </div>
-              <div class="detail-row">
-                <span class="detail-label">Admission Date:</span>
-                <span class="detail-value">${new Date(admission.admissionDate).toLocaleDateString('en-IN')}</span>
-              </div>
-            </div>
+.contact-footer a {
+    color: #a13030;
+    text-decoration: underline;
+    white-space: nowrap; /* prevent phone numbers from breaking */
+}
 
-            ${documents.length > 0 ? `
-              <div class="documents-section">
-                <h3>📎 Your Uploaded Documents</h3>
-                <p>You can access the documents you submitted using the links below:</p>
-                <ul>
-                  ${documents.map(doc => `
-                    <li>
-                      <a href="${doc.url}" target="_blank">📄 ${doc.name}</a>
-                    </li>
-                  `).join('')}
-                </ul>
-                <p style="font-size: 0.9em; color: #6c757d;">These links are permanent and can be used anytime.</p>
-              </div>
-            ` : ''}
+/* Responsive stacking on small screens */
+@media only screen and (max-width: 480px) {
+    .contact-footer {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        gap: 8px;
+    }
+    .contact-footer a {
+        white-space: normal;
+    }
+}
+  </style>
+</head>
+<body>
+  <div class="email-container">
+    <!-- Header image area: replace src with your logo/banner -->
+     <img src=${server/assets/header.png} alt="" class="imgformate">
+    <div class="header-image">
+      <div class="img-placeholder" style="display: none;">RYMA ACADEMY</div>
+    </div>
+    <div class="content">
+      <!-- Dear student name -->
+      <div class="greeting">Dear <strong>${student.name}</strong>,</div>
+      <!-- Congratulations!! -->
+      <div class="congrats-big">Congratulations!!</div>
 
-            <div class="next-steps">
-              <h3>📋 Next Steps</h3>
-              <ul>
-                <li>Complete your course registration process</li>
-                <li>Pay the course fee as per the payment schedule</li>
-                <li>Attend the orientation session (date will be communicated soon)</li>
-                <li>Keep your student ID and admission number handy for future reference</li>
-              </ul>
-            </div>
+      <!-- first paragraph -->
+      <div class="message">
+        This single word carries the weight of every late night, every effort, and every dream you have invested in your future. Today, that effort has been acknowledged.
+      </div>
 
-            <div class="contact-info">
-              <h3>📞 Contact Information</h3>
-              <p>If you have any questions, please contact your counsellor:</p>
-              <p><strong>${admission.counsellor}</strong></p>
-              <p>Or reach out to our admission helpdesk.</p>
-            </div>
+      <!-- On behalf of family block -->
+      <div class="family-block">
+        <strong>On behalf of the entire RYMA ACADEMY family</strong> — it is our immense honour and privilege to officially confirm your admission. You are no longer just an applicant. You are now a part of an institution that has been built on one singular promise:
+      </div>
 
-            <p style="text-align: center; color: #6c757d; font-style: italic;">
-              We're excited to have you join Ryma Academy! 🚀
-            </p>
-          </div>
+      <!-- Director quote box -->
+      <div class="director-quote">
+        <span class="quote-mark">“</span>
+        <p>We do not just build careers. We build people who change the world.</p>
+        <div class="director-name">— Mr. Parveen Jain (Director), RYMA ACADEMY</div>
+      </div>
 
-          <div class="footer">
-            <p>&copy; ${new Date().getFullYear()} Ryma Academy. All rights reserved.</p>
-          </div>
-        </div>
-      </body>
-      </html>
+      <hr>
+
+      <!-- OFFICIAL ADMISSION RECORD title -->
+      <div class="section-title">RYMA ACADEMY — OFFICIAL ADMISSION RECORD</div>
+
+      <!-- Admission details table (exact fields) -->
+      <table class="admission-table" cellpadding="0" cellspacing="0">
+        <tr><td class="label-cell">Student Name</td><td class="value-cell"><strong>${student.name}</strong></td></tr>
+        <tr><td class="label-cell">Student ID</td><td class="value-cell"><strong>${student.studentId}</strong></td></tr>
+        <tr><td class="label-cell">Applied Program</td><td class="value-cell"><strong>${course.name}</strong></td></tr>
+        <tr><td class="label-cell">Program Duration</td><td class="value-cell"><strong>${course.duration}</strong></td></tr>
+        <tr><td class="label-cell">Program Fee</td><td class="value-cell"><strong>₹${course.fee}</strong></td></tr>
+        <tr><td class="label-cell">Training Campus</td><td class="value-cell"><strong>${admission.trainingBranch}</strong></td></tr>
+        <tr><td class="label-cell">Admission Date</td><td class="value-cell"><strong>${new Date(admission.admissionDate).toLocaleDateString('en-IN')}</strong></td></tr>
+        <tr><td class="label-cell">Processed By</td><td class="value-cell"><strong>${admission.counsellor}</strong></td></tr>
+      </table>
+
+      <!-- verification notice -->
+      <div class="footnote">
+        <span style="font-size: 1.2em;">⏳</span> <strong>Please verify all details above.</strong><br>
+        Any discrepancy must be reported to your Education Counsellor within 48 hours of receiving this record.
+      </div>
+
+      <!-- welcome line with student name -->
+      <p style="font-size: 18px; color: #7e3939; text-align: center; margin: 30px 0 10px; font-weight: 500;">
+        Welcome to a legacy of excellence, <strong style="color: #b33838;">${student.name}</strong>.<br>
+        Your story begins today. <em>Make it extraordinary.</em>
+      </p>
+
+      <!-- signature -->
+      <div style="margin: 30px 0 20px; color: #592525;">
+        With the highest regards & warmest welcome,<br>
+        <strong>Team of Admissions & Student Services</strong><br>
+        RYMA ACADEMY
+      </div>
+
+      <!-- contact info (as in original screenshots) -->
+      <div class="contact-footer">
+    +91-9873336133
+    <a href="mailto:services@rymaacademy.com">services@rymaacademy.com</a>
+    <a href="#">www.rymaacademy.com</a>
+    📍 D-7/32, 1st Floor, Main Vishram Chowk, Sec-6, Rohini, Delhi – 110085
+</div>
+
+      <!-- small note about image placeholder (can be removed) -->
+      <div class="note-placeholder">
+        ⚡ Header image placeholder: replace the 'src' in the img tag with your actual logo.
+      </div>
+    </div>
+
+    <!-- footer (red) with disclaimer line -->
+    <div class="footer-red">
+      This is an electronically generated communication · No signature or stamp required<br>
+      <span style="opacity: 0.8;">© RYMA ACADEMY – Admission record</span>
+    </div>
+  </div>
+</body>
+</html>
     `;
 
     // Send email to student with BCC for submission
     await sendMail(student.email, subject, html, true);
-    
+
     console.log(`✅ Admission confirmation email (with documents) sent to ${student.email} with BCC`);
 
   } catch (error) {
@@ -1366,8 +1430,8 @@ const searchApprovedStudents = async (req, res) => {
 
     approvedAdmissions.forEach(admission => {
       if (admission.student &&
-          admission.student.name.toLowerCase().includes(name.toLowerCase()) &&
-          !seenStudentIds.has(admission.student._id.toString())) {
+        admission.student.name.toLowerCase().includes(name.toLowerCase()) &&
+        !seenStudentIds.has(admission.student._id.toString())) {
         students.push({
           studentId: admission.student.studentId,
           studentName: admission.student.name,

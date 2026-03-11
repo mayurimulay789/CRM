@@ -1,23 +1,6 @@
 const mongoose = require('mongoose');
 
-const emiSchema = new mongoose.Schema({
-  amount: {
-    type: Number,
-    required: true
-  },
-  pending: {
-    type: Number,
-    default: 0
-  },
-  date: {
-    type: Date,
-  },
-  status: {
-    type: String,
-    enum: ['pending', 'paid', 'overdue', 'partial'],
-    default: 'pending'
-  }
-});
+
 
 const studentActivitySchema = new mongoose.Schema({
   type: {
@@ -94,13 +77,16 @@ const enrollmentSchema = new mongoose.Schema({
     type: Number,
     required: true
   },
-  discount: {
-    type: Number,
-    default: 0
-  },
+  
   amountReceived: {
     type: Number,
-    default: 0
+    default: 0,
+    // Will be recalculated as baseAmount - pendingAmount
+  },
+  courseAmount: {
+    type: Number,
+    default: 0,
+    description: 'Base course amount before any calculation (same as totalAmount)'
   },
   refundAmount: {
     type: Number,
@@ -113,10 +99,7 @@ const enrollmentSchema = new mongoose.Schema({
       return (actualTotal - (this.discount || 0)) - (this.amountReceived || 0);
     }
   },
-  upcomingEMIAmount: {
-    type: Number,
-    default: 0
-  },
+ 
   
   // Fee Structure
   feeType: {
@@ -124,10 +107,11 @@ const enrollmentSchema = new mongoose.Schema({
     enum: ['one-time', 'installment'],
     default: 'one-time'
   },
-  firstEMI: emiSchema,
-  secondEMI: emiSchema,
-  thirdEMI: emiSchema,
-  dueDate: Date,
+  dueDate: {
+    type: Date,
+    default: null
+  },
+  
   
   // Last Payment Details (Updated only when payment is approved)
   lastTransactionNo: String,
@@ -184,15 +168,7 @@ enrollmentSchema.virtual('hasFeeDelay').get(function() {
   return false;
 });
 
-// Virtual for next EMI
-enrollmentSchema.virtual('nextEMI').get(function() {
-  const today = new Date();
-  const emis = [this.firstEMI, this.secondEMI, this.thirdEMI].filter(emi => 
-    emi && emi.date && emi.pending > 0 && emi.date >= today
-  ).sort((a, b) => a.date - b.date);
-  
-  return emis.length > 0 ? emis[0] : null;
-});
+
 
 // Virtual for approved payments total
 enrollmentSchema.virtual('approvedPayments', {
@@ -219,13 +195,12 @@ enrollmentSchema.pre('save', async function(next) {
   if (this.isModified('totalAmount') || this.isModified('discount') || this.isModified('amountReceived') ||
       this.isModified('admissionRegistrationPayment')) {
     const actualTotal = this.calculateActualTotal();
+    this.courseAmount = this.totalAmount || 0;
     this.pendingAmount = (actualTotal - this.discount) - this.amountReceived;
+    this.amountReceived = this.courseAmount - this.pendingAmount;
   }
 
-  // Update upcoming EMI amount
-  const nextEMI = this.nextEMI;
-  this.upcomingEMIAmount = nextEMI ? nextEMI.amount : 0;
-
+ 
   next();
 });
 
@@ -263,17 +238,6 @@ enrollmentSchema.methods.updateAfterPaymentApproval = async function(payment) {
   this.lastPaidDate = payment.date;
   this.lastPaidMode = payment.paymentMode;
   this.lastAmountReceivedBy = payment.receivedBy;
-  
-  // Update EMI status if applicable
-  if (this.feeType === 'installment' && payment.emiNumber) {
-    const emiField = `${payment.emiNumber}EMI`;
-    const emi = this[emiField];
-    
-    if (emi) {
-      emi.pending -= payment.amountReceived;
-      emi.status = emi.pending === 0 ? 'paid' : 'partial';
-    }
-  }
   
   await this.save();
   await this.addActivity(
