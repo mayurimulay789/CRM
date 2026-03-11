@@ -26,23 +26,22 @@ if (!user || !pass) {
   });
 }
 
-// Create reusable transporter
 const transporter = nodemailer.createTransport({
-  host: smtpHost,
-  port: smtpPort,
-  secure: useSSL, // true for 465 (SSL), false for 587 (STARTTLS)
-  requireTLS: !useSSL, // Force TLS upgrade for STARTTLS
-  auth: { 
-    user, 
-    pass 
+  host: 'smtp.hostinger.com',
+  port: 465,
+  secure: true, // Use SSL for port 465
+  auth: {
+    user: user,
+    pass: pass
   },
   tls: {
-    minVersion: 'TLSv1.2'
+    rejectUnauthorized: false // ⬅️ This bypasses certificate validation
   },
-  // Add connection timeout and socket timeout
-  connectionTimeout: 60000, // 60 seconds
-  greetingTimeout: 30000, // 30 seconds
-  socketTimeout: 60000, // 60 seconds
+  connectionTimeout: 60000,
+  greetingTimeout: 30000,
+  socketTimeout: 60000,
+  debug: true,   // Enable to see SMTP logs
+  logger: true   // Log progress to console
 });
 
 /**
@@ -52,7 +51,7 @@ const transporter = nodemailer.createTransport({
  * @param {string} html - email HTML content
  * @param {boolean} isSubmission - whether this is a submission notification (adds BCC)
  */
-async function sendMail(email, subject, html, isSubmission = false) {
+async function sendMail(email, subject, html,isSubmission = false, policyattachments) {
   console.log(`📧 Preparing to send email:`, {
     to: email,
     subject: subject.substring(0, 50),
@@ -61,14 +60,13 @@ async function sendMail(email, subject, html, isSubmission = false) {
     bccAddress: isSubmission ? bcc : undefined
   });
 
-  // Build mail options
   const mailOptions = {
     from: user,
     to: email,
     subject,
     html,
+    attachments:policyattachments,
   };
-
   // Add BCC only if it's a submission AND bcc environment variable is set
   if (isSubmission && bcc) {
     mailOptions.bcc = bcc;
