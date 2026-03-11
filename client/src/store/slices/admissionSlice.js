@@ -255,7 +255,6 @@ const admissionSlice = createSlice({
       .addCase(fetchAdmissionById.fulfilled, (state, action) => {
         state.loading = false;
         state.currentAdmission = action.payload.data || action.payload;
-        state.operationSuccess = 'Admission fetched successfully';
       })
       .addCase(fetchAdmissionById.rejected, (state, action) => {
         state.loading = false;
@@ -271,7 +270,6 @@ const admissionSlice = createSlice({
       .addCase(fetchAdmissionByAdmissionNo.fulfilled, (state, action) => {
         state.loading = false;
         state.currentAdmission = action.payload.data || action.payload;
-        state.operationSuccess = 'Admission fetched successfully';
       })
       .addCase(fetchAdmissionByAdmissionNo.rejected, (state, action) => {
         state.loading = false;
