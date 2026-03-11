@@ -37,10 +37,17 @@ const paymentSchema = new mongoose.Schema({
   paymentBank: String,
   transactionNo: String,
   
-  // EMI Tracking - NEW FIELD
-  emiNumber: {
+  // Fee Type (one-time or installment)
+  feeType: {
     type: String,
-    enum: ['first', 'second', 'third','fourth','fifth','sixth', null],
+    enum: ['one-time', 'installment'],
+    required: true
+  },
+  
+  // Installment Number (only for record keeping, no validation needed)
+  installmentNo: {
+    type: Number,
+    min: 1,
     default: null
   },
   
@@ -96,7 +103,7 @@ const paymentSchema = new mongoose.Schema({
 
 }, {
   timestamps: true
-}); 
+});
 
 // Indexes for better query performance
 paymentSchema.index({ paymentNo: 1 });
@@ -109,8 +116,10 @@ paymentSchema.index({ trainingBranch: 1 });
 paymentSchema.index({ verificationStatus: 1 });
 paymentSchema.index({ paymentMode: 1 });
 paymentSchema.index({ verifiedBy: 1 });
+paymentSchema.index({ feeType: 1 });
+paymentSchema.index({ installmentNo: 1 });
 
-// FIXED: Pre-save middleware to generate payment number and set required fields
+// Pre-save middleware to generate payment number and set required fields
 paymentSchema.pre('save', async function(next) {
   try {
     // Only run for new documents
@@ -163,16 +172,10 @@ paymentSchema.pre('save', async function(next) {
   }
 });
 
-
-
-
-
-
-
 // Instance method to get payment details
 paymentSchema.methods.getDetails = async function() {
   await this.populate([
-    { path: 'enrollment', select: 'enrollmentNo courseName' },
+    { path: 'enrollment', select: 'enrollmentNo courseName totalAmount amountReceived pendingAmount feeType' },
     { path: 'student', select: 'studentId name email phone' },
     { path: 'receivedBy', select: 'name email' },
     { path: 'counsellor', select: 'name email' },
@@ -186,6 +189,8 @@ paymentSchema.methods.getDetails = async function() {
     paymentMode: this.paymentMode,
     paymentBank: this.paymentBank,
     transactionNo: this.transactionNo,
+    feeType: this.feeType,
+    installmentNo: this.installmentNo,
     student: this.student,
     enrollment: this.enrollment,
     receivedBy: this.receivedBy,
@@ -207,7 +212,7 @@ paymentSchema.methods.getDetails = async function() {
 // Static method to find payments by verification status
 paymentSchema.statics.findByVerificationStatus = function(status) {
   return this.find({ verificationStatus: status })
-    .populate('enrollment', 'enrollmentNo courseName')
+    .populate('enrollment', 'enrollmentNo courseName totalAmount amountReceived feeType')
     .populate('student', 'studentId name email phone')
     .populate('receivedBy', 'name email')
     .populate('counsellor', 'name email')
@@ -218,7 +223,7 @@ paymentSchema.statics.findByVerificationStatus = function(status) {
 // Static method to find payments needing approval
 paymentSchema.statics.findPendingApprovals = function() {
   return this.find({ verificationStatus: 'pending' })
-    .populate('enrollment', 'enrollmentNo courseName totalAmount amountReceived')
+    .populate('enrollment', 'enrollmentNo courseName totalAmount amountReceived pendingAmount feeType')
     .populate('student', 'studentId name email phone')
     .populate('receivedBy', 'name email')
     .populate('counsellor', 'name email')
@@ -239,12 +244,37 @@ paymentSchema.statics.findByDateRange = function(startDate, endDate, status = nu
   }
   
   return this.find(query)
-    .populate('enrollment', 'enrollmentNo courseName')
+    .populate('enrollment', 'enrollmentNo courseName feeType')
     .populate('student', 'studentId name email phone')
     .populate('receivedBy', 'name email')
     .populate('counsellor', 'name email')
     .populate('verifiedBy', 'name email')
     .sort({ date: -1 });
+};
+
+// Find payments by fee type
+paymentSchema.statics.findByFeeType = function(feeType, status = null) {
+  const query = { feeType };
+  
+  if (status) {
+    query.verificationStatus = status;
+  }
+  
+  return this.find(query)
+    .populate('enrollment', 'enrollmentNo courseName')
+    .populate('student', 'studentId name email phone')
+    .sort({ date: -1 });
+};
+
+// Find installment payments by enrollment (just for record keeping)
+paymentSchema.statics.findInstallmentsByEnrollment = function(enrollmentId) {
+  return this.find({
+    enrollment: enrollmentId,
+    feeType: 'installment',
+    verificationStatus: 'approved'
+  })
+    .select('installmentNo amountReceived date paymentNo')
+    .sort({ installmentNo: 1 });
 };
 
 // Static method to get payment statistics (only approved payments count)
@@ -279,6 +309,18 @@ paymentSchema.statics.getStatistics = async function(startDate, endDate) {
       }
     },
     { $sort: { totalAmount: -1 } }
+  ]);
+  
+  // Fee type wise statistics
+  const feeTypeStats = await this.aggregate([
+    { $match: matchStage },
+    {
+      $group: {
+        _id: '$feeType',
+        totalAmount: { $sum: '$amountReceived' },
+        count: { $sum: 1 }
+      }
+    }
   ]);
   
   const statusStats = await this.aggregate([
@@ -342,6 +384,7 @@ paymentSchema.statics.getStatistics = async function(startDate, endDate) {
       averagePayment: 0
     }),
     paymentModeDistribution: modeStats,
+    feeTypeDistribution: feeTypeStats,
     verificationStatusDistribution: statusStats,
     branchWiseCollection: branchStats,
     counsellorPerformance: counsellorStats
@@ -351,7 +394,7 @@ paymentSchema.statics.getStatistics = async function(startDate, endDate) {
 // Static method to get payment by payment number
 paymentSchema.statics.findByPaymentNo = function(paymentNo) {
   return this.findOne({ paymentNo })
-    .populate('enrollment', 'enrollmentNo courseName totalAmount')
+    .populate('enrollment', 'enrollmentNo courseName totalAmount feeType')
     .populate('student', 'studentId name email phone')
     .populate('receivedBy', 'name email phone')
     .populate('counsellor', 'name email phone')
@@ -367,7 +410,7 @@ paymentSchema.statics.findByStudent = function(studentId, status = null) {
   }
   
   return this.find(query)
-    .populate('enrollment', 'enrollmentNo courseName')
+    .populate('enrollment', 'enrollmentNo courseName feeType')
     .populate('receivedBy', 'name email')
     .populate('verifiedBy', 'name email')
     .sort({ date: -1 });

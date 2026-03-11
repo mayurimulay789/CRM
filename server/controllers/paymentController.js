@@ -3,55 +3,7 @@ const Enrollment = require('../models/Enrollment');
 const Student = require('../models/Student');
 const { sendMail } = require('../utils/email');
 
-// @desc    Validate payment amount against enrollment fee structure - STRICT VERSION
-const validatePaymentAmountStrict = async (enrollment, amountReceived, feeType, emiNumber) => {
-  // For one-time fee: STRICTLY require single full payment
-  if (enrollment.feeType === 'one-time') {
-    // Calculate actual total including late fees and registration fees
-    const actualTotal = calculateActualTotal(enrollment);
-    const totalPending = actualTotal - enrollment.amountReceived;
-    
-    // If ANY payment already exists, block new payments
-    if (enrollment.amountReceived > 0) {
-      return 'One-time fee already has payments. Cannot add more payments.';
-    }
-    
-    // Require full amount in single payment (including all fees)
-    if (amountReceived !== actualTotal) {
-      return `One-time fee requires single full payment of ₹${actualTotal} (including all fees)`;
-    }
-    
-    return null; // Validation passed
-  }
-
-  // For installment fee: Require EXACT EMI amount and tracking
-  if (enrollment.feeType === 'installment') {
-    if (!emiNumber) {
-      return 'EMI number is required for installment payments';
-    }
-
-    const emiField = `${emiNumber}EMI`; // firstEMI, secondEMI, thirdEMI
-    const emi = enrollment[emiField];
-    
-    if (!emi) {
-      return `Invalid EMI number: ${emiNumber}`;
-    }
-
-    // Check if EMI is already paid
-    if (emi.pending <= 0) {
-      return `EMI ${emiNumber} is already paid`;
-    }
-
-    // STRICT: Require exact EMI amount
-    if (amountReceived !== emi.amount) {
-      return `EMI ${emiNumber} requires exact payment of ₹${emi.amount}`;
-    }
-
-    return null; // Validation passed
-  }
-
-  return 'Invalid fee type';
-};
+// ==================== Email Functions ====================
 
 /**
  * Send payment confirmation email to student and BCC
@@ -61,34 +13,29 @@ async function sendPaymentConfirmationEmail(payment) {
     // Populate payment with necessary data
     await payment.populate([
       { path: 'student', select: 'studentId name email phone' },
-      { path: 'enrollment', select: 'enrollmentNo courseName totalAmount amountReceived feeType charges admissionRegistrationPayment firstEMI secondEMI thirdEMI' },
+      { path: 'enrollment', select: 'enrollmentNo courseName totalAmount amountReceived pendingAmount feeType' },
       { path: 'receivedBy', select: 'name email' }
     ]);
+    
     const { student, enrollment } = payment;
-    // Debug: Log enrollment data
-    console.log('📧 Email Debug - Enrollment data:', {
-      enrollmentNo: enrollment?.enrollmentNo,
-      totalAmount: enrollment?.totalAmount,
-      charges: enrollment?.charges,
-      admissionRegistrationPayment: enrollment?.admissionRegistrationPayment,
-      amountReceived: enrollment?.amountReceived
-    });
     
     if (!student || !student.email) {
       console.error('❌ Student email not found for payment:', payment.paymentNo);
       return false;
     }
+
     let subject, html;
+    
     // Different email templates based on fee type
-    if (enrollment.feeType === 'one-time') {
+    if (payment.feeType === 'one-time') {
       ({ subject, html } = generateOneTimePaymentEmail(payment, student, enrollment));
-    } else if (enrollment.feeType === 'installment') {
-      ({ subject, html } = generateInstallmentPaymentEmail(payment, student, enrollment));
     } else {
-      ({ subject, html } = generateGenericPaymentEmail(payment, student, enrollment));
+      ({ subject, html } = generateInstallmentPaymentEmail(payment, student, enrollment));
     }
+
     // Send email to student with BCC
-    await sendMail(student.email, subject, html, true);   
+    await sendMail(student.email, subject, html, true);
+    
     console.log(`✅ Payment confirmation email sent to ${student.email} with BCC`);
     return true;
   } catch (error) {
@@ -96,52 +43,11 @@ async function sendPaymentConfirmationEmail(payment) {
     return false;
   }
 }
-/**
- * Calculate actual total including late fees and registration fees
- */
-function calculateActualTotal(enrollment) {
-  const baseAmount = enrollment.totalAmount || 0;
-  const lateFees = enrollment.charges || 0;
-  const registrationFees = enrollment.admissionRegistrationPayment || 0;
-  return baseAmount + lateFees + registrationFees;
-}
-
-/**
- * Generate fee breakdown HTML – always shows all fee components
- */
-function generateFeeBreakdown(enrollment) {
-  const base = enrollment.totalAmount || 0;
-  const late = enrollment.charges || 0;
-  const reg = enrollment.admissionRegistrationPayment || 0;
-  const actualTotal = base + late + reg;
-  const actualPending = actualTotal - (enrollment.amountReceived || 0);
-
-  let breakdownHtml = `
-    <div class="detail-row">
-      <span class="detail-label">Base Course Fee:</span>
-      <span class="detail-value">₹${base}</span>
-    </div>
-    <div class="detail-row">
-      <span class="detail-label">Late Fees:</span>
-      <span class="detail-value" style="color: ${late > 0 ? '#ff6b6b' : '#6c757d'};">₹${late}</span>
-    </div>
-    <div class="detail-row">
-      <span class="detail-label">Registration Fees:</span>
-      <span class="detail-value" style="color: ${reg > 0 ? '#9c88ff' : '#6c757d'};">₹${reg}</span>
-    </div>
-    <div class="detail-row" style="border-top: 2px solid #dee2e6; margin-top: 10px; padding-top: 10px;">
-      <span class="detail-label" style="font-weight: bold;">Total Amount:</span>
-      <span class="detail-value" style="font-weight: bold;">₹${actualTotal}</span>
-    </div>`;
-
-  return { breakdownHtml, actualTotal, actualPending };
-}
 
 /**
  * Generate email for one-time payment
  */
 function generateOneTimePaymentEmail(payment, student, enrollment) {
-  const { breakdownHtml, actualTotal, actualPending } = generateFeeBreakdown(enrollment);
   const subject = `🎉 Payment Confirmed - Full Fee Received | ${payment.paymentNo}`;
   
   const html = `
@@ -226,12 +132,12 @@ function generateOneTimePaymentEmail(payment, student, enrollment) {
           margin: 20px 0;
           font-weight: 600;
         }
-        .next-steps {
-          background-color: #e7f3ff;
-          border-left: 4px solid #007bff;
-          padding: 15px 20px;
-          margin: 20px 0;
-          border-radius: 4px;
+        .amount-highlight {
+          font-size: 24px;
+          font-weight: bold;
+          color: #28a745;
+          text-align: center;
+          margin: 15px 0;
         }
         .footer {
           text-align: center;
@@ -239,13 +145,6 @@ function generateOneTimePaymentEmail(payment, student, enrollment) {
           background-color: #f8f9fa;
           color: #6c757d;
           font-size: 14px;
-        }
-        .amount-highlight {
-          font-size: 24px;
-          font-weight: bold;
-          color: #28a745;
-          text-align: center;
-          margin: 15px 0;
         }
       </style>
     </head>
@@ -267,12 +166,6 @@ function generateOneTimePaymentEmail(payment, student, enrollment) {
 
           <div class="amount-highlight">
             ₹${payment.amountReceived}
-          </div>
-
-          <!-- Fee Breakdown Section -->
-          <div class="payment-details" style="margin-bottom: 20px;">
-            <h3 style="color: #495057; margin-bottom: 15px; text-align: center;">💰 Fee Breakdown</h3>
-            ${breakdownHtml}
           </div>
           
           <!-- Payment Details Section -->
@@ -307,23 +200,17 @@ function generateOneTimePaymentEmail(payment, student, enrollment) {
               <span class="detail-value">${payment.transactionNo || 'N/A'}</span>
             </div>
             <div class="detail-row">
+              <span class="detail-label">Fee Type:</span>
+              <span class="detail-value">One-Time Payment</span>
+            </div>
+            <div class="detail-row">
               <span class="detail-label">Amount Received:</span>
               <span class="detail-value" style="color: #28a745; font-weight: bold;">₹${payment.amountReceived}</span>
             </div>
             <div class="detail-row">
-              <span class="detail-label">Pending Amount:</span>
-              <span class="detail-value" style="color: #28a745; font-weight: bold;">₹0</span>
+              <span class="detail-label">Total Paid:</span>
+              <span class="detail-value" style="color: #28a745; font-weight: bold;">₹${enrollment.amountReceived}</span>
             </div>
-          </div>
-
-          <div class="next-steps">
-            <h3>📋 What's Next?</h3>
-            <ul>
-              <li>Your admission process is now complete</li>
-              <li>You will receive course access details shortly</li>
-              <li>Keep your payment receipt for future reference</li>
-              <li>Contact your counsellor for any queries</li>
-            </ul>
           </div>
 
           <p style="text-align: center; color: #6c757d; font-style: italic;">
@@ -339,26 +226,18 @@ function generateOneTimePaymentEmail(payment, student, enrollment) {
     </body>
     </html>
   `;
+  
   return { subject, html };
 }
+
 /**
  * Generate email for installment payment
  */
 function generateInstallmentPaymentEmail(payment, student, enrollment) {
-  const { breakdownHtml, actualTotal, actualPending } = generateFeeBreakdown(enrollment);
-  const emiNumberMap = {
-    'first': '1st',
-    'second': '2nd', 
-    'third': '3rd'
-  };
+  const subject = `✅ Installment Received | ${payment.paymentNo}`;
   
-  const currentEMI = emiNumberMap[payment.emiNumber] || payment.emiNumber;
-  const subject = `✅ ${currentEMI} Installment Received | ${payment.paymentNo}`;
+  const installmentText = payment.installmentNo ? `Installment ${payment.installmentNo}` : 'Installment';
   
-  // Calculate remaining installments
-  const remainingEMIs = calculateRemainingEMIs(enrollment, payment.emiNumber);
-  const isFinalEMI = remainingEMIs === 0;
-
   const html = `
     <!DOCTYPE html>
     <html>
@@ -445,25 +324,6 @@ function generateInstallmentPaymentEmail(payment, student, enrollment) {
           border-radius: 10px;
           transition: width 0.3s ease;
         }
-        .emi-status {
-          display: flex;
-          justify-content: space-between;
-          margin: 15px 0;
-        }
-        .emi-pill {
-          padding: 8px 15px;
-          border-radius: 20px;
-          font-size: 12px;
-          font-weight: 600;
-        }
-        .emi-paid {
-          background-color: #28a745;
-          color: white;
-        }
-        .emi-pending {
-          background-color: #6c757d;
-          color: white;
-        }
         .amount-highlight {
           font-size: 24px;
           font-weight: bold;
@@ -497,18 +357,12 @@ function generateInstallmentPaymentEmail(payment, student, enrollment) {
         
         <div class="content">
           <div class="congrats">
-            <h2>${currentEMI} Installment Received! ✅</h2>
-            <p>Dear ${student.name}, your ${currentEMI.toLowerCase()} installment has been processed successfully.</p>
+            <h2>${installmentText} Received! ✅</h2>
+            <p>Dear ${student.name}, your installment has been processed successfully.</p>
           </div>
 
           <div class="amount-highlight">
             ₹${payment.amountReceived}
-          </div>
-
-          <!-- Fee Breakdown Section -->
-          <div class="payment-details" style="margin-bottom: 20px;">
-            <h3 style="color: #495057; margin-bottom: 15px; text-align: center;">💰 Fee Breakdown</h3>
-            ${breakdownHtml}
           </div>
           
           <!-- Payment Details Section -->
@@ -523,9 +377,15 @@ function generateInstallmentPaymentEmail(payment, student, enrollment) {
               <span class="detail-value">${payment.paymentNo}</span>
             </div>
             <div class="detail-row">
-              <span class="detail-label">Installment:</span>
-              <span class="detail-value">${currentEMI} EMI</span>
+              <span class="detail-label">Fee Type:</span>
+              <span class="detail-value">Installment</span>
             </div>
+            ${payment.installmentNo ? `
+            <div class="detail-row">
+              <span class="detail-label">Installment Number:</span>
+              <span class="detail-value">${payment.installmentNo}</span>
+            </div>
+            ` : ''}
             <div class="detail-row">
               <span class="detail-label">Payment Date:</span>
               <span class="detail-value">${new Date(payment.date).toLocaleDateString('en-IN')}</span>
@@ -540,28 +400,24 @@ function generateInstallmentPaymentEmail(payment, student, enrollment) {
             </div>
             <div class="detail-row">
               <span class="detail-label">Pending Amount:</span>
-              <span class="detail-value" style="color: ${actualPending > 0 ? '#dc3545' : '#28a745'}; font-weight: bold;">₹${actualPending}</span>
+              <span class="detail-value" style="color: ${enrollment.pendingAmount > 0 ? '#dc3545' : '#28a745'}; font-weight: bold;">₹${enrollment.pendingAmount}</span>
             </div>
           </div>
 
-          <!-- EMI Progress -->
+          <!-- Payment Progress -->
           <h3 style="text-align: center; margin-bottom: 10px;">Payment Progress</h3>
           <div class="progress-container">
-            <div class="progress-bar" style="width: ${(enrollment.amountReceived / actualTotal) * 100}%"></div>
+            <div class="progress-bar" style="width: ${(enrollment.amountReceived / enrollment.totalAmount) * 100}%"></div>
           </div>
           
-          <div class="emi-status">
-            ${generateEMIStatusPills(enrollment)}
-          </div>
-
-          ${isFinalEMI ? `
+          ${enrollment.pendingAmount <= 0 ? `
             <div class="completion-message">
               🎉 Congratulations! You have successfully paid all installments. Your course fee is now complete!
             </div>
           ` : `
             <div style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; border-radius: 4px;">
-              <h3>📅 Next Installment</h3>
-              <p>You have ${remainingEMIs} installment${remainingEMIs > 1 ? 's' : ''} remaining. The next installment is due as per your payment schedule.</p>
+              <h3>📅 Payment Status</h3>
+              <p>You have paid ₹${enrollment.amountReceived} out of ₹${enrollment.totalAmount}. Pending amount: ₹${enrollment.pendingAmount}</p>
             </div>
           `}
 
@@ -582,212 +438,13 @@ function generateInstallmentPaymentEmail(payment, student, enrollment) {
   return { subject, html };
 }
 
-/**
- * Generate generic payment email (fallback)
- */
-function generateGenericPaymentEmail(payment, student, enrollment) {
-  const { breakdownHtml, actualTotal, actualPending } = generateFeeBreakdown(enrollment);
-  const subject = `✅ Payment Received | ${payment.paymentNo}`;
-  
-  const html = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Payment Confirmation</title>
-      <style>
-        body {
-          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-          line-height: 1.6;
-          color: #333;
-          margin: 0;
-          padding: 0;
-          background-color: #f4f4f4;
-        }
-        .container {
-          max-width: 600px;
-          margin: 0 auto;
-          background-color: #ffffff;
-          border-radius: 10px;
-          overflow: hidden;
-          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-        .header {
-          background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
-          color: white;
-          padding: 30px 20px;
-          text-align: center;
-        }
-        .header h1 {
-          margin: 0;
-          font-size: 28px;
-          font-weight: 600;
-        }
-        .content {
-          padding: 30px;
-        }
-        .congrats {
-          text-align: center;
-          margin-bottom: 30px;
-        }
-        .congrats h2 {
-          color: #007bff;
-          font-size: 24px;
-          margin-bottom: 10px;
-        }
-        .payment-details {
-          background-color: #f8f9fa;
-          border-radius: 8px;
-          padding: 20px;
-          margin: 20px 0;
-        }
-        .detail-row {
-          display: flex;
-          justify-content: space-between;
-          margin-bottom: 10px;
-          padding-bottom: 10px;
-          border-bottom: 1px solid #e9ecef;
-        }
-        .detail-row:last-child {
-          border-bottom: none;
-          margin-bottom: 0;
-          padding-bottom: 0;
-        }
-        .detail-label {
-          font-weight: 600;
-          color: #495057;
-        }
-        .detail-value {
-          color: #212529;
-          text-align: right;
-        }
-        .amount-highlight {
-          font-size: 24px;
-          font-weight: bold;
-          color: #007bff;
-          text-align: center;
-          margin: 15px 0;
-        }
-        .footer {
-          text-align: center;
-          padding: 20px;
-          background-color: #f8f9fa;
-          color: #6c757d;
-          font-size: 14px;
-        }
-      </style>
-    </head>
-    <body>
-      <div class="container">
-        <div class="header">
-          <h1>💳 Payment Received</h1>
-        </div>
-        
-        <div class="content">
-          <div class="congrats">
-            <h2>Payment Processed Successfully</h2>
-            <p>Dear ${student.name}, your payment has been received and approved.</p>
-          </div>
-
-          <div class="amount-highlight">
-            ₹${payment.amountReceived}
-          </div>
-
-          <!-- Fee Breakdown Section -->
-          <div class="payment-details" style="margin-bottom: 20px;">
-            <h3 style="color: #495057; margin-bottom: 15px; text-align: center;">💰 Fee Breakdown</h3>
-            ${breakdownHtml}
-          </div>
-          
-          <!-- Payment Details Section -->
-          <div class="payment-details">
-            <h3 style="color: #495057; margin-bottom: 15px; text-align: center;">📋 Payment Details</h3>
-            <div class="detail-row">
-              <span class="detail-label">Student Name:</span>
-              <span class="detail-value">${student.name}</span>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">Payment No:</span>
-              <span class="detail-value">${payment.paymentNo}</span>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">Payment Date:</span>
-              <span class="detail-value">${new Date(payment.date).toLocaleDateString('en-IN')}</span>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">Payment Mode:</span>
-              <span class="detail-value">${payment.paymentMode}</span>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">Amount Received:</span>
-              <span class="detail-value" style="color: #007bff; font-weight: bold;">₹${payment.amountReceived}</span>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">Pending Amount:</span>
-              <span class="detail-value" style="color: ${actualPending > 0 ? '#dc3545' : '#28a745'}; font-weight: bold;">₹${actualPending}</span>
-            </div>
-          </div>
-
-          <p style="text-align: center; color: #6c757d; font-style: italic;">
-            Thank you for your payment!
-          </p>
-        </div>
-
-        <div class="footer">
-          <p>This is an automated email. Please do not reply to this message.</p>
-          <p>&copy; ${new Date().getFullYear()} Your Institution Name. All rights reserved.</p>
-        </div>
-      </div>
-    </body>
-    </html>
-  `;
-
-  return { subject, html };
-}
-
-/**
- * Calculate remaining EMIs after current payment
- */
-function calculateRemainingEMIs(enrollment, currentEMI) {
-  const emiOrder = ['first', 'second', 'third'];
-  const currentIndex = emiOrder.indexOf(currentEMI);
-  
-  if (currentIndex === -1) return 0;
-  
-  let remaining = 0;
-  for (let i = currentIndex + 1; i < emiOrder.length; i++) {
-    const emi = enrollment[`${emiOrder[i]}EMI`];
-    if (emi && emi.pending > 0) {
-      remaining++;
-    }
-  }
-  
-  return remaining;
-}
-
-/**
- * Generate EMI status pills for display
- */
-function generateEMIStatusPills(enrollment) {
-  const emis = [
-    { name: '1st', key: 'firstEMI' },
-    { name: '2nd', key: 'secondEMI' },
-    { name: '3rd', key: 'thirdEMI' }
-  ];
-
-  return emis.map(emi => {
-    const emiData = enrollment[emi.key];
-    const isPaid = emiData && emiData.pending === 0;
-    const statusClass = isPaid ? 'emi-paid' : 'emi-pending';
-    const statusText = isPaid ? 'Paid' : 'Pending';
-    
-    return `<div class="emi-pill ${statusClass}">${emi.name} EMI: ${statusText}</div>`;
-  }).join('');
-}
-
 // ==================== Controller Functions ====================
 
+/**
+ * @desc    Record a new payment (pending approval)
+ * @route   POST /api/payments
+ * @access  Private (Counsellor)
+ */
 const recordPayment = async (req, res) => {
   try {
     const {
@@ -801,13 +458,10 @@ const recordPayment = async (req, res) => {
       paymentProof,
       chequeDetails,
       remarks,
-      emiNumber // REQUIRED for installment payments
+      installmentNo
     } = req.body;
 
-    // Convert empty string to null for emiNumber (for one-time payments)
-    const normalizedEmiNumber = emiNumber === '' ? null : emiNumber;
-
-    // Verify enrollment exists and belongs to counsellor
+    // Verify enrollment exists
     const enrollmentDoc = await Enrollment.findById(enrollment);
     if (!enrollmentDoc) {
       return res.status(404).json({
@@ -824,25 +478,19 @@ const recordPayment = async (req, res) => {
       });
     }
 
-    // ✅ STRICT VALIDATION: Check payment amount against enrollment fee structure
-    const validationError = await validatePaymentAmountStrict(
-      enrollmentDoc, 
-      amountReceived, 
-      feeType, 
-      normalizedEmiNumber
-    );
-    
-    if (validationError) {
-      return res.status(400).json({
-        success: false,
-        message: validationError
-      });
+    // Simple validation based on fee type
+    if (feeType === 'one-time') {
+      // No validation needed for one-time, just record the payment
+      console.log('Recording one-time payment');
+    } else if (feeType === 'installment') {
+      // For installment, just ensure we have installment number (optional)
+      console.log('Recording installment payment');
     }
 
     // Generate payment number
     const currentYear = new Date().getFullYear();
     
-    // Find the latest payment for this year to get the sequence number
+    // Find the latest payment for this year
     const latestPayment = await Payment.findOne(
       {
         paymentNo: new RegExp(`^PAY${currentYear}`)
@@ -859,17 +507,17 @@ const recordPayment = async (req, res) => {
 
     const paymentNo = `PAY${currentYear}${sequenceNumber.toString().padStart(4, '0')}`;
 
-    // Create payment with generated payment number
+    // Create payment
     const payment = new Payment({
       paymentNo,
       enrollment,
       student: enrollmentDoc.student,
       amountReceived,
       feeType,
+      installmentNo: installmentNo || null,
       paymentMode,
       paymentBank,
       transactionNo,
-      emiNumber: normalizedEmiNumber, // Store which EMI this payment is for
       trainingBranch: enrollmentDoc.trainingBranch,
       trainingMode: enrollmentDoc.mode,
       admissionBranch: enrollmentDoc.trainingBranch,
@@ -905,6 +553,11 @@ const recordPayment = async (req, res) => {
   }
 };
 
+/**
+ * @desc    Get all payments (with filters)
+ * @route   GET /api/payments
+ * @access  Private
+ */
 const getPayments = async (req, res) => {
   try {
     const {
@@ -912,6 +565,7 @@ const getPayments = async (req, res) => {
       paymentMode,
       trainingBranch,
       counsellor,
+      feeType,
       startDate,
       endDate,
       page = 1,
@@ -933,6 +587,7 @@ const getPayments = async (req, res) => {
     if (verificationStatus) query.verificationStatus = verificationStatus;
     if (paymentMode) query.paymentMode = paymentMode;
     if (trainingBranch) query.trainingBranch = trainingBranch;
+    if (feeType) query.feeType = feeType;
 
     // Date range filter
     if (startDate && endDate) {
@@ -947,7 +602,7 @@ const getPayments = async (req, res) => {
     const skip = (pageNum - 1) * limitNum;
 
     const payments = await Payment.find(query)
-      .populate('enrollment', 'enrollmentNo courseName totalAmount amountReceived feeType charges admissionRegistrationPayment')
+      .populate('enrollment', 'enrollmentNo courseName totalAmount amountReceived pendingAmount feeType')
       .populate('student', 'studentId name email phone')
       .populate('receivedBy', 'name email')
       .populate('counsellor', 'name email')
@@ -978,6 +633,11 @@ const getPayments = async (req, res) => {
   }
 };
 
+/**
+ * @desc    Get pending approvals
+ * @route   GET /api/payments/pending-approvals
+ * @access  Private (Admin only)
+ */
 const getPendingApprovals = async (req, res) => {
   try {
     if (req.user.role !== 'admin') {
@@ -987,7 +647,12 @@ const getPendingApprovals = async (req, res) => {
       });
     }
 
-    const payments = await Payment.findPendingApprovals();
+    const payments = await Payment.find({ verificationStatus: 'pending' })
+      .populate('enrollment', 'enrollmentNo courseName totalAmount amountReceived pendingAmount feeType')
+      .populate('student', 'studentId name email phone')
+      .populate('receivedBy', 'name email')
+      .populate('counsellor', 'name email')
+      .sort({ date: 1 });
 
     res.json({
       success: true,
@@ -1003,6 +668,11 @@ const getPendingApprovals = async (req, res) => {
   }
 };
 
+/**
+ * @desc    Approve a payment and update enrollment
+ * @route   PUT /api/payments/:id/approve
+ * @access  Private (Admin only)
+ */
 const approvePayment = async (req, res) => {
   try {
     if (req.user.role !== 'admin') {
@@ -1013,7 +683,7 @@ const approvePayment = async (req, res) => {
     }
 
     const { verificationNotes } = req.body;
-    const payment = await Payment.findById(req.params.id);
+    const payment = await Payment.findById(req.params.id).populate('enrollment');
 
     if (!payment) {
       return res.status(404).json({
@@ -1029,14 +699,48 @@ const approvePayment = async (req, res) => {
       });
     }
 
-    await payment.approvePayment(req.user.id, verificationNotes);
+    const enrollment = payment.enrollment;
+
+    // 🔥 IMPORTANT: Update enrollment amounts
+    enrollment.amountReceived = (enrollment.amountReceived || 0) + payment.amountReceived;
+    enrollment.pendingAmount = enrollment.totalAmount - enrollment.amountReceived;
+
+    // If pending amount is 0 or less, mark as completed
+    if (enrollment.pendingAmount <= 0) {
+      enrollment.status = 'completed';
+    }
+
+    // Update last payment details
+    enrollment.lastTransactionNo = payment.transactionNo || payment.paymentNo;
+    enrollment.lastPaidAmount = payment.amountReceived;
+    enrollment.lastPaidDate = new Date();
+    enrollment.lastPaidMode = payment.paymentMode;
+    enrollment.lastAmountReceivedBy = payment.receivedBy;
+
+    // Save enrollment first
+    await enrollment.save();
+
+    // Update payment status
+    payment.verificationStatus = 'approved';
+    payment.verifiedBy = req.user.id;
+    payment.verifiedAt = new Date();
+    payment.verificationNotes = verificationNotes;
+    await payment.save();
+
+    // Add activity to enrollment
+    await enrollment.addActivity(
+      'payment_approved',
+      `Payment of ₹${payment.amountReceived} approved`,
+      req.user.id,
+      payment._id
+    );
 
     // Send payment confirmation email
     await sendPaymentConfirmationEmail(payment);
 
     // Populate updated payment
     await payment.populate([
-      { path: 'enrollment', select: 'enrollmentNo' },
+      { path: 'enrollment', select: 'enrollmentNo courseName totalAmount amountReceived pendingAmount status' },
       { path: 'student', select: 'studentId name email phone' },
       { path: 'receivedBy', select: 'name email' },
       { path: 'verifiedBy', select: 'name email' }
@@ -1045,7 +749,7 @@ const approvePayment = async (req, res) => {
     res.json({
       success: true,
       data: payment,
-      message: 'Payment approved successfully'
+      message: 'Payment approved and enrollment updated successfully'
     });
   } catch (error) {
     console.error('Approve payment error:', error);
@@ -1057,6 +761,11 @@ const approvePayment = async (req, res) => {
   }
 };
 
+/**
+ * @desc    Reject a payment
+ * @route   PUT /api/payments/:id/reject
+ * @access  Private (Admin only)
+ */
 const rejectPayment = async (req, res) => {
   try {
     if (req.user.role !== 'admin') {
@@ -1083,7 +792,23 @@ const rejectPayment = async (req, res) => {
       });
     }
 
-    await payment.rejectPayment(req.user.id, verificationNotes);
+    // Update payment status (no enrollment changes needed)
+    payment.verificationStatus = 'rejected';
+    payment.verifiedBy = req.user.id;
+    payment.verifiedAt = new Date();
+    payment.verificationNotes = verificationNotes;
+    await payment.save();
+
+    // Add activity to enrollment
+    const enrollment = await Enrollment.findById(payment.enrollment);
+    if (enrollment) {
+      await enrollment.addActivity(
+        'payment_rejected',
+        `Payment of ₹${payment.amountReceived} rejected: ${verificationNotes || 'No reason provided'}`,
+        req.user.id,
+        payment._id
+      );
+    }
 
     // Populate updated payment
     await payment.populate([
@@ -1108,6 +833,11 @@ const rejectPayment = async (req, res) => {
   }
 };
 
+/**
+ * @desc    Get payment statistics
+ * @route   GET /api/payments/stats
+ * @access  Private (Admin only)
+ */
 const getPaymentStats = async (req, res) => {
   try {
     if (req.user.role !== 'admin') {
@@ -1146,10 +876,15 @@ const getPaymentStats = async (req, res) => {
   }
 };
 
+/**
+ * @desc    Get single payment by ID
+ * @route   GET /api/payments/:id
+ * @access  Private
+ */
 const getPayment = async (req, res) => {
   try {
     const payment = await Payment.findById(req.params.id)
-      .populate('enrollment', 'enrollmentNo courseName totalAmount amountReceived feeType')
+      .populate('enrollment', 'enrollmentNo courseName totalAmount amountReceived pendingAmount feeType')
       .populate('student', 'studentId name email phone')
       .populate('receivedBy', 'name email phone')
       .populate('counsellor', 'name email phone')
@@ -1184,6 +919,11 @@ const getPayment = async (req, res) => {
   }
 };
 
+/**
+ * @desc    Bulk approve multiple payments
+ * @route   POST /api/payments/bulk-approve
+ * @access  Private (Admin only)
+ */
 const bulkApprovePayments = async (req, res) => {
   try {
     if (req.user.role !== 'admin') {
@@ -1211,7 +951,7 @@ const bulkApprovePayments = async (req, res) => {
     // Process each payment individually
     for (const paymentId of paymentIds) {
       try {
-        const payment = await Payment.findById(paymentId);
+        const payment = await Payment.findById(paymentId).populate('enrollment');
         
         if (!payment) {
           results.errors.push(`Payment ${paymentId} not found`);
@@ -1225,9 +965,38 @@ const bulkApprovePayments = async (req, res) => {
           continue;
         }
 
-        await payment.approvePayment(req.user.id, verificationNotes);
-        
-        // Send payment confirmation email for each approved payment
+        const enrollment = payment.enrollment;
+
+        // Update enrollment amounts
+        enrollment.amountReceived = (enrollment.amountReceived || 0) + payment.amountReceived;
+        enrollment.pendingAmount = enrollment.totalAmount - enrollment.amountReceived;
+
+        if (enrollment.pendingAmount <= 0) {
+          enrollment.status = 'completed';
+        }
+
+        enrollment.lastTransactionNo = payment.transactionNo || payment.paymentNo;
+        enrollment.lastPaidAmount = payment.amountReceived;
+        enrollment.lastPaidDate = new Date();
+        enrollment.lastPaidMode = payment.paymentMode;
+        enrollment.lastAmountReceivedBy = payment.receivedBy;
+
+        await enrollment.save();
+
+        // Update payment status
+        payment.verificationStatus = 'approved';
+        payment.verifiedBy = req.user.id;
+        payment.verifiedAt = new Date();
+        payment.verificationNotes = verificationNotes;
+        await payment.save();
+
+        await enrollment.addActivity(
+          'payment_approved',
+          `Payment of ₹${payment.amountReceived} approved (bulk)`,
+          req.user.id,
+          payment._id
+        );
+
         await sendPaymentConfirmationEmail(payment);
         
         results.approved++;
@@ -1252,8 +1021,104 @@ const bulkApprovePayments = async (req, res) => {
   }
 };
 
+/**
+ * @desc    Get payments by enrollment
+ * @route   GET /api/payments/enrollment/:enrollmentId
+ * @access  Private
+ */
+const getPaymentsByEnrollment = async (req, res) => {
+  try {
+    const { enrollmentId } = req.params;
+    const { status } = req.query;
+
+    const enrollment = await Enrollment.findById(enrollmentId);
+    if (!enrollment) {
+      return res.status(404).json({
+        success: false,
+        message: 'Enrollment not found'
+      });
+    }
+
+    // Check if counsellor owns this enrollment
+    if (req.user.role === 'counsellor' && enrollment.counsellor.toString() !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied to this enrollment'
+      });
+    }
+
+    const payments = await Payment.findByEnrollment(enrollmentId, status);
+
+    res.json({
+      success: true,
+      data: payments
+    });
+  } catch (error) {
+    console.error('Get payments by enrollment error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error fetching payments',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * @desc    Get payments by student
+ * @route   GET /api/payments/student/:studentId
+ * @access  Private
+ */
+const getPaymentsByStudent = async (req, res) => {
+  try {
+    const { studentId } = req.params;
+    const { status } = req.query;
+
+    const student = await Student.findById(studentId);
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        message: 'Student not found'
+      });
+    }
+
+    const payments = await Payment.findByStudent(studentId, status);
+
+    res.json({
+      success: true,
+      data: payments
+    });
+  } catch (error) {
+    console.error('Get payments by student error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error fetching payments',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * @desc    Delete all payments (DANGER ZONE - Development only)
+ * @route   DELETE /api/payments/delete-all
+ * @access  Private (Admin only)
+ */
 const deleteAllPayments = async (req, res) => {
   try {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. Admin only.'
+      });
+    }
+
+    // This should only be used in development
+    if (process.env.NODE_ENV === 'production') {
+      return res.status(403).json({
+        success: false,
+        message: 'This operation is not allowed in production'
+      });
+    }
+
     await Payment.deleteMany({});
 
     res.status(200).json({
@@ -1278,5 +1143,7 @@ module.exports = {
   getPaymentStats,
   getPayment,
   deleteAllPayments,
-  bulkApprovePayments
+  bulkApprovePayments,
+  getPaymentsByEnrollment,
+  getPaymentsByStudent
 };
