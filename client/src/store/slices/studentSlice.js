@@ -197,7 +197,6 @@ const studentSlice = createSlice({
       .addCase(fetchStudentById.fulfilled, (state, action) => {
         state.loading = false;
         state.currentStudent = action.payload.data;
-        state.success = 'Student fetched successfully';
       })
       .addCase(fetchStudentById.rejected, (state, action) => {
         state.loading = false;
@@ -212,7 +211,6 @@ const studentSlice = createSlice({
       .addCase(fetchStudentByStudentId.fulfilled, (state, action) => {
         state.loading = false;
         state.currentStudent = action.payload.data;
-        state.success = 'Student fetched successfully';
       })
       .addCase(fetchStudentByStudentId.rejected, (state, action) => {
         state.loading = false;

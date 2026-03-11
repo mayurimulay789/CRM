@@ -73,13 +73,19 @@ const AdmissionsManagement = () => {
   }, [dispatch]);
 
   useEffect(() => {
-    if (operationSuccess && !showForm) {
-      const timer = setTimeout(() => {
-        dispatch(clearSuccess());
-      }, 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [operationSuccess, dispatch, showForm]);
+  if (operationSuccess) {
+    // Close the form immediately on successful operation
+    setShowForm(false);
+    setEditingAdmission(null);
+    
+    // Clear success message after 3 seconds
+    const timer = setTimeout(() => {
+      dispatch(clearSuccess());
+    }, 3000);
+    
+    return () => clearTimeout(timer);
+  }
+}, [operationSuccess, dispatch]);
 
   useEffect(() => {
     if (error) {
