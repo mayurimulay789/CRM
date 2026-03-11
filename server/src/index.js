@@ -3,11 +3,10 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const path = require('path');
+const fs = require('fs');
 
 // Load environment variables - FIX THIS LINE
 dotenv.config({ path: path.join(__dirname, '../.env') });
-
-
 const onlineDemoRoutes = require("../routes/onlineDemoRoutes");
 const offlineDemoRoutes = require("../routes/offlineDemoRoutes");
 const oneToOneRoutes = require("../routes/oneToOneRoutes");
@@ -24,12 +23,25 @@ const enrollmentRoutes = require('../routes/enrollmentRoutes');
 const studentGrievanceRoutes = require("../routes/studentGrievanceRoutes");
 const campusGrievanceRoutes = require("../routes/campusGrievanceRoutes");
 
+const filePathforPolicy = path.join(__dirname, '..', 'assets', 'policy.pdf');
+const fileNameforPolicy = 'policy.pdf';
+const policyBuffer = fs.readFileSync(filePathforPolicy);
+let policyattachments = [
+  {
+    filename: fileNameforPolicy,
+    content: policyBuffer,
+    contentType: 'application/pdf'
+  }
+];
+
+console.log(policyattachments)
+
 
 // Force all variables into process.env
 dotenv.config({
-  path: path.resolve(__dirname, "../.env"), 
+  path: path.resolve(__dirname, "../.env"),
   override: true,
-  processEnv: process.env, 
+  processEnv: process.env,
 });
 
 const app = express();
@@ -92,7 +104,7 @@ const { verifyConnection } = require('../utils/email');
 
 app.listen(PORT, async () => {
   console.log(`Server running on port ${PORT}`);
-  
+
   // Verify email connection on startup
   await verifyConnection();
 });

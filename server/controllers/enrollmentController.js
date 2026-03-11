@@ -147,258 +147,431 @@ const createEnrollment = async (req, res) => {
       'Enrollment created successfully',
       req.user.id
     );
+    function formatDateToDDMMYYYY(isoString) {
+      const date = new Date(isoString);
+      // Use UTC methods to avoid timezone shifts
+      const day = String(date.getUTCDate()).padStart(2, '0');
+      const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+      const year = date.getUTCFullYear();
+      return `${day}/${month}/${year}`;
+    }
 
     // Send mail to student on enrollment creation (accept)
     try {
       if (enrollment.student && enrollment.student.email) {
         console.log(`📧 Sending enrollment acceptance email to: ${enrollment.student.email}`);
-        
+
         // Calculate actual total including all fees
         const actualTotal = (enrollment.totalAmount || 0) + (enrollment.charges || 0) + (enrollment.admissionRegistrationPayment || 0);
         const pendingAmount = actualTotal - (enrollment.amountReceived || 0);
 
         // Generate styled enrollment email
         const enrollmentHtml = `
-          <!DOCTYPE html>
-          <html>
-          <head>
-            <meta charset="utf-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Enrollment Confirmation</title>
-            <style>
-              body {
-                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                line-height: 1.6;
-                color: #333;
-                margin: 0;
-                padding: 0;
-                background-color: #f4f4f4;
-              }
-              .container {
-                max-width: 600px;
-                margin: 0 auto;
-                background-color: #ffffff;
-                border-radius: 10px;
-                overflow: hidden;
-                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-              }
-              .header {
-                background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
-                color: white;
-                padding: 30px 20px;
-                text-align: center;
-              }
-              .header h1 {
-                margin: 0;
-                font-size: 28px;
-                font-weight: 600;
-              }
-              .content {
-                padding: 30px;
-              }
-              .congrats {
-                text-align: center;
-                margin-bottom: 30px;
-              }
-              .congrats h2 {
-                color: #007bff;
-                font-size: 24px;
-                margin-bottom: 10px;
-              }
-              .enrollment-details {
-                background-color: #f8f9fa;
-                border-radius: 8px;
-                padding: 20px;
-                margin: 20px 0;
-              }
-              .detail-row {
-                display: flex;
-                justify-content: space-between;
-                margin-bottom: 10px;
-                padding-bottom: 10px;
-                border-bottom: 1px solid #e9ecef;
-              }
-              .detail-row:last-child {
-                border-bottom: none;
-                margin-bottom: 0;
-                padding-bottom: 0;
-              }
-              .detail-label {
-                font-weight: 600;
-                color: #495057;
-              }
-              .detail-value {
-                color: #212529;
-                text-align: right;
-              }
-              .status-badge {
-                background-color: #28a745;
-                color: white;
-                padding: 10px 20px;
-                border-radius: 20px;
-                text-align: center;
-                margin: 20px 0;
-                font-weight: 600;
-              }
-              .next-steps {
-                background-color: #e7f3ff;
-                border-left: 4px solid #007bff;
-                padding: 15px 20px;
-                margin: 20px 0;
-                border-radius: 4px;
-              }
-              .footer {
-                text-align: center;
-                padding: 20px;
-                background-color: #f8f9fa;
-                color: #6c757d;
-                font-size: 14px;
-              }
-              .amount-highlight {
-                font-size: 20px;
-                font-weight: bold;
-                color: #007bff;
-                text-align: center;
-                margin: 15px 0;
-              }
-              .fee-breakdown-total {
-                font-weight: bold;
-                font-size: 16px;
-                color: #007bff;
-                border-top: 2px solid #007bff;
-                padding-top: 10px;
-                margin-top: 10px;
-              }
-            </style>
-          </head>
-          <body>
-            <div class="container">
-              <div class="header">
-                <h1>🎓 Enrollment Confirmed</h1>
-              </div>
-              
-              <div class="content">
-                <div class="congrats">
-                  <h2>Welcome to Ryma Academy! 🎉</h2>
-                  <p>Dear ${enrollment.student.name || 'Student'}, your enrollment has been successfully <strong>approved</strong>.</p>
-                </div>
+         <!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RYMA ACADEMY – Official Enrollment Record</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #f2e5e5;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
 
-                <div class="status-badge">
-                  ✅ Enrollment No: ${enrollment.enrollmentNo}
-                </div>
+        .enrollment-container {
+            max-width: 1200px;
+            margin: auto;
+            background-color: #ffffff;
+            overflow: hidden;
+            box-shadow: 0 12px 28px rgba(150, 30, 30, 0.2);
+        }
 
-                <!-- Enrollment Details Section -->
-                <div class="enrollment-details">
-                  <h3 style="color: #495057; margin-bottom: 15px; text-align: center;">📋 Enrollment Details</h3>
-                  <div class="detail-row">
-                    <span class="detail-label">Student Name:</span>
-                    <span class="detail-value">${enrollment.student.name || 'N/A'}</span>
-                  </div>
-                  <div class="detail-row">
-                    <span class="detail-label">Student ID:</span>
-                    <span class="detail-value">${enrollment.student.studentId || 'N/A'}</span>
-                  </div>
-                  <div class="detail-row">
-                    <span class="detail-label">Course:</span>
-                    <span class="detail-value">${enrollment.course?.name || 'N/A'}</span>
-                  </div>
-                  <div class="detail-row">
-                    <span class="detail-label">Batch:</span>
-                    <span class="detail-value">${enrollment.batch?.name || 'N/A'}</span>
-                  </div>
-                  <div class="detail-row">
-                    <span class="detail-label">Training Branch:</span>
-                    <span class="detail-value">${enrollment.trainingBranch || 'N/A'}</span>
-                  </div>
-                  <div class="detail-row">
-                    <span class="detail-label">Mode:</span>
-                    <span class="detail-value">${enrollment.mode || 'N/A'}</span>
-                  </div>
-                </div>
+        /* header image area – placeholder */
+        .header-image {
+            width: 100%;
+            background-color: #b31b1b;
+            /* fallback */
+            text-align: center;
+            line-height: 0;
+        }
 
-                <!-- Fee Breakdown Section -->
-                <div class="enrollment-details">
-                  <h3 style="color: #495057; margin-bottom: 15px; text-align: center;">💰 Fee Breakdown</h3>
-                  <div class="detail-row">
-                    <span class="detail-label">Course Fee:</span>
-                    <span class="detail-value">₹${(enrollment.totalAmount || 0).toLocaleString('en-IN')}</span>
-                  </div>
-                  ${enrollment.charges > 0 ? `
-                  <div class="detail-row">
-                    <span class="detail-label">Late Fees:</span>
-                    <span class="detail-value">₹${(enrollment.charges || 0).toLocaleString('en-IN')}</span>
-                  </div>` : ''}
-                  ${enrollment.admissionRegistrationPayment > 0 ? `
-                  <div class="detail-row">
-                    <span class="detail-label">Registration Fee:</span>
-                    <span class="detail-value">₹${(enrollment.admissionRegistrationPayment || 0).toLocaleString('en-IN')}</span>
-                  </div>` : ''}
-                  <div class="detail-row fee-breakdown-total">
-                    <span class="detail-label">Total Amount:</span>
-                    <span class="detail-value">₹${actualTotal.toLocaleString('en-IN')}</span>
-                  </div>
-                  <div class="detail-row">
-                    <span class="detail-label">Amount Received:</span>
-                    <span class="detail-value">₹${(enrollment.amountReceived || 0).toLocaleString('en-IN')}</span>
-                  </div>
-                  <div class="detail-row fee-breakdown-total">
-                    <span class="detail-label">Pending Amount:</span>
-                    <span class="detail-value" style="color: ${pendingAmount > 0 ? '#dc3545' : '#28a745'};">₹${pendingAmount.toLocaleString('en-IN')}</span>
-                  </div>
-                </div>
+        .header-image img {
+            width: 100%;
+            height: auto;
+            display: block;
+            max-height: 180px;
+            object-fit: cover;
+            background-color: #8a1e1e;
+        }
 
-                <!-- Fee Payment Information -->
-                ${enrollment.feeType === 'installment' ? `
-                <div class="enrollment-details">
-                  <h3 style="color: #495057; margin-bottom: 15px; text-align: center;">📅 EMI Schedule</h3>
-                  ${enrollment.firstEMI && enrollment.firstEMI.amount > 0 ? `
-                  <div class="detail-row">
-                    <span class="detail-label">1st EMI:</span>
-                    <span class="detail-value">₹${enrollment.firstEMI.amount.toLocaleString('en-IN')} - ${enrollment.firstEMI.date ? new Date(enrollment.firstEMI.date).toLocaleDateString('en-IN') : 'Date TBD'}</span>
-                  </div>` : ''}
-                  ${enrollment.secondEMI && enrollment.secondEMI.amount > 0 ? `
-                  <div class="detail-row">
-                    <span class="detail-label">2nd EMI:</span>
-                    <span class="detail-value">₹${enrollment.secondEMI.amount.toLocaleString('en-IN')} - ${enrollment.secondEMI.date ? new Date(enrollment.secondEMI.date).toLocaleDateString('en-IN') : 'Date TBD'}</span>
-                  </div>` : ''}
-                  ${enrollment.thirdEMI && enrollment.thirdEMI.amount > 0 ? `
-                  <div class="detail-row">
-                    <span class="detail-label">3rd EMI:</span>
-                    <span class="detail-value">₹${enrollment.thirdEMI.amount.toLocaleString('en-IN')} - ${enrollment.thirdEMI.date ? new Date(enrollment.thirdEMI.date).toLocaleDateString('en-IN') : 'Date TBD'}</span>
-                  </div>` : ''}
-                </div>` : enrollment.dueDate ? `
-                <div class="enrollment-details">
-                  <h3 style="color: #495057; margin-bottom: 15px; text-align: center;">📅 Payment Due</h3>
-                  <div class="detail-row">
-                    <span class="detail-label">Due Date:</span>
-                    <span class="detail-value">${new Date(enrollment.dueDate).toLocaleDateString('en-IN')}</span>
-                  </div>
-                </div>` : ''}
+        .img-placeholder {
+            display: inline-block;
+            width: 100%;
+            background: linear-gradient(145deg, #b22222, #8b1a1a);
+            color: white;
+            font-size: 32px;
+            font-weight: 800;
+            text-align: center;
+            padding: 40px 20px;
+            box-sizing: border-box;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            border-bottom: 4px solid #f3c3c3;
+        }
 
-                <div class="next-steps">
-                  <h4 style="margin-top: 0; color: #007bff;">📝 Next Steps:</h4>
-                  <ul style="margin: 0;">
-                    <li>Keep this email for your records</li>
-                    <li>${pendingAmount > 0 ? `Complete your fee payment as per the schedule above` : 'Your fees are fully paid - Welcome aboard!'}</li>
-                    <li>Check your student portal for class schedules and materials</li>
-                    <li>Contact our support team if you have any questions</li>
-                  </ul>
-                </div>
+        .content {
+            padding: 28px 32px 32px;
+        }
 
-                <div style="text-align: center; margin: 30px 0;">
-                  <p><strong>Thank you for choosing Ryma Academy!</strong></p>
-                  <p>We look forward to supporting your learning journey.</p>
-                </div>
-              </div>
+        .greeting {
+            font-size: 18px;
+            font-weight: 500;
+            color: #3b2323;
+            margin-bottom: 8px;
+        }
 
-              <div class="footer">
-                <p><strong>Ryma Academy</strong></p>
-                <p>For support, contact us at: <a href="mailto:support@rymaacademy.com">support@rymaacademy.com</a></p>
-                <p>This is an automated message. Please do not reply directly to this email.</p>
-              </div>
+        .greeting strong {
+            color: #b13e3e;
+        }
+
+        .office-line {
+            color: #7e3939;
+            font-weight: 600;
+            margin: 5px 0 15px;
+            font-size: 16px;
+        }
+
+        .message {
+            font-size: 16px;
+            color: #3a2a2a;
+            line-height: 1.5;
+            margin: 15px 0 10px;
+        }
+
+        .highlight {
+            background: #fef0f0;
+            padding: 16px 20px;
+            border-radius: 30px 10px 30px 10px;
+            margin: 20px 0;
+            border-left: 6px solid #b13e3e;
+            color: #572626;
+            font-weight: 500;
+        }
+
+        .section-title {
+            font-size: 22px;
+            font-weight: 700;
+            color: #aa2929;
+            border-bottom: 3px solid #e0adad;
+            padding-bottom: 10px;
+            margin: 30px 0 20px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .enroll-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #ffffff;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 6px 18px rgba(150, 40, 40, 0.1);
+            border: 1px solid #e9c1c1;
+            margin-bottom: 25px;
+        }
+
+        .enroll-table td {
+            padding: 14px 20px;
+            border-bottom: 1px solid #f2d6d6;
+            font-size: 16px;
+        }
+
+        .enroll-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .label-cell {
+            background-color: #fde5e5;
+            color: #892b2b;
+            font-weight: 700;
+            width: 42%;
+            border-right: 1px solid #e2b2b2;
+        }
+
+        .value-cell {
+            background-color: #fffbfb;
+            color: #2e1c1c;
+            font-weight: 500;
+        }
+
+        .value-cell strong {
+            color: #b33838;
+        }
+
+        .warning-note {
+            background: #ffebeb;
+            padding: 18px 24px;
+            border-radius: 60px 10px 60px 10px;
+            margin: 28px 0 20px;
+            color: #792e2e;
+            font-size: 15px;
+            text-align: center;
+            border: 1px solid #e2acac;
+        }
+
+        .help-box {
+            background-color: #fadfdf;
+            border-radius: 30px;
+            padding: 18px 25px;
+            margin: 25px 0;
+            border: 1px solid #d69494;
+            color: #6d3131;
+        }
+
+        .help-box a {
+            color: #a23131;
+            font-weight: 600;
+            text-decoration: underline;
+        }
+
+        .quote-block {
+            background: #fff3f3;
+            border-radius: 40px 12px 40px 12px;
+            padding: 22px 26px;
+            margin: 20px 0 25px;
+            border: 1px solid #e6b2b2;
+            box-shadow: 0 6px 14px rgba(170, 60, 60, 0.1);
+        }
+
+        .quote-mark {
+            font-size: 40px;
+            color: #b44848;
+            font-family: 'Times New Roman', serif;
+            line-height: 0.6;
+            margin-right: 4px;
+        }
+
+        .quote-block p {
+            font-size: 18px;
+            font-style: italic;
+            color: #592b2b;
+            margin: 8px 0 10px 0;
+            font-weight: 500;
+        }
+
+        .director-name {
+            font-weight: 700;
+            color: #862b2b;
+            text-align: right;
+            font-size: 16px;
+        }
+
+        .signature {
+            margin: 30px 0 20px;
+            color: #592525;
+        }
+
+        .contact-block {
+            background: #fae1e1;
+            padding: 14px 18px;
+            border-radius: 30px;
+            color: #6d3131;
+            font-size: 15px;
+            margin: 20px 0;
+            word-break: break-word;
+        }
+
+        .contact-block a {
+            color: #a13030;
+            text-decoration: underline;
+        }
+
+        .footer-red {
+            background-color: #8f2626;
+            padding: 18px 28px;
+            text-align: center;
+            color: #ffd7d7;
+            font-size: 14px;
+            border-top: 3px solid #b33a3a;
+        }
+
+        .disclaimer {
+            font-size: 12px;
+            color: #ffe5e5;
+            background-color: #6d2b2b;
+            padding: 16px 24px;
+            text-align: left;
+            line-height: 1.5;
+            border-top: 1px solid #b27373;
+        }
+
+        .disclaimer a {
+            color: #ffd6d6;
+        }
+
+        hr {
+            border: none;
+            height: 2px;
+            background: linear-gradient(to right, #efc2c2, #c96666, #efc2c2);
+            margin: 28px 0;
+        }
+
+        .note-placeholder {
+            font-size: 13px;
+            color: #946060;
+            background: #faf0f0;
+            padding: 6px 10px;
+            border-radius: 50px;
+            margin-top: 8px;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="enrollment-container">
+        <img src=${server/assets/header.png} alt="RYMA ACADEMY" style="width: 100%; max-width: 1200px;">
+        <!-- Header image area: replace src with your actual banner/logo -->
+
+        <div class="content">
+            <!-- Dear student -->
+            <div class="greeting">Dear <strong>${enrollment.student.name || 'Student'}</strong>,</div>
+            <div class="office-line">Greetings from the Office of Academic Affairs, RYMA ACADEMY.</div>
+
+            <!-- enrollment intro -->
+            <div class="message">
+                You have now been formally enrolled in system as an official student of RYMA ACADEMY. Your unique
+                Enrollment ID has been issued — <strong>${enrollment.enrollmentNo}</strong>. This is your academic identity and will
+                be required for all academic, administrative, and certification purposes throughout your program.
             </div>
-          </body>
-          </html>
+
+            <div class="highlight">
+                ⚡ Kindly save this email permanently. It is your official enrollment record.
+            </div>
+
+            <!-- OFFICIAL ENROLLMENT RECORD section -->
+            <div class="section-title">OFFICIAL ENROLLMENT RECORD — RYMA ACADEMY</div>
+
+            <!-- Personal details table -->
+            <table class="enroll-table" cellpadding="0" cellspacing="0">
+                <tr>
+                    <td class="label-cell">Student Name</td>
+                    <td class="value-cell"><strong>${enrollment.student.name || 'Student'}</strong></td>
+                </tr>
+                <tr>
+                    <td class="label-cell">Enrollment ID</td>
+                    <td class="value-cell"><strong>${enrollment.enrollmentNo}</strong></td>
+                </tr>
+                <tr>
+                    <td class="label-cell">Date of Birth</td>
+                    <td class="value-cell"><strong>${enrollment.student.dateOfBirth}</strong></td>
+                </tr>
+                <tr>
+                    <td class="label-cell">Registered Mobile</td>
+                    <td class="value-cell"><strong>${enrollment.student.phone}</strong></td>
+                </tr>
+                <tr>
+                    <td class="label-cell">Registered Email</td>
+                    <td class="value-cell"><strong>${enrollment.student.email}</strong></td>
+                </tr>
+            </table>
+
+            <!-- PROGRAM DETAILS section -->
+            <div class="section-title">PROGRAM DETAILS</div>
+            <table class="enroll-table" cellpadding="0" cellspacing="0">
+                <tr>
+                    <td class="label-cell">Program Enrolled</td>
+                    <td class="value-cell"><strong>${enrollment.course?.name || 'N/A'}</strong></td>
+                </tr>
+                <tr>
+                    <td class="label-cell">Program Duration</td>
+                    <td class="value-cell"><strong>${enrollment.course.duration}</strong></td>
+                </tr>
+                <tr>
+                    <td class="label-cell">Batch Code</td>
+                    <td class="value-cell"><strong>${enrollment.batch.code}</strong></td>
+                </tr>
+                <tr>
+                    <td class="label-cell">Batch Timings</td>
+                    <td class="value-cell"><strong>${enrollment.batch.timing}</strong></td>
+                </tr>
+                <tr>
+                    <td class="label-cell">Mode of Learning</td>
+                    <td class="value-cell"><strong>${enrollment.mode || 'N/A'}</strong></td>
+                </tr>
+                <tr>
+                    <td class="label-cell">Campus</td>
+                    <td class="value-cell"><strong>${enrollment.trainingBranch || 'N/A'}</strong></td>
+                </tr>
+                <tr>
+                    <td class="label-cell">Enrollment Date</td>
+                    <td class="value-cell"><strong> ${formatDateToDDMMYYYY(enrollment.enrollmentDate)}</strong></td>
+                </tr>
+            </table>
+
+            <!-- verification warning (exact wording) -->
+            <div class="warning-note">
+                ⚠️ <strong>Please verify all details carefully.</strong> Any discrepancy must be reported to your
+                Education Counsellor within 48 hours. RYMA ACADEMY shall not be held responsible for errors arising from
+                unverified or incorrect information submitted at the time of admission.
+            </div>
+
+            <!-- need assistance box -->
+            <div class="help-box">
+                <strong>⚠️ Need assistance?</strong> We are always here to help — reach out to your Education Counsellor
+                or contact us at <strong>+91-9873336133</strong> | <a
+                    href="mailto:services@rymaacademy.com">services@rymaacademy.com</a>
+            </div>
+
+            <!-- inspirational quote (from both screenshots) -->
+            <div class="quote-block">
+                <span class="quote-mark">“</span>
+                <p>At RYMA ACADEMY, we believe every great journey begins with a single, courageous step forward. You
+                    have taken that step. Now let us walk the rest of this path — together.</p>
+                <div class="director-name">~ Mr. Parveen Jain | Director, RYMA ACADEMY</div>
+            </div>
+
+            <!-- signature -->
+            <div class="signature">
+                With the highest regards & warmest welcome,<br>
+                <strong>Team of Admissions & Student Services</strong><br>
+                RYMA ACADEMY
+            </div>
+
+            <!-- contact block (with icons as text) -->
+            <div
+                style="background: #fae1e1; padding: 18px 25px; border-radius: 30px; color: #6d3131; font-size: 15px; margin: 20px 0;display:flex;flex-direction:row; justify-content:center ;align-items: center;">
+                +91-9873336133 <a href="mailto:services@rymaacademy.com"
+                    style="color: #a13030; margin-left: 8px;">services@rymaacademy.com</a> <a href="#"
+                    style="color: #a13030;margin-left: 8px; margin-right: 5px;">www.rymaacademy.com</a> 📍 D-7/32, 1st
+                Floor, Main Vishram Chowk, Sec-6, Rohini, Delhi – 110085
+            </div>
+
+            <!-- small note about image placeholder (can be removed in production) -->
+            <div class="note-placeholder">
+                ⚡ Replace the header image source with your actual logo.
+            </div>
+        </div>
+
+        <!-- disclaimer footer (red dark) -->
+        <div class="disclaimer">
+            <strong>Disclaimer:</strong> This is an electronically generated communication and does not require a
+            physical signature or stamp. Please do not print this email unless it is absolutely necessary. The
+            information contained in this email is confidential to the addressee and may be protected by legal
+            privilege. If you are not the intended recipient, please note that you may not disseminate, retransmit, or
+            make any other use of any material in this message. If you have received this email in error, please delete
+            it and notify us immediately by telephone or email.
+        </div>
+        <div class="footer-red">
+            © RYMA ACADEMY – Official Enrollment Record
+        </div>
+    </div>
+</body>
+
+</html>
         `;
 
         await sendMail(
@@ -429,16 +602,16 @@ const createEnrollment = async (req, res) => {
       success: true,
       data: enrollment
     });
-  // Helper: Send rejection mail
-  async function sendEnrollmentRejectionMail(student, admissionRegistrationPayment, charges = 0, totalAmount = 0) {
-    try {
-      if (student && student.email) {
-        console.log(`📧 Sending enrollment rejection email to: ${student.email}`);
-        
-        // Calculate amounts  
-        const actualTotal = (totalAmount || 0) + (charges || 0) + (admissionRegistrationPayment || 0);
-        
-        const rejectionHtml = `
+    // Helper: Send rejection mail
+    async function sendEnrollmentRejectionMail(student, admissionRegistrationPayment, charges = 0, totalAmount = 0) {
+      try {
+        if (student && student.email) {
+          console.log(`📧 Sending enrollment rejection email to: ${student.email}`);
+
+          // Calculate amounts  
+          const actualTotal = (totalAmount || 0) + (charges || 0) + (admissionRegistrationPayment || 0);
+
+          const rejectionHtml = `
           <!DOCTYPE html>
           <html>
           <head>
@@ -624,29 +797,29 @@ const createEnrollment = async (req, res) => {
           </html>
         `;
 
-        await sendMail(
-          student.email,
-          '📋 Enrollment Status Update - Ryma Academy',
-          rejectionHtml,
-          true // Include BCC for enrollment notifications
-        );
-        console.log('✅ Enrollment rejection email sent successfully to:', student.email);
-      } else {
-        console.error('❌ No student email found for rejection notification:', {
-          studentId: student?._id,
+          await sendMail(
+            student.email,
+            '📋 Enrollment Status Update - Ryma Academy',
+            rejectionHtml,
+            true // Include BCC for enrollment notifications
+          );
+          console.log('✅ Enrollment rejection email sent successfully to:', student.email);
+        } else {
+          console.error('❌ No student email found for rejection notification:', {
+            studentId: student?._id,
+            studentEmail: student?.email,
+            studentName: student?.name
+          });
+        }
+      } catch (err) {
+        console.error('❌ Failed to send enrollment rejection email:', {
+          error: err.message,
           studentEmail: student?.email,
-          studentName: student?.name
+          studentId: student?._id,
+          stack: err.stack
         });
       }
-    } catch (err) {
-      console.error('❌ Failed to send enrollment rejection email:', {
-        error: err.message,
-        studentEmail: student?.email,
-        studentId: student?._id,
-        stack: err.stack
-      });
     }
-  }
   } catch (error) {
     console.error('Create enrollment error:', error);
     res.status(500).json({
@@ -790,7 +963,7 @@ const updateEnrollment = async (req, res) => {
     console.log('🔄 ========== UPDATE ENROLLMENT STARTED ==========');
     console.log('📝 Enrollment ID to update:', req.params.id);
     console.log('🛠️  Update Data:', req.body);
-    
+
     const enrollment = await Enrollment.findById(req.params.id);
 
     if (!enrollment) {
@@ -823,7 +996,7 @@ const updateEnrollment = async (req, res) => {
         enrollment: enrollment._id,
         verificationStatus: 'approved'
       });
-      
+
       if (approvedPayments.length > 0) {
         console.log('🚫 FEE TYPE CHANGE BLOCKED - Approved payments exist');
         return res.status(400).json({
@@ -835,18 +1008,18 @@ const updateEnrollment = async (req, res) => {
 
     // Define allowed updates based on user role
     let allowedUpdates = [];
-    
+
     console.log('🔍 User role for update permissions:', userRole);
-    
+
     if (userRole === 'Counsellor') {
       allowedUpdates = [
-        'batch', 'mode', 'firstEMI', 'secondEMI', 'thirdEMI', 
+        'batch', 'mode', 'firstEMI', 'secondEMI', 'thirdEMI',
         'dueDate', 'charges', 'call', 'trainingBranch', 'feeType',
         'totalAmount', 'actualAmount', 'discount', 'leadDate', 'leadSource', 'admissionRegistrationPayment'
       ];
     } else if (userRole === 'admin') {
       allowedUpdates = [
-        'batch', 'mode', 'status', 'firstEMI', 'secondEMI', 'thirdEMI', 
+        'batch', 'mode', 'status', 'firstEMI', 'secondEMI', 'thirdEMI',
         'dueDate', 'charges', 'call', 'trainingBranch', 'feeType',
         'totalAmount', 'actualAmount', 'discount', 'leadDate', 'leadSource', 'counsellor', 'admissionRegistrationPayment'
       ];
@@ -863,10 +1036,10 @@ const updateEnrollment = async (req, res) => {
     // For counsellors: Filter out status and counsellor fields instead of throwing error
     let updates = Object.keys(req.body);
     console.log('📋 Requested updates:', updates);
-    
+
     if (userRole === 'Counsellor') {
       const originalLength = updates.length;
-      updates = updates.filter(update => 
+      updates = updates.filter(update =>
         update !== 'status' && update !== 'counsellor'
       );
       console.log('👤 Counsellor - Filtered updates (status/counsellor removed):', updates);
@@ -890,7 +1063,7 @@ const updateEnrollment = async (req, res) => {
 
     if (validUpdates.length === 0) {
       console.log('⚠️ No valid fields to update - enrollment unchanged');
-      
+
       await enrollment.populate([
         { path: 'student', select: 'studentId name email phone' },
         { path: 'course', select: 'name fee duration' },
@@ -929,7 +1102,7 @@ const updateEnrollment = async (req, res) => {
     if (enrollment.feeType === 'installment') {
       // Calculate actual total including late fees and registration payment
       const actualTotal = (enrollment.totalAmount || 0) + (enrollment.charges || 0) + (enrollment.admissionRegistrationPayment || 0);
-      
+
       const firstEMIAmount = enrollment.firstEMI?.amount || 0;
       const secondEMIAmount = enrollment.secondEMI?.amount || 0;
       const thirdEMIAmount = enrollment.thirdEMI?.amount || 0;
@@ -1143,7 +1316,7 @@ const addActivity = async (req, res) => {
 
 const deleteEnrollment = async (req, res) => {
   try {
-    const enrollment = await Enrollment.findByIdAndDelete(req.params.id);  
+    const enrollment = await Enrollment.findByIdAndDelete(req.params.id);
     if (!enrollment) {
       return res.status(404).json({
         success: false,
@@ -1167,7 +1340,7 @@ const deleteEnrollment = async (req, res) => {
 // Allow to delete only those enrollments whose never done any payment 
 const deleteEnrollmentByCounsellor = async (req, res) => {
   try {
-    const enrollment = await Enrollment.findById(req.params.id);  
+    const enrollment = await Enrollment.findById(req.params.id);
     console.log("Enrollment to delete:", req.params.id);
     if (!enrollment) {
       console.log("Enrollment not found:", req.params.id);
