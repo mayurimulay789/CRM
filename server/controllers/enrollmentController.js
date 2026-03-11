@@ -18,10 +18,7 @@ const createEnrollment = async (req, res) => {
       totalAmount,
       discount = 0,
       feeType,
-      firstEMI,
-      secondEMI,
-      thirdEMI,
-      dueDate,
+      // EMI and dueDate fields removed
       charges,
       leadDate,
       leadSource,
@@ -58,36 +55,7 @@ const createEnrollment = async (req, res) => {
     // Calculate actual total including late fees and registration payment
     const actualTotal = (totalAmount || 0) + (charges || 0) + (admissionRegistrationPayment || 0);
 
-    // EMI validation for installment fee type
-    if (feeType === 'installment') {
-      const firstEMIAmount = firstEMI?.amount || 0;
-      const secondEMIAmount = secondEMI?.amount || 0;
-      const thirdEMIAmount = thirdEMI?.amount || 0;
-      const totalEMI = firstEMIAmount + secondEMIAmount + thirdEMIAmount;
-
-      if (totalEMI !== actualTotal) {
-        return res.status(400).json({
-          success: false,
-          message: `EMI total (₹${totalEMI}) must match total amount (₹${actualTotal}). [Base: ₹${totalAmount} + Late Fees: ₹${charges || 0} + Registration: ₹${admissionRegistrationPayment || 0}]`
-        });
-      }
-
-      // Validate EMI dates if amounts are provided
-      const emis = [
-        { name: 'First EMI', data: firstEMI },
-        { name: 'Second EMI', data: secondEMI },
-        { name: 'Third EMI', data: thirdEMI }
-      ];
-
-      for (const emi of emis) {
-        if (emi.data?.amount > 0 && !emi.data?.date) {
-          return res.status(400).json({
-            success: false,
-            message: `${emi.name} date is required when amount is provided`
-          });
-        }
-      }
-    }
+    // EMI and dueDate validation removed
 
     // Generate enrollment number
     const currentYear = new Date().getFullYear();
@@ -114,15 +82,10 @@ const createEnrollment = async (req, res) => {
       student: admissionDetails.student.toString(),
       course: admissionDetails.course.toString(),
       batch,
-      trainingBranch,
       mode,
       totalAmount,
       discount,
       feeType,
-      firstEMI,
-      secondEMI,
-      thirdEMI,
-      dueDate,
       charges: charges || 0,
       leadDate,
       leadSource,
@@ -306,10 +269,7 @@ const createEnrollment = async (req, res) => {
                     <span class="detail-label">Batch:</span>
                     <span class="detail-value">${enrollment.batch?.name || 'N/A'}</span>
                   </div>
-                  <div class="detail-row">
-                    <span class="detail-label">Training Branch:</span>
-                    <span class="detail-value">${enrollment.trainingBranch || 'N/A'}</span>
-                  </div>
+                  <!-- Training Branch removed -->
                   <div class="detail-row">
                     <span class="detail-label">Mode:</span>
                     <span class="detail-value">${enrollment.mode || 'N/A'}</span>
@@ -348,32 +308,7 @@ const createEnrollment = async (req, res) => {
                 </div>
 
                 <!-- Fee Payment Information -->
-                ${enrollment.feeType === 'installment' ? `
-                <div class="enrollment-details">
-                  <h3 style="color: #495057; margin-bottom: 15px; text-align: center;">📅 EMI Schedule</h3>
-                  ${enrollment.firstEMI && enrollment.firstEMI.amount > 0 ? `
-                  <div class="detail-row">
-                    <span class="detail-label">1st EMI:</span>
-                    <span class="detail-value">₹${enrollment.firstEMI.amount.toLocaleString('en-IN')} - ${enrollment.firstEMI.date ? new Date(enrollment.firstEMI.date).toLocaleDateString('en-IN') : 'Date TBD'}</span>
-                  </div>` : ''}
-                  ${enrollment.secondEMI && enrollment.secondEMI.amount > 0 ? `
-                  <div class="detail-row">
-                    <span class="detail-label">2nd EMI:</span>
-                    <span class="detail-value">₹${enrollment.secondEMI.amount.toLocaleString('en-IN')} - ${enrollment.secondEMI.date ? new Date(enrollment.secondEMI.date).toLocaleDateString('en-IN') : 'Date TBD'}</span>
-                  </div>` : ''}
-                  ${enrollment.thirdEMI && enrollment.thirdEMI.amount > 0 ? `
-                  <div class="detail-row">
-                    <span class="detail-label">3rd EMI:</span>
-                    <span class="detail-value">₹${enrollment.thirdEMI.amount.toLocaleString('en-IN')} - ${enrollment.thirdEMI.date ? new Date(enrollment.thirdEMI.date).toLocaleDateString('en-IN') : 'Date TBD'}</span>
-                  </div>` : ''}
-                </div>` : enrollment.dueDate ? `
-                <div class="enrollment-details">
-                  <h3 style="color: #495057; margin-bottom: 15px; text-align: center;">📅 Payment Due</h3>
-                  <div class="detail-row">
-                    <span class="detail-label">Due Date:</span>
-                    <span class="detail-value">${new Date(enrollment.dueDate).toLocaleDateString('en-IN')}</span>
-                  </div>
-                </div>` : ''}
+                <!-- EMI Schedule and Due Date removed -->
 
                 <div class="next-steps">
                   <h4 style="margin-top: 0; color: #007bff;">📝 Next Steps:</h4>
@@ -840,14 +775,12 @@ const updateEnrollment = async (req, res) => {
     
     if (userRole === 'Counsellor') {
       allowedUpdates = [
-        'batch', 'mode', 'firstEMI', 'secondEMI', 'thirdEMI', 
-        'dueDate', 'charges', 'call', 'trainingBranch', 'feeType',
+        'batch', 'mode', 'charges', 'call', 'feeType',
         'totalAmount', 'actualAmount', 'discount', 'leadDate', 'leadSource', 'admissionRegistrationPayment'
       ];
     } else if (userRole === 'admin') {
       allowedUpdates = [
-        'batch', 'mode', 'status', 'firstEMI', 'secondEMI', 'thirdEMI', 
-        'dueDate', 'charges', 'call', 'trainingBranch', 'feeType',
+        'batch', 'mode', 'status', 'charges', 'call', 'feeType',
         'totalAmount', 'actualAmount', 'discount', 'leadDate', 'leadSource', 'counsellor', 'admissionRegistrationPayment'
       ];
     } else {
@@ -925,47 +858,7 @@ const updateEnrollment = async (req, res) => {
       console.log(`   🔄 ${update}: ${JSON.stringify(oldValue)} → ${JSON.stringify(newValue)}`);
     });
 
-    // EMI validation for installment fee type (before saving)
-    if (enrollment.feeType === 'installment') {
-      // Calculate actual total including late fees and registration payment
-      const actualTotal = (enrollment.totalAmount || 0) + (enrollment.charges || 0) + (enrollment.admissionRegistrationPayment || 0);
-      
-      const firstEMIAmount = enrollment.firstEMI?.amount || 0;
-      const secondEMIAmount = enrollment.secondEMI?.amount || 0;
-      const thirdEMIAmount = enrollment.thirdEMI?.amount || 0;
-      const totalEMI = firstEMIAmount + secondEMIAmount + thirdEMIAmount;
-
-      if (totalEMI !== actualTotal) {
-        console.log('❌ EMI validation failed - Total mismatch:', {
-          totalEMI,
-          actualTotal,
-          baseAmount: enrollment.totalAmount,
-          charges: enrollment.charges,
-          registrationPayment: enrollment.admissionRegistrationPayment
-        });
-        return res.status(400).json({
-          success: false,
-          message: `EMI total (₹${totalEMI}) must match total amount (₹${actualTotal}). [Base: ₹${enrollment.totalAmount} + Late Fees: ₹${enrollment.charges || 0} + Registration: ₹${enrollment.admissionRegistrationPayment || 0}]`
-        });
-      }
-
-      // Validate EMI dates if amounts are provided
-      const emis = [
-        { name: 'First EMI', data: enrollment.firstEMI },
-        { name: 'Second EMI', data: enrollment.secondEMI },
-        { name: 'Third EMI', data: enrollment.thirdEMI }
-      ];
-
-      for (const emi of emis) {
-        if (emi.data?.amount > 0 && !emi.data?.date) {
-          console.log('❌ EMI validation failed - Missing date for:', emi.name);
-          return res.status(400).json({
-            success: false,
-            message: `${emi.name} date is required when amount is provided`
-          });
-        }
-      }
-    }
+    // EMI validation removed for installment fee type
 
     await enrollment.save();
     console.log('💾 Enrollment saved successfully');

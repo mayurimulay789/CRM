@@ -54,6 +54,10 @@ const OnlineDemo = () => {
   const dropdownRef = useRef(null);
 
   const [formData, setFormData] = useState({
+    name: "",
+    mobile: "",
+    email: "",
+    address: "",
     course: "",
     date: "",
     time: "",
@@ -87,7 +91,7 @@ const OnlineDemo = () => {
     "5:00 PM - 7:00 PM"
   ];
 
-  const defaultColumns = ["Course", "Date", "Timing", "Mode", "Medium", "Trainer"];
+  const defaultColumns = ["Name", "Mobile", "Email", "Address", "Course", "Date", "Timing", "Mode", "Medium", "Trainer"];
   const [visibleColumns, setVisibleColumns] = useState(defaultColumns);
   const [columnSearch, setColumnSearch] = useState("");
 
@@ -195,12 +199,21 @@ const OnlineDemo = () => {
   // Enhanced validation rules
   const validateForm = () => {
     const newErrors = {};
-
     // Required fields
+    if (!formData.name.trim()) {
+      newErrors.name = "Name is required";
+    }
+    if (!formData.mobile.trim()) {
+      newErrors.mobile = "Mobile is required";
+    } else if (!/^\d{10}$/.test(formData.mobile.trim())) {
+      newErrors.mobile = "Mobile must be 10 digits";
+    }
+    if (!formData.address.trim()) {
+      newErrors.address = "Address is required";
+    }
     if (!formData.course.trim()) {
       newErrors.course = "Course name is required";
     }
-
     if (!formData.date) {
       newErrors.date = "Date is required";
     } else {
@@ -208,7 +221,6 @@ const OnlineDemo = () => {
         const selectedDate = new Date(formData.date);
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-        
         if (isNaN(selectedDate.getTime())) {
           newErrors.date = "Invalid date format";
         } else if (selectedDate < today) {
@@ -218,25 +230,24 @@ const OnlineDemo = () => {
         newErrors.date = "Invalid date format";
       }
     }
-
     if (!formData.time) {
       newErrors.time = "Timing is required";
     }
-
     if (!formData.mode) {
       newErrors.mode = "Please select mode";
     }
-
     if (!formData.medium.trim()) {
       newErrors.medium = "Medium is required";
     } else if (formData.medium.trim().length < 2) {
       newErrors.medium = "Medium must be at least 2 characters";
     }
-
     if (!formData.trainer.trim()) {
       newErrors.trainer = "Please select a trainer";
     }
-
+    // Email is optional, but if present, validate format
+    if (formData.email && !/^\S+@\S+\.\S+$/.test(formData.email.trim())) {
+      newErrors.email = "Invalid email format";
+    }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -273,6 +284,10 @@ const OnlineDemo = () => {
       setEditingRow(null);
       setFormSubmitted(false);
       setFormData({
+        name: "",
+        mobile: "",
+        email: "",
+        address: "",
         course: "",
         date: "",
         time: "",
@@ -392,6 +407,10 @@ const OnlineDemo = () => {
     setEditingRow(null);
     setFormSubmitted(false);
     setFormData({
+      name: "",
+      mobile: "",
+      email: "",
+      address: "",
       course: "",
       date: "",
       time: "",
@@ -672,13 +691,23 @@ const OnlineDemo = () => {
                   filteredRows.map((row, index) => (
                     <tr key={row._id} className="border-b hover:bg-gray-50 transition">
                       <td className="px-4 py-3 border-r font-medium">{index + 1}</td>
+                      {visibleColumns.includes("Name") && (
+                        <td className="px-4 py-3 border-r">{row.name}</td>
+                      )}
+                      {visibleColumns.includes("Mobile") && (
+                        <td className="px-4 py-3 border-r">{row.mobile}</td>
+                      )}
+                      {visibleColumns.includes("Email") && (
+                        <td className="px-4 py-3 border-r">{row.email}</td>
+                      )}
+                      {visibleColumns.includes("Address") && (
+                        <td className="px-4 py-3 border-r">{row.address}</td>
+                      )}
                       {visibleColumns.includes("Course") && (
                         <td className="px-4 py-3 border-r">{row.course}</td>
                       )}
                       {visibleColumns.includes("Date") && (
-                        <td className="px-4 py-3 border-r whitespace-nowrap">
-                          {formatDisplayDate(row.date)}
-                        </td>
+                        <td className="px-4 py-3 border-r whitespace-nowrap">{formatDisplayDate(row.date)}</td>
                       )}
                       {visibleColumns.includes("Timing") && (
                         <td className="px-4 py-3 border-r whitespace-nowrap">{row.time}</td>
@@ -692,7 +721,6 @@ const OnlineDemo = () => {
                       {visibleColumns.includes("Trainer") && (
                         <td className="px-4 py-3 border-r">{row.trainer}</td>
                       )}
-                      
                       {isCounsellor && (
                         <td className="px-4 py-3">
                           <div className="flex gap-3">
@@ -722,7 +750,6 @@ const OnlineDemo = () => {
                           </div>
                         </td>
                       )}
-                      
                       {isAdmin && (
                         <td className="px-4 py-3">
                           <span className="text-gray-400 flex justify-center p-2 rounded-lg hover:bg-gray-100 transition" title="View Only">
@@ -765,41 +792,60 @@ const OnlineDemo = () => {
                     <div className="font-medium text-gray-500">S.No:</div>
                     <div>{index + 1}</div>
 
+                    {visibleColumns.includes("Name") && (
+                      <>
+                        <div className="font-medium text-gray-500">Name:</div>
+                        <div>{row.name}</div>
+                      </>
+                    )}
+                    {visibleColumns.includes("Mobile") && (
+                      <>
+                        <div className="font-medium text-gray-500">Mobile:</div>
+                        <div>{row.mobile}</div>
+                      </>
+                    )}
+                    {visibleColumns.includes("Email") && (
+                      <>
+                        <div className="font-medium text-gray-500">Email:</div>
+                        <div>{row.email}</div>
+                      </>
+                    )}
+                    {visibleColumns.includes("Address") && (
+                      <>
+                        <div className="font-medium text-gray-500">Address:</div>
+                        <div>{row.address}</div>
+                      </>
+                    )}
                     {visibleColumns.includes("Course") && (
                       <>
                         <div className="font-medium text-gray-500">Course:</div>
                         <div className="truncate">{row.course}</div>
                       </>
                     )}
-
                     {visibleColumns.includes("Date") && (
                       <>
                         <div className="font-medium text-gray-500">Date:</div>
                         <div>{formatDisplayDate(row.date)}</div>
                       </>
                     )}
-
                     {visibleColumns.includes("Timing") && (
                       <>
                         <div className="font-medium text-gray-500">Timing:</div>
                         <div>{row.time}</div>
                       </>
                     )}
-
                     {visibleColumns.includes("Mode") && (
                       <>
                         <div className="font-medium text-gray-500">Mode:</div>
                         <div>{row.mode}</div>
                       </>
                     )}
-
                     {visibleColumns.includes("Medium") && (
                       <>
                         <div className="font-medium text-gray-500">Medium:</div>
                         <div>{row.medium}</div>
                       </>
                     )}
-
                     {visibleColumns.includes("Trainer") && (
                       <>
                         <div className="font-medium text-gray-500">Trainer:</div>
@@ -904,6 +950,62 @@ const OnlineDemo = () => {
               )}
 
               <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {/* Name */}
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Name *</label>
+                  <input
+                    type="text"
+                    value={formData.name}
+                    onChange={(e) => handleInputChange('name', e.target.value)}
+                    placeholder="Enter name"
+                    className={`border rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-blue-500 text-sm ${shouldShowError("name") ? 'border-red-500' : 'border-gray-300'}`}
+                  />
+                  {shouldShowError("name") && (
+                    <p className="text-red-500 text-xs mt-1 flex items-center gap-1"><span>⚠</span> {errors.name}</p>
+                  )}
+                </div>
+                {/* Mobile */}
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Mobile *</label>
+                  <input
+                    type="text"
+                    value={formData.mobile}
+                    onChange={(e) => handleInputChange('mobile', e.target.value)}
+                    placeholder="Enter 10-digit mobile"
+                    className={`border rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-blue-500 text-sm ${shouldShowError("mobile") ? 'border-red-500' : 'border-gray-300'}`}
+                  />
+                  {shouldShowError("mobile") && (
+                    <p className="text-red-500 text-xs mt-1 flex items-center gap-1"><span>⚠</span> {errors.mobile}</p>
+                  )}
+                </div>
+                {/* Email (optional) */}
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Email</label>
+                  <input
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => handleInputChange('email', e.target.value)}
+                    placeholder="Enter email (optional)"
+                    className={`border rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-blue-500 text-sm ${shouldShowError("email") ? 'border-red-500' : 'border-gray-300'}`}
+                  />
+                  {shouldShowError("email") && (
+                    <p className="text-red-500 text-xs mt-1 flex items-center gap-1"><span>⚠</span> {errors.email}</p>
+                  )}
+                </div>
+                {/* Address */}
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Address *</label>
+                  <input
+                    type="text"
+                    value={formData.address}
+                    onChange={(e) => handleInputChange('address', e.target.value)}
+                    placeholder="Enter address"
+                    className={`border rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-blue-500 text-sm ${shouldShowError("address") ? 'border-red-500' : 'border-gray-300'}`}
+                  />
+                  {shouldShowError("address") && (
+                    <p className="text-red-500 text-xs mt-1 flex items-center gap-1"><span>⚠</span> {errors.address}</p>
+                  )}
+                </div>
                 {/* Course */}
                 <div className="lg:col-span-2">
                   <label className="text-sm font-medium text-gray-700">Course *</label>

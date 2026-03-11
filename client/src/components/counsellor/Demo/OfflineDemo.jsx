@@ -54,6 +54,10 @@ const OfflineDemo = () => {
   const dropdownRef = useRef(null);
 
   const defaultColumns = [
+    "Name",
+    "Mobile",
+    "Address",
+    "Email",
     "Course",
     "Branch",
     "Date",
@@ -67,6 +71,10 @@ const OfflineDemo = () => {
   const [columnSearch, setColumnSearch] = useState("");
 
   const [formData, setFormData] = useState({
+    name: "",
+    mobile: "",
+    address: "",
+    email: "",
     course: "",
     branch: "",
     date: "",
@@ -205,6 +213,65 @@ const OfflineDemo = () => {
   // Enhanced validation rules
   const validateForm = () => {
     const newErrors = {};
+    // Required fields
+    if (!formData.name.trim()) {
+      newErrors.name = "Name is required";
+    } else if (formData.name.length > 50) {
+      newErrors.name = "Name cannot exceed 50 characters";
+    }
+    if (!formData.mobile.trim()) {
+      newErrors.mobile = "Mobile is required";
+    } else if (!/^[0-9]{10}$/.test(formData.mobile.replace(/\s/g, ''))) {
+      newErrors.mobile = "Mobile number must be 10 digits";
+    }
+    if (!formData.address.trim()) {
+      newErrors.address = "Address is required";
+    } else if (formData.address.length > 200) {
+      newErrors.address = "Address cannot exceed 200 characters";
+    }
+    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = "Invalid email format";
+    }
+    if (!formData.course.trim()) {
+      newErrors.course = "Course name is required";
+    }
+    if (!formData.branch.trim()) {
+      newErrors.branch = "Branch is required";
+    } else if (formData.branch.trim().length < 2) {
+      newErrors.branch = "Branch must be at least 2 characters";
+    }
+    if (!formData.date) {
+      newErrors.date = "Date is required";
+    } else {
+      try {
+        const selectedDate = new Date(formData.date);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        if (isNaN(selectedDate.getTime())) {
+          newErrors.date = "Invalid date format";
+        } else if (selectedDate < today) {
+          newErrors.date = "Date cannot be in the past";
+        }
+      } catch (error) {
+        newErrors.date = "Invalid date format";
+      }
+    }
+    if (!formData.time) {
+      newErrors.time = "Timing is required";
+    }
+    if (!formData.mode) {
+      newErrors.mode = "Please select mode";
+    }
+    if (!formData.medium.trim()) {
+      newErrors.medium = "Medium is required";
+    } else if (formData.medium.trim().length < 2) {
+      newErrors.medium = "Medium must be at least 2 characters";
+    }
+    if (!formData.trainer.trim()) {
+      newErrors.trainer = "Please select a trainer";
+    }
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
 
     // Required fields
     if (!formData.course.trim()) {
@@ -413,6 +480,10 @@ const OfflineDemo = () => {
     setEditingRow(null);
     setFormSubmitted(false);
     setFormData({
+      name: "",
+      mobile: "",
+      address: "",
+      email: "",
       course: "",
       branch: "",
       date: "",
@@ -699,6 +770,18 @@ const OfflineDemo = () => {
                       className="border-b hover:bg-gray-50 transition"
                     >
                       <td className="px-4 py-3 border-r">{index + 1}</td>
+                      {visibleColumns.includes("Name") && (
+                        <td className="px-4 py-3 border-r">{row.name}</td>
+                      )}
+                      {visibleColumns.includes("Mobile") && (
+                        <td className="px-4 py-3 border-r">{row.mobile}</td>
+                      )}
+                      {visibleColumns.includes("Address") && (
+                        <td className="px-4 py-3 border-r">{row.address}</td>
+                      )}
+                      {visibleColumns.includes("Email") && (
+                        <td className="px-4 py-3 border-r">{row.email}</td>
+                      )}
                       {visibleColumns.includes("Course") && (
                         <td className="px-4 py-3 border-r">{row.course}</td>
                       )}
@@ -706,9 +789,7 @@ const OfflineDemo = () => {
                         <td className="px-4 py-3 border-r">{row.branch}</td>
                       )}
                       {visibleColumns.includes("Date") && (
-                        <td className="px-4 py-3 border-r whitespace-nowrap">
-                          {formatDisplayDate(row.date)}
-                        </td>
+                        <td className="px-4 py-3 border-r whitespace-nowrap">{formatDisplayDate(row.date)}</td>
                       )}
                       {visibleColumns.includes("Timing") && (
                         <td className="px-4 py-3 border-r whitespace-nowrap">{row.time}</td>
@@ -941,6 +1022,62 @@ const OfflineDemo = () => {
               )}
 
               <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {/* Name */}
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Name *</label>
+                  <input
+                    type="text"
+                    value={formData.name}
+                    onChange={(e) => handleInputChange('name', e.target.value)}
+                    placeholder="Enter name"
+                    className={`border rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-blue-500 text-sm ${shouldShowError("name") ? 'border-red-500' : 'border-gray-300'}`}
+                  />
+                  {shouldShowError("name") && (
+                    <p className="text-red-500 text-xs mt-1 flex items-center gap-1"><span>⚠</span> {errors.name}</p>
+                  )}
+                </div>
+                {/* Mobile */}
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Mobile *</label>
+                  <input
+                    type="text"
+                    value={formData.mobile}
+                    onChange={(e) => handleInputChange('mobile', e.target.value)}
+                    placeholder="Enter 10-digit mobile"
+                    className={`border rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-blue-500 text-sm ${shouldShowError("mobile") ? 'border-red-500' : 'border-gray-300'}`}
+                  />
+                  {shouldShowError("mobile") && (
+                    <p className="text-red-500 text-xs mt-1 flex items-center gap-1"><span>⚠</span> {errors.mobile}</p>
+                  )}
+                </div>
+                {/* Email (optional) */}
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Email</label>
+                  <input
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => handleInputChange('email', e.target.value)}
+                    placeholder="Enter email (optional)"
+                    className={`border rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-blue-500 text-sm ${shouldShowError("email") ? 'border-red-500' : 'border-gray-300'}`}
+                  />
+                  {shouldShowError("email") && (
+                    <p className="text-red-500 text-xs mt-1 flex items-center gap-1"><span>⚠</span> {errors.email}</p>
+                  )}
+                </div>
+                {/* Address */}
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Address *</label>
+                  <input
+                    type="text"
+                    value={formData.address}
+                    onChange={(e) => handleInputChange('address', e.target.value)}
+                    placeholder="Enter address"
+                    className={`border rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-blue-500 text-sm ${shouldShowError("address") ? 'border-red-500' : 'border-gray-300'}`}
+                  />
+                  {shouldShowError("address") && (
+                    <p className="text-red-500 text-xs mt-1 flex items-center gap-1"><span>⚠</span> {errors.address}</p>
+                  )}
+                </div>
                 {/* Course */}
                 <div>
                   <label className="text-sm font-medium text-gray-700">Course *</label>

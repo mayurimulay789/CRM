@@ -46,33 +46,19 @@ const EnrollmentManagement = () => {
     { key: 'course', label: 'Course', visible: true },
     { key: 'batch', label: 'Batch', visible: true },
     { key: 'timing', label: 'Timing', visible: true },
-    { key: 'trainingBranch', label: 'Branch', visible: true },
     { key: 'mode', label: 'Mode', visible: true },
     { key: 'counsellor', label: 'Counsellor', visible: true},
     { key: 'status', label: 'Status', visible: true },
     { key: 'feeStatus', label: 'Fee Status', visible: true },
     { key: 'feeType', label: 'Fee Type', visible: true },
+    { key: 'dueDate', label: 'Due Date', visible: true },
     { key: 'totalAmount', label: 'Total Amount', visible: true },
     { key: 'amountReceived', label: 'Amount Received', visible: true },
     { key: 'pendingAmount', label: 'Pending Amount', visible: true },
     { key: 'admissionRegistrationPayment', label: 'Registration Payment', visible: true },
     { key: 'enrollmentDate', label: 'Enrollment Date', visible: true },
-    { key: 'charges', label: 'Late Fees', visible: true },
-    { key: 'dueDate', label: 'Due Date', visible: false },
     { key: 'paymentMode', label: 'Payment Mode', visible: false },
     { key: 'notes', label: 'Notes', visible: false },  
-    { key: '1stEmiAmount', label: '1st EMI', visible: false },
-    { key: '1stEmiDate', label: '1st EMI Date', visible: false },
-    { key: '1stEmiStatus', label: '1st EMI Status', visible: false },
-    { key: '2ndEmiAmount', label: '2nd EMI', visible: false },
-    { key: '2ndEmiDate', label: '2nd EMI Date', visible: false },
-    { key: '2ndEmiStatus', label: '2nd EMI Status', visible: false },
-    { key: '3rdEmiAmount', label: '3rd EMI', visible: false },
-    { key: '3rdEmiDate', label: '3rd EMI Date', visible: false },
-    { key: '3rdEmiStatus', label: '3rd EMI Status', visible: false },
-    { key: 'nextEmiAmount', label: 'Next EMI', visible: true },
-    { key: 'nextEmiDate', label: 'Next EMI Date', visible: true },
-    { key: 'nextEmiStatus', label: 'Next EMI Status', visible: true },
     { key: 'actions', label: 'Actions', visible: true },
   ];
 
@@ -186,6 +172,12 @@ const EnrollmentManagement = () => {
   };
 
   // Helper functions
+    // Helper to format due date
+    const getDueDate = (enrollment) => {
+      if (!enrollment.dueDate) return '-';
+      const date = new Date(enrollment.dueDate);
+      return date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+    };
   const getStudentName = (enrollment) => {
     try {
       if (!enrollment?.student) return 'N/A';
@@ -348,12 +340,12 @@ const EnrollmentManagement = () => {
     }).format(amount || 0);
   };
 
-  // Calculate actual total including late fees and registration fees
+  // Calculate actual total as per new business rule (Total Amount - Registration Payment - Discount)
   const calculateActualTotal = (enrollment) => {
+    // Only totalAmount minus registration payment (no late fees, no addition)
     const baseAmount = enrollment.totalAmount || 0;
-    const lateFees = enrollment.charges || 0;
     const registrationFees = enrollment.admissionRegistrationPayment || 0;
-    return baseAmount + lateFees + registrationFees;
+    return baseAmount - registrationFees;
   };
 
   const formatDate = (dateString) => {
@@ -545,52 +537,128 @@ const EnrollmentManagement = () => {
                 <span>▼</span>
               </button>
 
-              {/* Filter Dropdown Menu */}
-              {showFilterMenu && (
-                <div 
-                  ref={filterMenuRef}
-                  className="absolute right-0 mt-2 w-64 lg:w-72 bg-white border border-gray-200 rounded-lg shadow-xl z-50"
-                >
-                  <div className="p-4">
-                    <h3 className="font-semibold text-gray-800 mb-3 text-sm lg:text-base">Filter by Status</h3>
-                    <div className="space-y-2">
-                      {['all', 'active', 'completed', 'on_hold', 'inactive', 'dropout'].map(status => (
-                        <label key={status} className="flex items-center space-x-2 cursor-pointer">
-                          <input
-                            type="radio"
-                            name="status"
-                            value={status}
-                            checked={filterStatus === status}
-                            onChange={(e) => setFilterStatus(e.target.value)}
-                            className="text-blue-500 focus:ring-blue-500"
-                          />
-                          <span className="capitalize text-sm">
-                            {status === 'all' ? 'All Status' : status.replace('_', ' ')}
-                          </span>
-                        </label>
-                      ))}
+              {/* Header Section */}
+              <div className="flex-shrink-0 bg-white p-4 lg:p-6 border-b border-gray-200">
+                {/* ...existing code... */}
+              </div>
+              {/* Table Container */}
+              <div className="flex-1 min-h-0 bg-gray-50 p-2 lg:p-4">
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 h-full flex flex-col">
+                  {/* Table with horizontal scroll only */}
+                  <div className="flex-1 min-h-0 overflow-auto">
+                    <div className="overflow-x-auto h-full">
+                      <table className="min-w-full divide-y divide-gray-200 border-collapse">
+                        <thead className="bg-gray-50 sticky top-0 z-10">
+                          <tr>
+                            {columns.map(column =>
+                              column.visible && (
+                                <th
+                                  key={column.key}
+                                  className="px-2 lg:px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap border-b border-gray-200 bg-gray-50"
+                                >
+                                  {column.label}
+                                </th>
+                              )
+                            )}
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                          {/* ...existing code for table rows... */}
+                          {currentRecords.map(enrollment => (
+                            <tr key={enrollment._id} className="hover:bg-gray-50">
+                              {columns.map(column => {
+                                if (!column.visible) return null;
+                                switch (column.key) {
+                                  case 'enrollmentNo':
+                                    return <td key={column.key}>{enrollment.enrollmentNo}</td>;
+                                  case 'student':
+                                    return <td key={column.key}>{getStudentName(enrollment)}</td>;
+                                  case 'email':
+                                    return <td key={column.key}>{getStudentEmail(enrollment)}</td>;
+                                  case 'phone':
+                                    return <td key={column.key}>{getStudentPhone(enrollment)}</td>;
+                                  case 'course':
+                                    return <td key={column.key}>{getCourseName(enrollment)}</td>;
+                                  case 'batch':
+                                    return <td key={column.key}>{getBatchName(enrollment)}</td>;
+                                  case 'timing':
+                                    return <td key={column.key}>{getBatchTiming(enrollment)}</td>;
+                                  case 'mode':
+                                    return <td key={column.key}>{enrollment.mode}</td>;
+                                  case 'counsellor':
+                                    return <td key={column.key}>{getCounsellorName(enrollment)}</td>;
+                                  case 'status':
+                                    return <td key={column.key}>{getStatusBadge(enrollment.status)}</td>;
+                                  case 'feeStatus': {
+                                    const feeStatus = getFeeStatus(enrollment);
+                                    return (
+                                      <td key={column.key}>
+                                        <span className={`px-2 py-1 text-xs font-semibold rounded-full ${feeStatus.color}`}>
+                                          {feeStatus.label}
+                                        </span>
+                                      </td>
+                                    );
+                                  }
+                                  case 'feeType':
+                                    return <td key={column.key}>{enrollment.feeType}</td>;
+                                  case 'dueDate':
+                                    return <td key={column.key}>{getDueDate(enrollment)}</td>;
+                                  case 'totalAmount':
+                                    return <td key={column.key}>{formatCurrency(enrollment.totalAmount)}</td>;
+                                  case 'amountReceived':
+                                    return <td key={column.key}>{formatCurrency(enrollment.amountReceived)}</td>;
+                                  case 'pendingAmount':
+                                    return <td key={column.key}>{formatCurrency(enrollment.pendingAmount)}</td>;
+                                  case 'admissionRegistrationPayment':
+                                    return <td key={column.key}>{formatCurrency(enrollment.admissionRegistrationPayment)}</td>;
+                                  case 'enrollmentDate':
+                                    return <td key={column.key}>{formatDate(enrollment.enrollmentDate)}</td>;
+                                  case 'paymentMode':
+                                    return <td key={column.key}>{enrollment.paymentMode || '-'}</td>;
+                                  case 'notes':
+                                    return <td key={column.key}>{truncateText(enrollment.notes)}</td>;
+                                  case 'actions':
+                                    return (
+                                      <td key={column.key}>
+                                        <div className="flex space-x-2">
+                                          <button
+                                            onClick={() => handleEdit(enrollment)}
+                                            className="bg-blue-500 text-white px-2 py-1 rounded text-xs hover:bg-blue-600"
+                                          >Edit</button>
+                                          {canDeleteEnrollment(enrollment) && (
+                                            <button
+                                              onClick={() => handleDelete(enrollment._id)}
+                                              className="bg-red-500 text-white px-2 py-1 rounded text-xs hover:bg-red-600"
+                                            >Delete</button>
+                                          )}
+                                        </div>
+                                      </td>
+                                    );
+                                  default:
+                                    return <td key={column.key}>{enrollment[column.key] || '-'}</td>;
+                                }
+                              })}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
-                    
-                    <div className="mt-4 pt-3 border-t border-gray-200">
-                      <h3 className="font-semibold text-gray-800 mb-3 text-sm lg:text-base">Search</h3>
-                      <input
-                        type="text"
-                        placeholder="Search enrollments..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                      />
+                  </div>
+                  {/* Table Footer with Pagination */}
+                  {filteredEnrollments.length > 0 && (
+                    <div className="flex-shrink-0 bg-gray-50 px-4 lg:px-6 py-3 lg:py-4 border-t border-gray-200">
+                      {/* ...existing code... */}
                     </div>
-                    
-                    <div className="mt-4 flex justify-between">
-                      <button
-                        onClick={resetFilters}
-                        className="px-3 py-1 text-sm text-gray-600 hover:text-gray-800"
-                      >
-                        Reset
-                      </button>
-                      <button
-                        onClick={() => setShowFilterMenu(false)}
+                  )}
+                </div>
+              </div>
+              {/* Enrollment Form Modal */}
+              {showForm && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-2 lg:p-4 z-50">
+                  {/* ...existing code... */}
+                </div>
+              )}
+            </div>
                         className="px-4 py-2 bg-[#890c25] text-white text-sm rounded-lg hover:bg-[#890c25]"
                       >
                         Apply
@@ -807,82 +875,84 @@ const EnrollmentManagement = () => {
                               return (
                                 <td key={column.key} className={`${baseCellClasses} text-gray-700 whitespace-nowrap`}>
                                   <span className="bg-purple-100 text-purple-800 text-xs px-1 lg:px-2 py-0.5 lg:py-1 rounded">
-                                    {getCourseName(enrollment)}
-                                  </span>
-                                </td>
+                                    {currentRecords.map(enrollment => (
+                                      <tr key={enrollment._id} className="hover:bg-gray-50">
+                                        {columns.map(column => {
+                                          if (!column.visible) return null;
+                                          switch (column.key) {
+                                            case 'enrollmentNo':
+                                              return <td key={column.key}>{enrollment.enrollmentNo}</td>;
+                                            case 'student':
+                                              return <td key={column.key}>{getStudentName(enrollment)}</td>;
+                                            case 'email':
+                                              return <td key={column.key}>{getStudentEmail(enrollment)}</td>;
+                                            case 'phone':
+                                              return <td key={column.key}>{getStudentPhone(enrollment)}</td>;
+                                            case 'course':
+                                              return <td key={column.key}>{getCourseName(enrollment)}</td>;
+                                            case 'batch':
+                                              return <td key={column.key}>{getBatchName(enrollment)}</td>;
+                                            case 'timing':
+                                              return <td key={column.key}>{getBatchTiming(enrollment)}</td>;
+                                            case 'mode':
+                                              return <td key={column.key}>{enrollment.mode}</td>;
+                                            case 'counsellor':
+                                              return <td key={column.key}>{getCounsellorName(enrollment)}</td>;
+                                            case 'status':
+                                              return <td key={column.key}>{getStatusBadge(enrollment.status)}</td>;
+                                            case 'feeStatus': {
+                                              const feeStatus = getFeeStatus(enrollment);
+                                              return (
+                                                <td key={column.key}>
+                                                  <span className={`px-2 py-1 text-xs font-semibold rounded-full ${feeStatus.color}`}>
+                                                    {feeStatus.label}
+                                                  </span>
+                                                </td>
+                                              );
+                                            }
+                                            case 'feeType':
+                                              return <td key={column.key}>{enrollment.feeType}</td>;
+                                            case 'dueDate':
+                                              return <td key={column.key}>{getDueDate(enrollment)}</td>;
+                                            case 'totalAmount':
+                                              return <td key={column.key}>{formatCurrency(enrollment.totalAmount)}</td>;
+                                            case 'amountReceived':
+                                              return <td key={column.key}>{formatCurrency(enrollment.amountReceived)}</td>;
+                                            case 'pendingAmount':
+                                              return <td key={column.key}>{formatCurrency(enrollment.pendingAmount)}</td>;
+                                            case 'admissionRegistrationPayment':
+                                              return <td key={column.key}>{formatCurrency(enrollment.admissionRegistrationPayment)}</td>;
+                                            case 'enrollmentDate':
+                                              return <td key={column.key}>{formatDate(enrollment.enrollmentDate)}</td>;
+                                            case 'paymentMode':
+                                              return <td key={column.key}>{enrollment.paymentMode || '-'}</td>;
+                                            case 'notes':
+                                              return <td key={column.key}>{truncateText(enrollment.notes)}</td>;
+                                            case 'actions':
+                                              return (
+                                                <td key={column.key}>
+                                                  <div className="flex space-x-2">
+                                                    <button
+                                                      onClick={() => handleEdit(enrollment)}
+                                                      className="bg-blue-500 text-white px-2 py-1 rounded text-xs hover:bg-blue-600"
+                                                    >Edit</button>
+                                                    {canDeleteEnrollment(enrollment) && (
+                                                      <button
+                                                        onClick={() => handleDelete(enrollment._id)}
+                                                        className="bg-red-500 text-white px-2 py-1 rounded text-xs hover:bg-red-600"
+                                                      >Delete</button>
+                                                    )}
+                                                  </div>
+                                                </td>
+                                              );
+                                            default:
+                                              return <td key={column.key}>{enrollment[column.key] || '-'}</td>;
+                                          }
+                                        })}
+                                      </tr>
+                                    ))}
+                                0
                               );
-                            case 'batch':
-                              return (
-                                <td key={column.key} className={`${baseCellClasses} text-gray-700 whitespace-nowrap`}>
-                                  {getBatchName(enrollment)}
-                                </td>
-                              );
-                            case 'timing':
-                              return (
-                                <td key={column.key} className={`${baseCellClasses} text-gray-500 whitespace-nowrap`}>
-                                  {getBatchTiming(enrollment) || '-'}
-                                </td>
-                              );
-                            case 'trainingBranch':
-                              return (
-                                <td key={column.key} className={`${baseCellClasses} text-gray-700 whitespace-nowrap`}>
-                                  {enrollment.trainingBranch || '-'}
-                                </td>
-                              );
-                            case 'mode':
-                              return (
-                                <td key={column.key} className={`${baseCellClasses} text-gray-700 whitespace-nowrap`}>  
-                                  {enrollment.mode || '-'}
-                                </td>
-                              );
-                            case 'counsellor':
-                              return (
-                                <td key={column.key} className={`${baseCellClasses} text-gray-700 whitespace-nowrap`}>
-                                  <span className="bg-green-100 text-green-800 text-xs px-1 lg:px-2 py-0.5 lg:py-1 rounded">
-                                    {getCounsellorName(enrollment)}
-                                  </span>
-                                </td>
-                              );
-                            case 'status':
-                              return (
-                                <td key={column.key} className={`${baseCellClasses} text-center`}>
-                                  {getStatusBadge(enrollment.status)}
-                                </td>
-                              );
-                            case 'feeStatus':
-                              return (
-                                <td key={column.key} className={`${baseCellClasses} text-center`}>
-                                  <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getFeeStatus(enrollment).color}`}>
-                                    {getFeeStatus(enrollment).label}
-                                  </span>
-                                  {enrollment.pendingAmount > 0 && (
-                                    <div className="text-xs text-gray-500 mt-1 hidden lg:block">
-                                      Due: {formatCurrency(calculateActualTotal(enrollment) - (enrollment.amountReceived || 0))}
-                                    </div>
-                                  )}
-                                </td>
-                              );
-                            case 'feeType':
-                              return (
-                                <td key={column.key} className={`${baseCellClasses} text-gray-700 whitespace-nowrap capitalize`}>
-                                  {enrollment.feeType || '-'}
-                                </td>
-                              );
-                            case 'totalAmount':
-                              const actualTotal = calculateActualTotal(enrollment);
-                              return (
-                                <td key={column.key} className={`${baseCellClasses} text-gray-900 font-semibold whitespace-nowrap`} title={`Base: ${formatCurrency(enrollment.totalAmount)} + Late Fees: ${formatCurrency(enrollment.charges || 0)} + Registration: ${formatCurrency(enrollment.admissionRegistrationPayment || 0)}`}>
-                                  {formatCurrency(actualTotal)}
-                                </td>
-                              );
-                            case 'amountReceived':
-                              return (
-                                <td key={column.key} className={`${baseCellClasses} text-green-600 font-semibold whitespace-nowrap`}>
-                                  {formatCurrency(enrollment.amountReceived)}
-                                </td>
-                              );
-                            case 'pendingAmount':
-                              const actualPending = calculateActualTotal(enrollment) - (enrollment.amountReceived || 0);
                               return (
                                 <td key={column.key} className={`${baseCellClasses} text-red-600 font-semibold whitespace-nowrap`}>
                                   {formatCurrency(actualPending)}

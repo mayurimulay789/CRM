@@ -46,7 +46,6 @@ const EnrollmentManagement = () => {
     { key: 'course', label: 'Course', visible: true },
     { key: 'batch', label: 'Batch', visible: true },
     { key: 'timing', label: 'Timing', visible: true },
-    { key: 'trainingBranch', label: 'Branch', visible: true },
     { key: 'mode', label: 'Mode', visible: true },
     { key: 'counsellor', label: 'Counsellor', visible: true},
     { key: 'status', label: 'Status', visible: true },
@@ -57,22 +56,8 @@ const EnrollmentManagement = () => {
     { key: 'pendingAmount', label: 'Pending Amount', visible: true },
     { key: 'admissionRegistrationPayment', label: 'Registration Payment', visible: true },
     { key: 'enrollmentDate', label: 'Enrollment Date', visible: true },
-    { key: 'charges', label: 'Late Fees', visible: true },
-    { key: 'dueDate', label: 'Due Date', visible: false },
     { key: 'paymentMode', label: 'Payment Mode', visible: false },
     { key: 'notes', label: 'Notes', visible: false },  
-    { key: '1stEmiAmount', label: '1st EMI', visible: false },
-    { key: '1stEmiDate', label: '1st EMI Date', visible: false },
-    { key: '1stEmiStatus', label: '1st EMI Status', visible: false },
-    { key: '2ndEmiAmount', label: '2nd EMI', visible: false },
-    { key: '2ndEmiDate', label: '2nd EMI Date', visible: false },
-    { key: '2ndEmiStatus', label: '2nd EMI Status', visible: false },
-    { key: '3rdEmiAmount', label: '3rd EMI', visible: false },
-    { key: '3rdEmiDate', label: '3rd EMI Date', visible: false },
-    { key: '3rdEmiStatus', label: '3rd EMI Status', visible: false },
-    { key: 'nextEmiAmount', label: 'Next EMI', visible: true },
-    { key: 'nextEmiDate', label: 'Next EMI Date', visible: true },
-    { key: 'nextEmiStatus', label: 'Next EMI Status', visible: true },
     { key: 'actions', label: 'Actions', visible: true },
   ];
 
@@ -331,10 +316,10 @@ const EnrollmentManagement = () => {
 
   // Calculate actual total including late fees and registration fees
   const calculateActualTotal = (enrollment) => {
+    // Only totalAmount minus registration payment (no late fees, no addition)
     const baseAmount = enrollment.totalAmount || 0;
-    const lateFees = enrollment.charges || 0;
     const registrationFees = enrollment.admissionRegistrationPayment || 0;
-    return baseAmount + lateFees + registrationFees;
+    return baseAmount - registrationFees;
   };
 
   const formatDate = (dateString) => {

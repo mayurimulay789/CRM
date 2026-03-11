@@ -23,6 +23,7 @@ const LiveClassSchema = new mongoose.Schema({
   name: { type: String, required: true },
   date: { type: Date, required: true },
   timing: { type: String, required: true },
+  batch: { type: String },
   email: { type: String },
   mobile: { type: String },
   trainer: { type: String },
