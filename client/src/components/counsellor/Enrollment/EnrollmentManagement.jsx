@@ -814,12 +814,12 @@ const EnrollmentManagement = () => {
                               // Amount received = admission registration payment
                               return (
                                 <td key={column.key} className={`${baseCellClasses} text-green-600 font-semibold whitespace-nowrap`}>
-                                  {formatCurrency(enrollment.admissionRegistrationPayment || 0)}
+                                  {formatCurrency(enrollment.amountReceived || 0)}
                                 </td>
                               );
                             case 'pendingAmount':
                               // Pending = total amount - admission registration payment
-                              const pendingAmt = Math.max((enrollment.totalAmount || 0) - (enrollment.admissionRegistrationPayment || 0), 0);
+                              const pendingAmt = (enrollment.pendingAmount || 0);
                               return (
                                 <td key={column.key} className={`${baseCellClasses} text-red-600 font-semibold whitespace-nowrap`}>
                                   {formatCurrency(pendingAmt)}

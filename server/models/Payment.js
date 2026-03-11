@@ -55,7 +55,6 @@ const paymentSchema = new mongoose.Schema({
   admissionBranch: String,
   receivedBranch: {
     type: String,
-    required: true
   },
   trainingBranch: {
     type: String,

@@ -454,7 +454,7 @@ const recordPayment = async (req, res) => {
       paymentMode,
       paymentBank,
       transactionNo,
-      receivedBranch,
+      receivedBranch='N/A',
       paymentProof,
       chequeDetails,
       remarks,

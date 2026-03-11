@@ -12,7 +12,7 @@ const PaymentForm = ({ onClose }) => {
   const [formData, setFormData] = useState({
     enrollment: '',
     amountReceived: '',
-    feeType: 'one-time',        // Updated to match backend enum ['one-time', 'installment']
+    feeType: 'one-time',
     paymentMode: 'cash',
     paymentBank: '',
     transactionNo: '',
@@ -24,17 +24,18 @@ const PaymentForm = ({ onClose }) => {
       chequeDate: '',
     },
     remarks: '',
-    installmentNo: '' // New field (replaces emiNumber)
+    installmentNo: ''
   });
 
   const [errors, setErrors] = useState({});
   const [selectedEnrollment, setSelectedEnrollment] = useState(null);
-  console.log("selected enrollment ",selectedEnrollment);
 
+  // Fetch enrollments on mount
   useEffect(() => {
     dispatch(fetchEnrollments());
   }, [dispatch]);
 
+  // Close modal on success
   useEffect(() => {
     if (success) {
       const timer = setTimeout(() => {
@@ -44,6 +45,7 @@ const PaymentForm = ({ onClose }) => {
     }
   }, [success, onClose]);
 
+  // Clear errors/success on unmount
   useEffect(() => {
     return () => {
       dispatch(clearError());
@@ -51,16 +53,18 @@ const PaymentForm = ({ onClose }) => {
     };
   }, [dispatch]);
 
+  // Update form when enrollment changes
   useEffect(() => {
     if (formData.enrollment) {
       const enrollment = enrollments.find(e => e._id === formData.enrollment);
       setSelectedEnrollment(enrollment);
       if (enrollment) {
-        // Auto-set fee type from enrollment
         setFormData(prev => ({
           ...prev,
           feeType: enrollment.feeType || 'one-time',
           receivedBranch: enrollment.trainingBranch || prev.receivedBranch,
+          // Auto-fill amount with pending amount for one-time payments
+          amountReceived: enrollment.feeType === 'one-time' ? enrollment.pendingAmount : prev.amountReceived
         }));
       }
     } else {
@@ -90,7 +94,6 @@ const PaymentForm = ({ onClose }) => {
     if (!formData.enrollment) newErrors.enrollment = 'Enrollment is required';
     if (!formData.amountReceived || formData.amountReceived <= 0) newErrors.amountReceived = 'Valid amount is required';
     if (!formData.paymentMode) newErrors.paymentMode = 'Payment mode is required';
-    if (!formData.receivedBranch) newErrors.receivedBranch = 'Received branch is required';
 
     if (formData.paymentMode === 'cheque') {
       if (!formData.chequeDetails.chequeNo) newErrors.chequeNo = 'Cheque number is required';
@@ -98,14 +101,25 @@ const PaymentForm = ({ onClose }) => {
     }
 
     if (selectedEnrollment) {
-      // Check if amount exceeds pending amount
-      if (parseFloat(formData.amountReceived) > selectedEnrollment.pendingAmount) {
-        newErrors.amountReceived = `Amount cannot exceed pending amount of ${formatCurrency(selectedEnrollment.pendingAmount)}`;
+      const pendingAmount = selectedEnrollment.pendingAmount || 0;
+      const amount = parseFloat(formData.amountReceived) || 0;
+
+      // ✅ ONE-TIME PAYMENT: Must match pending amount exactly
+      if (selectedEnrollment.feeType === 'one-time') {
+        if (amount !== pendingAmount) {
+          newErrors.amountReceived = `One-time payment must be exactly ${formatCurrency(pendingAmount)}`;
+        }
       }
 
-      // For installment payments, installment number is required
-      if (formData.feeType === 'installment' && !formData.installmentNo) {
-        newErrors.installmentNo = 'Installment number is required for installment payments';
+      // ✅ INSTALLMENT PAYMENT: Can be any amount up to pending amount
+      if (selectedEnrollment.feeType === 'installment') {
+        if (amount > pendingAmount) {
+          newErrors.amountReceived = `Amount cannot exceed pending amount of ${formatCurrency(pendingAmount)}`;
+        }
+        
+        if (!formData.installmentNo) {
+          newErrors.installmentNo = 'Installment number is required for installment payments';
+        }
       }
     }
 
@@ -118,33 +132,42 @@ const PaymentForm = ({ onClose }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
     if (!validateForm()) return;
 
     dispatch(clearError());
 
+    // Prepare data for backend
     const submitData = {
       enrollment: formData.enrollment,
       amountReceived: parseFloat(formData.amountReceived),
       feeType: formData.feeType,
       paymentMode: formData.paymentMode,
-      paymentBank: formData.paymentBank || undefined,
-      transactionNo: formData.transactionNo || undefined,
       receivedBranch: formData.receivedBranch,
-      paymentProof: formData.paymentProof || undefined,
-      remarks: formData.remarks || undefined,
-      chequeDetails: formData.paymentMode === 'cheque' ? {
-        chequeNo: formData.chequeDetails.chequeNo,
-        bankName: formData.chequeDetails.bankName,
-        chequeDate: formData.chequeDetails.chequeDate || undefined
-      } : undefined,
-      // Only include installmentNo for installment payments
-      ...(formData.feeType === 'installment' && { installmentNo: parseInt(formData.installmentNo) })
+      // Optional fields
+      ...(formData.paymentBank && { paymentBank: formData.paymentBank }),
+      ...(formData.transactionNo && { transactionNo: formData.transactionNo }),
+      ...(formData.paymentProof && { paymentProof: formData.paymentProof }),
+      ...(formData.remarks && { remarks: formData.remarks }),
+      // Cheque details
+      ...(formData.paymentMode === 'cheque' && {
+        chequeDetails: {
+          chequeNo: formData.chequeDetails.chequeNo,
+          bankName: formData.chequeDetails.bankName,
+          ...(formData.chequeDetails.chequeDate && { chequeDate: formData.chequeDetails.chequeDate })
+        }
+      }),
+      // Installment number for installment payments
+      ...(formData.feeType === 'installment' && formData.installmentNo && { 
+        installmentNo: parseInt(formData.installmentNo) 
+      })
     };
 
+    console.log('Submitting payment data:', submitData);
     await dispatch(createPayment(submitData));
   };
 
-  // Counsellor can only see their own active enrollments
+  // Filter enrollments for counsellor
   const counsellorEnrollments = enrollments.filter(
     enrollment => (enrollment.counsellor?._id === user?._id || enrollment.counsellor === user?._id) 
   );
@@ -256,20 +279,24 @@ const PaymentForm = ({ onClose }) => {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Amount Received *
               </label>
-              <div className="relative">
-                <input
-                  type="number"
-                  name="amountReceived"
-                  value={formData.amountReceived}
-                  onChange={handleChange}
-                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors.amountReceived ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                  placeholder="Enter amount"
-                  min="0"
-                  step="1"
-                />
-              </div>
+              <input
+                type="number"
+                name="amountReceived"
+                value={formData.amountReceived}
+                onChange={handleChange}
+                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  errors.amountReceived ? 'border-red-500' : 'border-gray-300'
+                }`}
+                placeholder="Enter amount"
+                min="0"
+                step="1"
+                readOnly={selectedEnrollment?.feeType === 'one-time'} // Make read-only for one-time
+              />
+              {selectedEnrollment?.feeType === 'one-time' && (
+                <p className="text-green-600 text-xs mt-1">
+                  Amount auto-filled to pending amount (must pay exactly {formatCurrency(selectedEnrollment.pendingAmount)})
+                </p>
+              )}
               {errors.amountReceived && <p className="text-red-500 text-xs mt-1">{errors.amountReceived}</p>}
             </div>
 
@@ -322,24 +349,7 @@ const PaymentForm = ({ onClose }) => {
               {errors.paymentMode && <p className="text-red-500 text-xs mt-1">{errors.paymentMode}</p>}
             </div>
 
-            {/* Received Branch */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Received Branch *
-              </label>
-              <input
-                type="text"
-                name="receivedBranch"
-                value={formData.receivedBranch}
-                onChange={handleChange}
-                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  errors.receivedBranch ? 'border-red-500' : 'border-gray-300'
-                }`}
-                placeholder="Enter branch"
-              />
-              {errors.receivedBranch && <p className="text-red-500 text-xs mt-1">{errors.receivedBranch}</p>}
-            </div>
-
+           
             {/* Payment Bank (for card/online/transfer) */}
             {(formData.paymentMode === 'card' || formData.paymentMode === 'online' || formData.paymentMode === 'bank_transfer') && (
               <div className="md:col-span-2">
@@ -450,9 +460,14 @@ const PaymentForm = ({ onClose }) => {
                   All payments recorded will be pending admin approval. The amount will be reflected in the enrollment 
                   only after admin approval. Please ensure all details are accurate.
                 </p>
+                {selectedEnrollment?.feeType === 'one-time' && (
+                  <p className="text-yellow-700 text-sm mt-2">
+                    <strong>For One-Time Payments:</strong> Amount must be exactly the pending amount. The field is auto-filled and read-only.
+                  </p>
+                )}
                 {selectedEnrollment?.feeType === 'installment' && (
                   <p className="text-yellow-700 text-sm mt-2">
-                    <strong>For Installment Payments:</strong> Please select the correct installment number.
+                    <strong>For Installment Payments:</strong> Please select the correct installment number and enter the amount.
                   </p>
                 )}
               </div>

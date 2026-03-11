@@ -51,7 +51,7 @@ const createEnrollment = async (req, res) => {
     }
 
     // Calculate actual total including late fees and registration payment
-    const actualTotal = (totalAmount || 0) + (charges || 0) + (admissionRegistrationPayment || 0);
+    const actualTotal = (totalAmount || 0)  + (admissionRegistrationPayment || 0);
 
     // EMI and dueDate validation removed
 
