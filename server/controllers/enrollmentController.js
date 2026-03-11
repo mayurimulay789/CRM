@@ -13,13 +13,11 @@ const createEnrollment = async (req, res) => {
     const {
       admission,
       batch,
-      trainingBranch,
+     
       mode,
       totalAmount,
-      discount = 0,
       feeType,
-      // EMI and dueDate fields removed
-      charges,
+      dueDate,
       leadDate,
       leadSource,
       call,
@@ -84,9 +82,8 @@ const createEnrollment = async (req, res) => {
       batch,
       mode,
       totalAmount,
-      discount,
       feeType,
-      charges: charges || 0,
+      dueDate: dueDate || null,
       leadDate,
       leadSource,
       call,
@@ -775,12 +772,12 @@ const updateEnrollment = async (req, res) => {
     
     if (userRole === 'Counsellor') {
       allowedUpdates = [
-        'batch', 'mode', 'charges', 'call', 'feeType',
+        'batch', 'mode', 'charges', 'call', 'feeType', 'dueDate',
         'totalAmount', 'actualAmount', 'discount', 'leadDate', 'leadSource', 'admissionRegistrationPayment'
       ];
     } else if (userRole === 'admin') {
       allowedUpdates = [
-        'batch', 'mode', 'status', 'charges', 'call', 'feeType',
+        'batch', 'mode', 'status', 'charges', 'call', 'feeType', 'dueDate',
         'totalAmount', 'actualAmount', 'discount', 'leadDate', 'leadSource', 'counsellor', 'admissionRegistrationPayment'
       ];
     } else {
@@ -858,7 +855,7 @@ const updateEnrollment = async (req, res) => {
       console.log(`   🔄 ${update}: ${JSON.stringify(oldValue)} → ${JSON.stringify(newValue)}`);
     });
 
-    // EMI validation removed for installment fee type
+    
 
     await enrollment.save();
     console.log('💾 Enrollment saved successfully');
