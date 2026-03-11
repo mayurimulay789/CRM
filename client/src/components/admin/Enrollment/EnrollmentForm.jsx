@@ -22,7 +22,7 @@ const EnrollmentForm = ({ enrollment, onClose, isCounsellor = true, counsellorId
     actualAmount: '',
     totalAmount: '',
     feeType: 'one-time',
-    // EMI fields removed
+    dueDate: '',
     leadDate: new Date().toISOString().split('T')[0],
     leadSource: 'website',
     call: '',
@@ -67,14 +67,13 @@ const EnrollmentForm = ({ enrollment, onClose, isCounsellor = true, counsellorId
         totalAmount: enrollment.totalAmount || '',
         actualAmount: enrollment.actualAmount || enrollment.totalAmount || '',
         feeType: enrollment.feeType || 'one-time',
-        // EMI fields removed
+        dueDate: formatDateForInput(enrollment.dueDate) || '',
         leadDate: formatDateForInput(enrollment.leadDate) || new Date().toISOString().split('T')[0],
         leadSource: enrollment.leadSource || 'website',
         call: enrollment.call || '',
         status: enrollment.status || 'active',
         admissionRegistrationPayment: enrollment.admissionRegistrationPayment || 0
       });
-              // ...existing code...
     }
   }, [enrollment]);
 
@@ -233,7 +232,7 @@ const EnrollmentForm = ({ enrollment, onClose, isCounsellor = true, counsellorId
       totalAmount: parseFloat(formData.totalAmount),
       actualAmount: formData.actualAmount ? parseFloat(formData.actualAmount) : parseFloat(formData.totalAmount),
       feeType: formData.feeType,
-      // charges removed
+      dueDate: formData.dueDate ? new Date(formData.dueDate) : null,
       leadDate: formData.leadDate ? new Date(formData.leadDate) : new Date(),
       leadSource: formData.leadSource,
       call: formData.call,
@@ -292,8 +291,7 @@ const EnrollmentForm = ({ enrollment, onClose, isCounsellor = true, counsellorId
     batch.status === 'Running' || batch.status === 'Upcoming'
   );
 
-  const totalEMIAmount = parseFloat(formData.firstEMI.amount || 0) + 
-                        0;
+  const totalEMIAmount = 0;
   // EMI comparison removed
 
   // Helper component for required field indicator
@@ -481,7 +479,19 @@ const EnrollmentForm = ({ enrollment, onClose, isCounsellor = true, counsellorId
               </select>
             </div>
 
-            {/* Removed Due Date field */}
+            {/* Due Date */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Due Date
+              </label>
+              <input
+                type="date"
+                name="dueDate"
+                value={formData.dueDate}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
           </div>
 
           {/* Admission Registration Payment */}
