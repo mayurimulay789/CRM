@@ -6,10 +6,6 @@ const batchSchema = new mongoose.Schema({
     required: [true, 'Batch name is required'],
     trim: true,
   },
-  description: {
-    type: String,
-    trim: true,
-  },
   startDate: {
     type: Date,
   },
@@ -44,10 +40,6 @@ const batchSchema = new mongoose.Schema({
     type: String,
     trim: true,
   },
-  course: {
-    type: String,
-    trim: true,
-  },
   studentsActive: {
     type: Number,
     default: 0,
@@ -55,6 +47,7 @@ const batchSchema = new mongoose.Schema({
   },
   batchType: {
     type: String,
+    enum: ['Weekday', 'Weekend'],
     trim: true,
   },
   mode: {

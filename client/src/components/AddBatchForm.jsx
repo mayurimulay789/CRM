@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import toast from 'react-hot-toast';
-import { createBatch, updateBatch,  clearError, clearSuccess, setError } from '../store/slices/batchSlice';
+import { createBatch, updateBatch, clearError, clearSuccess, setError } from '../store/slices/batchSlice';
 import { getTrainers } from '../store/slices/trainerSlice';
 import { fetchCourses } from '../store/slices/courseSlice';
 
@@ -37,7 +37,6 @@ const AddBatchForm = ({ onBack, isEdit = false, batchData = null, onEditSubmit =
 
   const [formData, setFormData] = useState({
     name: '',
-    description: '',
     startDate: '',
     endDate: '',
     status: 'Upcoming',
@@ -47,9 +46,8 @@ const AddBatchForm = ({ onBack, isEdit = false, batchData = null, onEditSubmit =
     code: '',
     completionDate: '',
     timing: '',
-    course: '',
-    batchType: 'weekday',
-    mode: '',
+    batchType: 'Weekday',
+    mode: 'Offline',
     country: '',
     mergingStatus: '',
     mergingTill: '',
@@ -70,13 +68,6 @@ const AddBatchForm = ({ onBack, isEdit = false, batchData = null, onEditSubmit =
     }
   }, [isEdit, batchData]);
 
-  const courseOptions = useMemo(() => {
-    return (courses || []).map((c) => {
-      const label = c.name || c.title || c.courseName || 'Untitled Course';
-      return { id: c._id || label, label };
-    });
-  }, [courses]);
-
   // Compute today and tomorrow date strings for min/max constraints
   const today = new Date().toISOString().split('T')[0];
   const tomorrowDate = new Date();
@@ -94,7 +85,6 @@ const AddBatchForm = ({ onBack, isEdit = false, batchData = null, onEditSubmit =
     if (isEdit && batchData) {
       setFormData({
         name: batchData.name || '',
-        description: batchData.description || '',
         startDate: batchData.startDate ? new Date(batchData.startDate).toISOString().split('T')[0] : '',
         endDate: batchData.endDate ? new Date(batchData.endDate).toISOString().split('T')[0] : '',
         status: batchData.status || 'Upcoming',
@@ -104,9 +94,8 @@ const AddBatchForm = ({ onBack, isEdit = false, batchData = null, onEditSubmit =
         code: batchData.code || '',
         completionDate: batchData.completionDate ? new Date(batchData.completionDate).toISOString().split('T')[0] : '',
         timing: batchData.timing || '',
-        course: batchData.course || '',
-        batchType: batchData.batchType || 'weekday',
-        mode: batchData.mode || '',
+        batchType: batchData.batchType || 'Weekday',
+        mode: batchData.mode || 'Offline',
         country: batchData.country || '',
         mergingStatus: batchData.mergingStatus || '',
         mergingTill: batchData.mergingTill ? new Date(batchData.mergingTill).toISOString().split('T')[0] : '',
@@ -141,6 +130,10 @@ const AddBatchForm = ({ onBack, isEdit = false, batchData = null, onEditSubmit =
 
   const validateForm = () => {
     const errors = {};
+
+    if (!formData.name.trim()) {
+      errors.name = 'Batch name is required.';
+    } 
     if (!formData.startDate) {
       errors.startDate = 'Start date is required.';
     } else if (formData.status === 'Upcoming' && formData.startDate <= today) {
@@ -161,10 +154,6 @@ const AddBatchForm = ({ onBack, isEdit = false, batchData = null, onEditSubmit =
 
     if (!formData.timing) {
       errors.timing = 'Timing is required.';
-    }
-
-    if (!formData.course.trim()) {
-      errors.course = 'Course is required.';
     }
 
     if (!formData.batchType.trim()) {
@@ -210,7 +199,6 @@ const AddBatchForm = ({ onBack, isEdit = false, batchData = null, onEditSubmit =
         // Reset form after successful submission
         setFormData({
           name: '',
-          description: '',
           startDate: '',
           endDate: '',
           status: 'Upcoming',
@@ -220,9 +208,8 @@ const AddBatchForm = ({ onBack, isEdit = false, batchData = null, onEditSubmit =
           code: '',
           completionDate: '',
           timing: '',
-          course: '',
-          batchType: 'weekday',
-          mode: '',
+          batchType: 'Weekday',
+          mode: 'Offline',
           country: '',
           mergingStatus: '',
           mergingTill: '',
@@ -254,7 +241,7 @@ const AddBatchForm = ({ onBack, isEdit = false, batchData = null, onEditSubmit =
           <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="md:col-span-2">
               <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-                Name
+                Batch Name
               </label>
               <input
                 type="text"
@@ -265,19 +252,8 @@ const AddBatchForm = ({ onBack, isEdit = false, batchData = null, onEditSubmit =
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
               />
             </div>
-            <div className="md:col-span-2">
-              <label htmlFor="description" className="block text-sm font-medium text-gray-700">
-                Description
-              </label>
-              <textarea
-                id="description"
-                name="description"
-                value={formData.description}
-                onChange={handleChange}
-                rows="4"
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-              />
-            </div>
+           
+            
             <div>
               <label htmlFor="status" className="block text-sm font-medium text-gray-700">
                 Status
@@ -294,6 +270,7 @@ const AddBatchForm = ({ onBack, isEdit = false, batchData = null, onEditSubmit =
                 ))}
               </select>
             </div>
+            
             <div>
               <label htmlFor="branch" className="block text-sm font-medium text-gray-700">
                 Branch
@@ -307,6 +284,7 @@ const AddBatchForm = ({ onBack, isEdit = false, batchData = null, onEditSubmit =
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
               />
             </div>
+            
             <div>
               <label htmlFor="startDate" className="block text-sm font-medium text-gray-700">
                 Start Date
@@ -322,6 +300,7 @@ const AddBatchForm = ({ onBack, isEdit = false, batchData = null, onEditSubmit =
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
               />
             </div>
+            
             <div>
               <label htmlFor="endDate" className="block text-sm font-medium text-gray-700">
                 End Date
@@ -336,19 +315,7 @@ const AddBatchForm = ({ onBack, isEdit = false, batchData = null, onEditSubmit =
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
               />
             </div>
-            <div>
-              <label htmlFor="branch" className="block text-sm font-medium text-gray-700">
-                Branch
-              </label>
-              <input
-                type="text"
-                id="branch"
-                name="branch"
-                value={formData.branch}
-                onChange={handleChange}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-              />
-            </div>
+            
             <div className="relative">
               <label htmlFor="trainer" className="block text-sm font-medium text-gray-700">
                 Trainer
@@ -388,6 +355,7 @@ const AddBatchForm = ({ onBack, isEdit = false, batchData = null, onEditSubmit =
                 )}
               </div>
             </div>
+            
             <div>
               <label htmlFor="classRoom" className="block text-sm font-medium text-gray-700">
                 Class Room
@@ -402,6 +370,7 @@ const AddBatchForm = ({ onBack, isEdit = false, batchData = null, onEditSubmit =
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
               />
             </div>
+            
             <div>
               <label htmlFor="code" className="block text-sm font-medium text-gray-700">
                 Code
@@ -415,6 +384,7 @@ const AddBatchForm = ({ onBack, isEdit = false, batchData = null, onEditSubmit =
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
               />
             </div>
+            
             <div>
               <label htmlFor="completionDate" className="block text-sm font-medium text-gray-700">
                 Completion Date
@@ -428,6 +398,7 @@ const AddBatchForm = ({ onBack, isEdit = false, batchData = null, onEditSubmit =
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
               />
             </div>
+            
             <div>
               <label htmlFor="timing" className="block text-sm font-medium text-gray-700">
                 Timing
@@ -440,42 +411,30 @@ const AddBatchForm = ({ onBack, isEdit = false, batchData = null, onEditSubmit =
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
               >
                 <option value="">Select Timing</option>
-                <option value="10 AM TO 12PM">10 AM TO 12PM</option>
-                <option value="12PM TO 2 PM">12PM TO 2 PM</option>
-                <option value="3PM TO 5PM">3PM TO 5PM</option>
-                <option value="5PM TO 7PM">5PM TO 7PM</option>
+                <option value="10 AM TO 12PM">10 AM TO 12 PM</option>
+                <option value="12PM TO 2 PM">12 PM TO 2 PM</option>
+                <option value="3PM TO 5PM">3 PM TO 5 PM</option>
+                <option value="5PM TO 7PM">5 PM TO 7 PM</option>
+                <option value="8.30PM TO 10PM">8.30 PM TO 10 PM</option>
               </select>
             </div>
-            <div>
-              <label htmlFor="course" className="block text-sm font-medium text-gray-700">
-                Course
-              </label>
-              <select
-                id="course"
-                name="course"
-                value={formData.course}
-                onChange={handleChange}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-              >
-                <option value="">Select Course</option>
-                {courseOptions.map((c) => (
-                  <option key={c.id} value={c.label}>{c.label}</option>
-                ))}
-              </select>
-            </div>
+            
             <div>
               <label htmlFor="batchType" className="block text-sm font-medium text-gray-700">
                 Batch Type
               </label>
-              <input
-                type="text"
+              <select
                 id="batchType"
                 name="batchType"
                 value={formData.batchType}
                 onChange={handleChange}
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-              />
+              >
+                <option value="Weekday">Weekday</option>
+                <option value="Weekend">Weekend</option>
+              </select>
             </div>
+            
             <div>
               <label htmlFor="mode" className="block text-sm font-medium text-gray-700">
                 Mode
@@ -487,11 +446,12 @@ const AddBatchForm = ({ onBack, isEdit = false, batchData = null, onEditSubmit =
                 onChange={handleChange}
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
               >
-                <option value="">Select Mode</option>
                 <option value="Online">Online</option>
                 <option value="Offline">Offline</option>
+                <option value="Hybrid">Hybrid</option>
               </select>
             </div>
+            
             <div>
               <label htmlFor="country" className="block text-sm font-medium text-gray-700">
                 Country
@@ -511,6 +471,7 @@ const AddBatchForm = ({ onBack, isEdit = false, batchData = null, onEditSubmit =
                 <option value="Australia">Australia</option>
               </select>
             </div>
+            
             <div>
               <label htmlFor="mergingStatus" className="block text-sm font-medium text-gray-700">
                 Merging Status
@@ -527,6 +488,7 @@ const AddBatchForm = ({ onBack, isEdit = false, batchData = null, onEditSubmit =
                 <option value="No">No</option>
               </select>
             </div>
+            
             <div>
               <label htmlFor="mergingTill" className="block text-sm font-medium text-gray-700">
                 Merging Till
@@ -540,16 +502,18 @@ const AddBatchForm = ({ onBack, isEdit = false, batchData = null, onEditSubmit =
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
               />
             </div>
+            
             {error && (
               <div className="md:col-span-2 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
                 {error}
               </div>
             )}
-             <div className="md:col-span-2 flex gap-4 pt-6 justify-center">
+            
+            <div className="md:col-span-2 flex gap-4 pt-6 justify-center">
               <button
                 type="submit"
                 disabled={loading}
-                className="bg-[#890c25] text-white py-3 px-6 rounded-lg hover:[#890c25] hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-medium"
+                className="bg-[#890c25] text-white py-3 px-6 rounded-lg hover:bg-[#6a0a1d] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-medium"
               >
                 {loading ? (isEdit ? 'Updating Batch...' : 'Adding Batch...') : (isEdit ? 'Update Batch' : 'Add Batch')}
               </button>
