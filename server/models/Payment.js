@@ -29,11 +29,6 @@ const paymentSchema = new mongoose.Schema({
     required: true,
     min: 0
   },
-  feeType: {
-    type: String,
-    enum: ['registration', 'tuition', 'exam', 'other'],
-    required: true
-  },
   paymentMode: {
     type: String,
     enum: ['cash', 'card', 'online', 'cheque', 'bank_transfer', 'upi'],
@@ -45,7 +40,7 @@ const paymentSchema = new mongoose.Schema({
   // EMI Tracking - NEW FIELD
   emiNumber: {
     type: String,
-    enum: ['first', 'second', 'third', null],
+    enum: ['first', 'second', 'third','fourth','fifth','sixth', null],
     default: null
   },
   
@@ -168,73 +163,11 @@ paymentSchema.pre('save', async function(next) {
   }
 });
 
-// Post-save middleware to add activity when payment is recorded
-paymentSchema.post('save', async function() {
-  if (this.isNew) {
-    try {
-      const enrollment = await mongoose.model('Enrollment').findById(this.enrollment);
-      if (enrollment) {
-        await enrollment.addActivity(
-          'payment_recorded',
-          `Payment of ₹${this.amountReceived} recorded for ${this.feeType} - Awaiting approval`,
-          this.receivedBy,
-          this._id
-        );
-      }
-    } catch (error) {
-      console.error('Error adding payment recorded activity:', error);
-    }
-  }
-});
 
-// Instance method for admin to approve payment
-paymentSchema.methods.approvePayment = async function(adminId, notes = '') {
-  if (this.verificationStatus === 'approved') {
-    throw new Error('Payment is already approved');
-  }
-  
-  this.verificationStatus = 'approved';
-  this.verifiedBy = adminId;
-  this.verifiedAt = new Date();
-  this.verificationNotes = notes;
-  
-  await this.save();
-  
-  // Update enrollment with approved payment
-  const enrollment = await mongoose.model('Enrollment').findById(this.enrollment);
-  if (enrollment) {
-    await enrollment.updateAfterPaymentApproval(this);
-  }
-  
-  return this;
-};
 
-// Instance method for admin to reject payment
-paymentSchema.methods.rejectPayment = async function(adminId, notes = '') {
-  if (this.verificationStatus === 'rejected') {
-    throw new Error('Payment is already rejected');
-  }
-  
-  this.verificationStatus = 'rejected';
-  this.verifiedBy = adminId;
-  this.verifiedAt = new Date();
-  this.verificationNotes = notes;
-  
-  await this.save();
-  
-  // Add rejection activity to enrollment
-  const enrollment = await mongoose.model('Enrollment').findById(this.enrollment);
-  if (enrollment) {
-    await enrollment.addActivity(
-      'payment_rejected',
-      `Payment of ₹${this.amountReceived} rejected: ${notes}`,
-      adminId,
-      this._id
-    );
-  }
-  
-  return this;
-};
+
+
+
 
 // Instance method to get payment details
 paymentSchema.methods.getDetails = async function() {
@@ -250,7 +183,6 @@ paymentSchema.methods.getDetails = async function() {
     paymentNo: this.paymentNo,
     date: this.date,
     amountReceived: this.amountReceived,
-    feeType: this.feeType,
     paymentMode: this.paymentMode,
     paymentBank: this.paymentBank,
     transactionNo: this.transactionNo,
