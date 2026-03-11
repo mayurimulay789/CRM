@@ -15,13 +15,17 @@
 const mongoose = require("mongoose");
 
 const onlineDemoSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  mobile: { type: String },
+  email: { type: String },
+  address: { type: String },
   course: { type: String, required: true },
   date: { type: String, required: true },
   time: { type: String, required: true },
   mode: { type: String, required: true },
   medium: { type: String, required: true },
   trainer: { type: String, required: true },
-  counselor: { type: String }, // Added counselor field
+  counselor: { type: String },
 }, { timestamps: true });
 
 module.exports = mongoose.model("OnlineDemo", onlineDemoSchema);

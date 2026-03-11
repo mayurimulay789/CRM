@@ -77,11 +77,7 @@ const enrollmentSchema = new mongoose.Schema({
     required: true,
     default: Date.now
   },
-  trainingBranch: {
-    type: String,
-    required: true,
-    trim: true
-  },
+  // trainingBranch removed
   mode: {
     type: String,
     enum: ['Online', 'Offline', 'Hybrid'],
@@ -113,14 +109,9 @@ const enrollmentSchema = new mongoose.Schema({
   pendingAmount: {
     type: Number,
     default: function() {
-      const actualTotal = (this.totalAmount || 0) + (this.charges || 0) + (this.admissionRegistrationPayment || 0);
+      const actualTotal = (this.totalAmount || 0) - (this.admissionRegistrationPayment || 0);
       return (actualTotal - (this.discount || 0)) - (this.amountReceived || 0);
     }
-  },
-  charges: {
-    type: Number,
-    default: 0,
-    description: 'Late fees charged to the student for overdue payments'
   },
   upcomingEMIAmount: {
     type: Number,
@@ -223,18 +214,18 @@ enrollmentSchema.pre('save', async function(next) {
     });
     this.enrollmentNo = `ENR${year}${(count + 1).toString().padStart(4, '0')}`;
   }
-  
-  // Update pending amount using actual total (including charges and registration payment)
-  if (this.isModified('totalAmount') || this.isModified('discount') || this.isModified('amountReceived') || 
-      this.isModified('charges') || this.isModified('admissionRegistrationPayment')) {
+
+  // Update pending amount using new business rule (totalAmount - admissionRegistrationPayment)
+  if (this.isModified('totalAmount') || this.isModified('discount') || this.isModified('amountReceived') ||
+      this.isModified('admissionRegistrationPayment')) {
     const actualTotal = this.calculateActualTotal();
     this.pendingAmount = (actualTotal - this.discount) - this.amountReceived;
   }
-  
+
   // Update upcoming EMI amount
   const nextEMI = this.nextEMI;
   this.upcomingEMIAmount = nextEMI ? nextEMI.amount : 0;
-  
+
   next();
 });
 
@@ -250,12 +241,11 @@ enrollmentSchema.methods.addActivity = function(type, description, createdBy, pa
   return this.save();
 };
 
-// Helper method to calculate actual total including all fees
+// Helper method to calculate actual total using new business rule (totalAmount - admissionRegistrationPayment)
 enrollmentSchema.methods.calculateActualTotal = function() {
   const baseAmount = this.totalAmount || 0;
-  const lateFees = this.charges || 0;
   const registrationFees = this.admissionRegistrationPayment || 0;
-  return baseAmount + lateFees + registrationFees;
+  return baseAmount - registrationFees;
 };
 
 // Instance method to update enrollment after payment approval
@@ -263,7 +253,7 @@ enrollmentSchema.methods.updateAfterPaymentApproval = async function(payment) {
   // Update amount received
   this.amountReceived += payment.amountReceived;
   
-  // Calculate pending amount using actual total (including all fees)
+  // Calculate pending amount using new business rule (totalAmount - admissionRegistrationPayment)
   const actualTotal = this.calculateActualTotal();
   this.pendingAmount = (actualTotal - this.discount) - this.amountReceived;
   

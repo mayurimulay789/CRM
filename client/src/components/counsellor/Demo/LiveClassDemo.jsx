@@ -7,6 +7,8 @@ import {
   deleteLiveClass,
   setSearchQuery,
 } from "../../../features/liveClasses/liveClassesSlice";
+import { getAllCounsellors } from '../../../store/slices/authSlice';
+import { getBatches } from "../../../store/slices/batchSlice";
 import { getTrainers } from "../../../store/slices/trainerSlice";
 import {
   FiSearch,
@@ -32,7 +34,8 @@ const LiveClassDemo = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { rows, searchQuery } = useSelector((state) => state.liveClasses);
-  const { user } = useSelector((state) => state.auth);
+  const { batches } = useSelector((state) => state.batch);
+  const { user, counsellors: counsellorState } = useSelector((state) => state.auth);
   const { trainers } = useSelector((state) => state.trainer);
 
   // Role checks
@@ -54,6 +57,7 @@ const LiveClassDemo = () => {
     "Name",
     "Date",
     "Timing",
+    "Batch",
     "Email",
     "Mobile",
     "Trainer",
@@ -64,6 +68,7 @@ const LiveClassDemo = () => {
     "Status",
     "Reason",
   ];
+  // Always show Batch column by default
 
   const [visibleColumns, setVisibleColumns] = useState(defaultColumns);
   const [columnSearch, setColumnSearch] = useState("");
@@ -79,6 +84,7 @@ const LiveClassDemo = () => {
     name: "",
     date: "",
     timing: "",
+    batch: "",
     email: "",
     mobile: "",
     trainer: "",
@@ -91,6 +97,15 @@ const LiveClassDemo = () => {
   });
 
   const [errors, setErrors] = useState({});
+
+  // Fetch counsellors using Redux (same as Counsellor Management)
+  useEffect(() => {
+    dispatch(getAllCounsellors());
+  }, [dispatch]);
+
+  const counsellors = counsellorState.list || [];
+  const counsellorLoading = counsellorState.loading;
+  const counsellorError = counsellorState.error;
 
   // Month names for formatting
   const monthNames = [
@@ -109,6 +124,7 @@ const LiveClassDemo = () => {
   useEffect(() => {
     dispatch(fetchLiveClasses());
     dispatch(getTrainers());
+    dispatch(getBatches());
   }, [dispatch]);
 
   useEffect(() => {
@@ -838,6 +854,11 @@ const LiveClassDemo = () => {
                           {row.timing}
                         </td>
                       )}
+                      {visibleColumns.includes("Batch") && (
+                        <td className="px-4 py-3 border-r max-w-xs truncate" title={row.batch}>
+                          {row.batch}
+                        </td>
+                      )}
                       {visibleColumns.includes("Email") && (
                         <td className="px-4 py-3 border-r max-w-xs truncate" title={row.email}>
                           {row.email}
@@ -982,6 +1003,12 @@ const LiveClassDemo = () => {
                       <>
                         <div className="font-medium text-gray-500">Timing:</div>
                         <div>{row.timing}</div>
+                      </>
+                    )}
+                    {visibleColumns.includes("Batch") && (
+                      <>
+                        <div className="font-medium text-gray-500">Batch:</div>
+                        <div className="truncate" title={row.batch}>{row.batch}</div>
                       </>
                     )}
 
@@ -1145,6 +1172,25 @@ const LiveClassDemo = () => {
               </h3>
 
               <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                                {/* Batch Dropdown */}
+                                <div>
+                                  <label className="block text-sm font-medium mb-1">Batch</label>
+                                  <select
+                                    name="batch"
+                                    value={formData.batch}
+                                    onChange={(e) => handleInputChange("batch", e.target.value)}
+                                    className="w-full border rounded-lg px-3 py-2 text-sm border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                  >
+                                    <option value="">Select Batch</option>
+                                    {batches && batches.length > 0 ? (
+                                      batches.map((batch) => (
+                                        <option key={batch._id} value={batch.name}>{batch.name}</option>
+                                      ))
+                                    ) : (
+                                      <option value="" disabled>No batches available</option>
+                                    )}
+                                  </select>
+                                </div>
                 {/* Name */}
                 <div className="lg:col-span-2">
                   <label className="block text-sm font-medium mb-1">
@@ -1312,26 +1358,28 @@ const LiveClassDemo = () => {
                   )}
                 </div>
 
-                {/* Counselor */}
+                {/* Counselor Dropdown (Redux-powered, matches Counsellor Management) */}
                 <div>
                   <label className="block text-sm font-medium mb-1">Counselor</label>
-                  <input
-                    type="text"
+                  <select
                     name="counselor"
                     value={formData.counselor}
                     onChange={(e) => handleInputChange("counselor", e.target.value)}
                     className={`w-full border rounded-lg px-3 py-2 text-sm ${
                       getFieldError("counselor") ? "border-red-500 bg-red-50" : "border-gray-300"
                     } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
-                    placeholder="Counselor name"
-                    maxLength="50"
-                  />
+                  >
+                    <option value="">Select Counselor</option>
+                    {counsellorLoading && <option disabled>Loading...</option>}
+                    {counsellorError && <option disabled>{counsellorError}</option>}
+                    {counsellors && counsellors.length > 0 &&
+                      counsellors.map((c) => (
+                        <option key={c._id} value={c.FullName}>{c.FullName} ({c.email})</option>
+                      ))}
+                  </select>
                   {getFieldError("counselor") && (
                     <p className="text-red-500 text-xs mt-1">{getFieldError("counselor")}</p>
                   )}
-                  <div className="text-xs text-gray-500 text-right mt-1">
-                    {formData.counselor.length}/50
-                  </div>
                 </div>
 
                 {/* Status */}

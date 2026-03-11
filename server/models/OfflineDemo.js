@@ -1,6 +1,10 @@
 const mongoose = require("mongoose");
 
 const offlineDemoSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  mobile: { type: String },
+  email: { type: String },
+  address: { type: String },
   course: { type: String, required: true },
   branch: { type: String, required: true },
   date: { type: Date, required: true },
@@ -8,7 +12,7 @@ const offlineDemoSchema = new mongoose.Schema({
   mode: { type: String, required: true },
   medium: { type: String, required: true },
   trainer: { type: String, required: true },
-  counselor: { type: String }, // Added counselor field
+  counselor: { type: String },
 });
 
 module.exports = mongoose.model("OfflineDemo", offlineDemoSchema);

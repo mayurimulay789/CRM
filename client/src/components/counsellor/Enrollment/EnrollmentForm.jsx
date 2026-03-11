@@ -18,7 +18,6 @@ const EnrollmentForm = ({ enrollment, onClose, isCounsellor = true, counsellorId
   const [formData, setFormData] = useState({
     admission: '',
     batch: '',
-    trainingBranch: '',
     mode: 'Offline',
     actualAmount: '',
     totalAmount: '',
@@ -26,8 +25,7 @@ const EnrollmentForm = ({ enrollment, onClose, isCounsellor = true, counsellorId
     firstEMI: { amount: 0, date: '', pending: 0 },
     secondEMI: { amount: 0, date: '', pending: 0 },
     thirdEMI: { amount: 0, date: '', pending: 0 },
-    dueDate: '',
-    charges: 0,
+    // charges removed
     leadDate: new Date().toISOString().split('T')[0],
     leadSource: 'website',
     call: '',
@@ -68,7 +66,6 @@ const EnrollmentForm = ({ enrollment, onClose, isCounsellor = true, counsellorId
       setFormData({
         admission: enrollment.admission?._id || enrollment.admission || '',
         batch: enrollment.batch?._id || enrollment.batch || '',
-        trainingBranch: enrollment.trainingBranch || '',
         mode: enrollment.mode || 'Offline',
         totalAmount: enrollment.totalAmount || '',
         actualAmount: enrollment.actualAmount || enrollment.totalAmount || '',
@@ -76,8 +73,7 @@ const EnrollmentForm = ({ enrollment, onClose, isCounsellor = true, counsellorId
         firstEMI: enrollment.firstEMI || { amount: 0, date: '', pending: 0 },
         secondEMI: enrollment.secondEMI || { amount: 0, date: '', pending: 0 },
         thirdEMI: enrollment.thirdEMI || { amount: 0, date: '', pending: 0 },
-        dueDate: formatDateForInput(enrollment.dueDate),
-        charges: enrollment.charges || 0,
+        // charges removed
         leadDate: formatDateForInput(enrollment.leadDate) || new Date().toISOString().split('T')[0],
         leadSource: enrollment.leadSource || 'website',
         call: enrollment.call || '',
@@ -111,10 +107,7 @@ const EnrollmentForm = ({ enrollment, onClose, isCounsellor = true, counsellorId
       setSelectedAdmission(admission);
       if (admission && !enrollment) {
         // For new enrollments, auto-populate from admission
-        setFormData(prev => ({
-          ...prev,
-          trainingBranch: admission.trainingBranch || prev.trainingBranch
-        }));
+        // Removed auto-populate trainingBranch
       }
     }
   }, [formData.admission, admissions, enrollment]);
@@ -169,7 +162,6 @@ const EnrollmentForm = ({ enrollment, onClose, isCounsellor = true, counsellorId
           delete newErrors.admission;
         }
         break;
-
       case 'batch':
         if (!value) {
           newErrors.batch = 'Batch is required';
@@ -177,17 +169,6 @@ const EnrollmentForm = ({ enrollment, onClose, isCounsellor = true, counsellorId
           delete newErrors.batch;
         }
         break;
-
-      case 'trainingBranch':
-        if (!value || !value.trim()) {
-          newErrors.trainingBranch = 'Training branch is required';
-        } else if (value.trim().length < 2) {
-          newErrors.trainingBranch = 'Training branch must be at least 2 characters long';
-        } else {
-          delete newErrors.trainingBranch;
-        }
-        break;
-
       case 'totalAmount':
         if (!value || value === '') {
           newErrors.totalAmount = 'Total amount is required';
@@ -197,21 +178,15 @@ const EnrollmentForm = ({ enrollment, onClose, isCounsellor = true, counsellorId
           newErrors.totalAmount = 'Total amount cannot exceed ₹10,00,000';
         } else {
           delete newErrors.totalAmount;
-          // Revalidate EMI totals if total amount changes
-          if (formData.feeType === 'installment') {
-            validateEMITotals();
-          }
         }
         break;
-
       case 'dueDate':
-        if (formData.feeType === 'one-time' && !value) {
-          newErrors.dueDate = 'Due date is required for one-time payments';
+        if (formData.feeType === 'installment' && !value) {
+          newErrors.dueDate = 'Due date is required for installment payments';
         } else if (value) {
           const dueDate = new Date(value);
           const today = new Date();
           today.setHours(0, 0, 0, 0);
-          
           if (dueDate < today) {
             newErrors.dueDate = 'Due date cannot be in the past';
           } else {
@@ -221,17 +196,15 @@ const EnrollmentForm = ({ enrollment, onClose, isCounsellor = true, counsellorId
           delete newErrors.dueDate;
         }
         break;
-
       case 'feeType':
         // Revalidate related fields when fee type changes
-        if (value === 'one-time' && !formData.dueDate) {
-          newErrors.dueDate = 'Due date is required for one-time payments';
+        if (value === 'installment' && !formData.dueDate) {
+          newErrors.dueDate = 'Due date is required for installment payments';
         } else {
           delete newErrors.dueDate;
         }
-        validateEMITotals();
+        // EMI validation removed
         break;
-
       default:
         break;
     }
@@ -240,81 +213,12 @@ const EnrollmentForm = ({ enrollment, onClose, isCounsellor = true, counsellorId
   };
 
   const validateEMITotals = () => {
-    const newErrors = { ...errors };
-
-  // EMI validation for installment fee type
-  if (formData.feeType === 'installment') {
-    // Calculate actual total including late fees and registration payment
-    const actualTotal = parseFloat(formData.totalAmount || 0) + 
-                       parseFloat(formData.charges || 0) + 
-                       parseFloat(formData.admissionRegistrationPayment || 0);
-    
-    const totalEMI = parseFloat(formData.firstEMI.amount || 0) + 
-                    parseFloat(formData.secondEMI.amount || 0) + 
-                    parseFloat(formData.thirdEMI.amount || 0);
-    
-    if (totalEMI !== actualTotal) {
-      newErrors.emiTotal = `EMI total (₹${totalEMI}) must match total amount (₹${actualTotal}) [Base: ₹${formData.totalAmount} + Late Fees: ₹${formData.charges || 0} + Registration: ₹${formData.admissionRegistrationPayment || 0}]`;
-    } else {
-      delete newErrors.emiTotal;
-    }
-
-      // Validate individual EMI dates and amounts
-      const emis = [
-        { key: 'firstEMI', data: formData.firstEMI, label: 'First EMI' },
-        { key: 'secondEMI', data: formData.secondEMI, label: 'Second EMI' },
-        { key: 'thirdEMI', data: formData.thirdEMI, label: 'Third EMI' }
-      ];
-
-      emis.forEach(emi => {
-        if (emi.data.amount > 0) {
-          if (!emi.data.date) {
-            newErrors[emi.key] = `${emi.label} date is required when amount is set`;
-          } else {
-            const emiDate = new Date(emi.data.date);
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            
-            if (emiDate < today) {
-              newErrors[emi.key] = `${emi.label} date cannot be in the past`;
-            } else {
-              delete newErrors[emi.key];
-            }
-          }
-        } else {
-          delete newErrors[emi.key];
-        }
-      });
-
-      // Validate EMI date sequence
-      const emiDates = emis
-        .filter(emi => emi.data.amount > 0 && emi.data.date)
-        .map(emi => new Date(emi.data.date))
-        .sort((a, b) => a - b);
-
-      for (let i = 1; i < emiDates.length; i++) {
-        if (emiDates[i] <= emiDates[i - 1]) {
-          newErrors.emiSequence = 'EMI dates must be in chronological order';
-          break;
-        } else {
-          delete newErrors.emiSequence;
-        }
-      }
-    } else {
-      // Clear EMI errors for one-time payments
-      delete newErrors.emiTotal;
-      delete newErrors.emiSequence;
-      delete newErrors.firstEMI;
-      delete newErrors.secondEMI;
-      delete newErrors.thirdEMI;
-    }
-
-    setErrors(newErrors);
+    // EMI validation removed
   };
 
   const validateForm = () => {
     // Mark all fields as touched to show all errors
-    const allFields = ['admission', 'batch', 'trainingBranch', 'totalAmount'];
+    const allFields = ['admission', 'batch', 'totalAmount'];
     const newTouched = {};
     allFields.forEach(field => {
       newTouched[field] = true;
@@ -327,9 +231,6 @@ const EnrollmentForm = ({ enrollment, onClose, isCounsellor = true, counsellorId
     // Required fields validation
     if (!formData.admission) newErrors.admission = 'Admission is required';
     if (!formData.batch) newErrors.batch = 'Batch is required';
-    if (!formData.trainingBranch || !formData.trainingBranch.trim()) {
-      newErrors.trainingBranch = 'Training branch is required';
-    }
     
     // Amount validation
     if (!formData.totalAmount || formData.totalAmount === '') {
@@ -341,9 +242,9 @@ const EnrollmentForm = ({ enrollment, onClose, isCounsellor = true, counsellorId
     }
 
     // Fee type specific validations
-    if (formData.feeType === 'one-time') {
+    if (formData.feeType === 'installment') {
       if (!formData.dueDate) {
-        newErrors.dueDate = 'Due date is required for one-time payments';
+        newErrors.dueDate = 'Due date is required for installment payments';
       } else {
         const dueDate = new Date(formData.dueDate);
         const today = new Date();
@@ -352,14 +253,10 @@ const EnrollmentForm = ({ enrollment, onClose, isCounsellor = true, counsellorId
           newErrors.dueDate = 'Due date cannot be in the past';
         }
       }
-    } else if (formData.feeType === 'installment') {
-      validateEMITotals();
     }
+    // EMI validation removed for installment
 
-    // late fees validation
-    if (formData.charges && parseFloat(formData.charges) < 0) {
-      newErrors.charges = 'late fees cannot be negative';
-    }
+    // charges validation removed
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -369,12 +266,16 @@ const EnrollmentForm = ({ enrollment, onClose, isCounsellor = true, counsellorId
     const baseData = {
       admission: formData.admission,
       batch: formData.batch,
-      trainingBranch: formData.trainingBranch.trim(),
       mode: formData.mode,
       totalAmount: parseFloat(formData.totalAmount),
-      actualAmount: formData.actualAmount ? parseFloat(formData.actualAmount) : parseFloat(formData.totalAmount),
+      actualAmount:
+        formData.feeType === 'installment'
+          ? parseFloat(formData.totalAmount || 0) - parseFloat(formData.admissionRegistrationPayment || 0)
+          : formData.actualAmount
+            ? parseFloat(formData.actualAmount)
+            : parseFloat(formData.totalAmount),
       feeType: formData.feeType,
-      charges: parseFloat(formData.charges) || 0,
+      // charges removed
       dueDate: formData.dueDate ? new Date(formData.dueDate) : null,
       leadDate: formData.leadDate ? new Date(formData.leadDate) : new Date(),
       leadSource: formData.leadSource,
@@ -388,35 +289,7 @@ const EnrollmentForm = ({ enrollment, onClose, isCounsellor = true, counsellorId
       baseData.counsellor = counsellorId;
     }
 
-    // Add EMI data for installment type
-    if (formData.feeType === 'installment') {
-      baseData.firstEMI = {
-        amount: parseFloat(formData.firstEMI.amount) || 0,
-        pending: parseFloat(formData.firstEMI.amount) || 0,
-        date: formData.firstEMI.date ? new Date(formData.firstEMI.date) : null,
-        status: 'pending'
-      };
-      
-      baseData.secondEMI = {
-        amount: parseFloat(formData.secondEMI.amount) || 0,
-        pending: parseFloat(formData.secondEMI.amount) || 0,
-        date: formData.secondEMI.date ? new Date(formData.secondEMI.date) : null,
-        status: 'pending'
-      };
-      
-      baseData.thirdEMI = {
-        amount: parseFloat(formData.thirdEMI.amount) || 0,
-        pending: parseFloat(formData.thirdEMI.amount) || 0,
-        date: formData.thirdEMI.date ? new Date(formData.thirdEMI.date) : null,
-        status: 'pending'
-      };
-    } else {
-      // For one-time payments, clear EMI data
-      baseData.firstEMI = { amount: 0, pending: 0, date: null, status: 'pending' };
-      baseData.secondEMI = { amount: 0, pending: 0, date: null, status: 'pending' };
-      baseData.thirdEMI = { amount: 0, pending: 0, date: null, status: 'pending' };
-    }
-
+    // Remove EMI data for installment type
     return baseData;
   };
 
@@ -467,8 +340,7 @@ const EnrollmentForm = ({ enrollment, onClose, isCounsellor = true, counsellorId
                         parseFloat(formData.thirdEMI.amount || 0);
 
   // Calculate actual total for EMI comparison
-  const actualTotalForEMI = parseFloat(formData.totalAmount || 0) + 
-                           parseFloat(formData.charges || 0) + 
+  const actualTotalForEMI = parseFloat(formData.totalAmount || 0) -
                            parseFloat(formData.admissionRegistrationPayment || 0);
 
   // Helper component for required field indicator
@@ -574,29 +446,7 @@ const EnrollmentForm = ({ enrollment, onClose, isCounsellor = true, counsellorId
               )}
             </div>
 
-            {/* Training Branch */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Training Branch <RequiredStar />
-              </label>
-              <input
-                type="text"
-                name="trainingBranch"
-                value={formData.trainingBranch}
-                onChange={handleChange}
-                onBlur={() => handleBlur('trainingBranch')}
-                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  errors.trainingBranch ? 'border-red-500' : 'border-gray-300'
-                }`}
-                placeholder="Enter training branch"
-              />
-              {errors.trainingBranch && (
-                <p className="text-red-500 text-xs mt-1 flex items-center">
-                  <span className="mr-1">⚠</span>
-                  {errors.trainingBranch}
-                </p>
-              )}
-            </div>
+            {/* Removed Training Branch field */}
 
             {/* Mode */}
             <div>
@@ -678,160 +528,62 @@ const EnrollmentForm = ({ enrollment, onClose, isCounsellor = true, counsellorId
               </select>
             </div>
 
-            {/* Due Date */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Due Date {formData.feeType === 'one-time' && <RequiredStar />}
-              </label>
-              <input
-                type="date"
-                name="dueDate"
-                value={formData.dueDate}
-                onChange={handleChange}
-                onBlur={() => handleBlur('dueDate')}
-                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  errors.dueDate ? 'border-red-500' : 'border-gray-300'
-                }`}
-              />
-              {errors.dueDate && (
-                <p className="text-red-500 text-xs mt-1 flex items-center">
-                  <span className="mr-1">⚠</span>
-                  {errors.dueDate}
-                </p>
-              )}
-            </div>
+            {/* Due Date field for installment payments */}
+            {formData.feeType === 'installment' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Due Date <RequiredStar />
+                </label>
+                <input
+                  type="date"
+                  name="dueDate"
+                  value={formData.dueDate || ''}
+                  onChange={handleChange}
+                  onBlur={() => handleBlur('dueDate')}
+                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    errors.dueDate ? 'border-red-500' : 'border-gray-300'
+                  }`}
+                  min={new Date().toISOString().split('T')[0]}
+                />
+                {errors.dueDate && (
+                  <p className="text-red-500 text-xs mt-1 flex items-center">
+                    <span className="mr-1">⚠</span>
+                    {errors.dueDate}
+                  </p>
+                )}
+              </div>
+            )}
           </div>
 
-          {/* late fees */}
-                    {/* Admission Registration Payment */}
-                    <div className="mt-4">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Admission Registration Payment
-                      </label>
-                      <input
-                        type="number"
-                        name="admissionRegistrationPayment"
-                        value={formData.admissionRegistrationPayment}
-                        onChange={handleChange}
-                        onBlur={() => handleBlur('admissionRegistrationPayment')}
-                        className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                          errors.admissionRegistrationPayment ? 'border-red-500' : 'border-gray-300'
-                        }`}
-                        placeholder="Enter admission registration payment"
-                        min="0"
-                        step="1"
-                      />
-                      {errors.admissionRegistrationPayment && (
-                        <p className="text-red-500 text-xs mt-1 flex items-center">
-                          <span className="mr-1">⚠</span>
-                          {errors.admissionRegistrationPayment}
-                        </p>
-                      )}
-                    </div>
+          {/* Admission Registration Payment */}
           <div className="mt-4">
             <label className="block text-sm font-medium text-gray-700 mb-2">
 
-              Late Fees
+              Admission Registration Payment
             </label>
             <input
               type="number"
-              name="charges"
-              value={formData.charges}
+              name="admissionRegistrationPayment"
+              value={formData.admissionRegistrationPayment}
               onChange={handleChange}
-              onBlur={() => handleBlur('charges')}
+              onBlur={() => handleBlur('admissionRegistrationPayment')}
               className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                errors.charges ? 'border-red-500' : 'border-gray-300'
+                errors.admissionRegistrationPayment ? 'border-red-500' : 'border-gray-300'
               }`}
-              placeholder="Enter late fees"
+              placeholder="Enter admission registration payment"
               min="0"
               step="1"
             />
-            {errors.charges && (
+            {errors.admissionRegistrationPayment && (
               <p className="text-red-500 text-xs mt-1 flex items-center">
                 <span className="mr-1">⚠</span>
-                {errors.charges}
+                {errors.admissionRegistrationPayment}
               </p>
             )}
           </div>
 
           {/* EMI Details - Show only for installment */}
-          {formData.feeType === 'installment' && (
-            <div className="mt-6 border-t pt-6">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4">EMI Details</h3>
-              
-              {(errors.emiTotal || errors.emiSequence) && (
-                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4">
-                  <div className="flex items-center space-x-2">
-                    <span>⚠</span>
-                    <span>{errors.emiTotal || errors.emiSequence}</span>
-                  </div>
-                </div>
-              )}
-              
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {[
-                  { key: 'firstEMI', label: 'First EMI' },
-                  { key: 'secondEMI', label: 'Second EMI' },
-                  { key: 'thirdEMI', label: 'Third EMI' }
-                ].map((emi, index) => (
-                  <div key={emi.key} className="border rounded-lg p-4 bg-gray-50">
-                    <h4 className="font-medium text-gray-700 mb-3">{emi.label}</h4>
-                    <div className="space-y-3">
-                      <div>
-                        <label className="block text-sm text-gray-600 mb-1">
-                          Amount {formData[emi.key].amount > 0 && <RequiredStar />}
-                        </label>
-                        <input
-                          type="number"
-                          value={formData[emi.key].amount}
-                          onChange={(e) => handleEMIChange(emi.key, 'amount', e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          placeholder="Amount"
-                          min="0"
-                          step="1"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm text-gray-600 mb-1">
-                          Due Date {formData[emi.key].amount > 0 && <RequiredStar />}
-                        </label>
-                        <input
-                          type="date"
-                          value={formData[emi.key].date}
-                          onChange={(e) => handleEMIChange(emi.key, 'date', e.target.value)}
-                          className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                            errors[emi.key] ? 'border-red-500' : 'border-gray-300'
-                          }`}
-                        />
-                        {errors[emi.key] && (
-                          <p className="text-red-500 text-xs mt-1 flex items-center">
-                            <span className="mr-1">⚠</span>
-                            {errors[emi.key]}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              
-              <div className={`mt-4 p-3 rounded-lg ${
-                totalEMIAmount === actualTotalForEMI 
-                  ? 'bg-green-50 border border-green-200 text-green-800'
-                  : 'bg-yellow-50 border border-yellow-200 text-yellow-800'
-              }`}>
-                <div className="text-sm">
-                  <strong>EMI Summary:</strong> Total EMI Amount: ₹{totalEMIAmount} | 
-                  Total Amount: ₹{actualTotalForEMI} [Base: ₹{formData.totalAmount} + Late Fees: ₹{formData.charges || 0} + Registration: ₹{formData.admissionRegistrationPayment || 0}] | 
-                  {totalEMIAmount === actualTotalForEMI ? (
-                    <span className="text-green-600"> ✓ Amounts match</span>
-                  ) : (
-                    <span className="text-yellow-600"> ⚠ Amounts don't match</span>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
+          {/* EMI Details removed for installment fee type */}
 
           {/* Additional Information */}
           <div className="mt-6 border-t pt-6">

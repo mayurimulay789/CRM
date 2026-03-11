@@ -13,7 +13,7 @@ const {
   verifyOtp,
   setNewPassword 
 } = require('../controllers/authController');
-const { protect, admin } = require('../middleware/auth');
+const { protect, admin, adminOrCounsellor } = require('../middleware/auth');
 const router = express.Router();
 
 // ==================== Public Routes (No Authentication) ====================
@@ -41,7 +41,9 @@ router.get('/me', protect, getCurrentUser);
 router.put('/myprofile', protect, updateUserProfile);
 
 // Get all counsellors (requires admin)
-router.get('/allCounsellor', protect, admin, getAllCounsellor);
+// router.get('/allCounsellor', protect, admin, getAllCounsellor);
 router.delete('/counsellor/:id', protect, admin, deleteCounsellor);
+// Get all counsellors (admin or counsellor)
+router.get('/allCounsellor', protect, adminOrCounsellor, getAllCounsellor);
 
 module.exports = router;

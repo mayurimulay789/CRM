@@ -22,10 +22,11 @@ const mongoose = require("mongoose");
 
 const oneToOneSchema = new mongoose.Schema({
   name: { type: String, required: true },
+  mobile: { type: String },
+  email: { type: String },
+  address: { type: String },
   date: { type: Date, required: true },
   timing: { type: String, required: true },
-  email: { type: String },
-  mobile: { type: String },
   trainer: { type: String },
   counselor: { type: String },
   counselorRemark: { type: String },
