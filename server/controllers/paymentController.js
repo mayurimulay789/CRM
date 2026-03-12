@@ -44,6 +44,287 @@ async function sendPaymentConfirmationEmail(payment) {
   }
 }
 
+
+async function sendPaymentRejectionEmail(payment, reason) {
+  try {
+    await payment.populate([
+      { path: 'student', select: 'studentId name email phone' },
+      { path: 'enrollment', select: 'enrollmentNo courseName' },
+      { path: 'receivedBy', select: 'name' }
+    ]);
+
+    const { student, enrollment } = payment;
+    if (!student || !student.email) {
+      console.error('❌ Student email not found for payment rejection:', payment.paymentNo);
+      return false;
+    }
+
+    const { subject, html } = generatePaymentRejectionEmail(payment, student, enrollment, reason);
+
+    await sendMail(student.email, subject, html, true);
+    console.log(`✅ Payment rejection email sent to ${student.email} with BCC`);
+    return true;
+  } catch (error) {
+    console.error('❌ Failed to send payment rejection email:', error.message);
+    return false;
+  }
+}
+
+function generatePaymentRejectionEmail(payment, student, enrollment, reason) {
+  const subject = `⚠️ Payment Update – Action Needed | ${payment.paymentNo}`;
+  
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RYMA ACADEMY – Payment Rejected</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #f2e5e5;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+        .email-container {
+            max-width: 1200px;
+            margin: 25px auto;
+            background-color: #ffffff;
+            overflow: hidden;
+            box-shadow: 0 12px 28px rgba(150, 30, 30, 0.2);
+            border: 1px solid #e0b7b7;
+        }
+        .imgformate {
+            width: 100%;
+            max-width: 1200px;
+            height: auto;
+            display: block;
+        }
+        .content {
+            padding: 28px 32px 32px;
+        }
+        .greeting {
+            font-size: 18px;
+            font-weight: 500;
+            color: #3b2323;
+            margin-bottom: 16px;
+        }
+        .greeting strong {
+            color: #b13e3e;
+        }
+        .message {
+            font-size: 16px;
+            color: #3a2a2a;
+            line-height: 1.5;
+            margin: 15px 0;
+        }
+        .section-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #aa2929;
+            border-bottom: 2px solid #e0adad;
+            padding-bottom: 8px;
+            margin: 30px 0 20px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .payment-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #ffffff;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(150, 40, 40, 0.1);
+            border: 1px solid #e9c1c1;
+            margin-bottom: 20px;
+        }
+        .payment-table td {
+            padding: 14px 18px;
+            border-bottom: 1px solid #f2d6d6;
+            font-size: 16px;
+        }
+        .payment-table tr:last-child td {
+            border-bottom: none;
+        }
+        .label-cell {
+            background-color: #fde5e5;
+            color: #892b2b;
+            font-weight: 700;
+            width: 40%;
+            border-right: 1px solid #e2b2b2;
+        }
+        .value-cell {
+            background-color: #fffbfb;
+            color: #2e1c1c;
+            font-weight: 500;
+        }
+        .value-cell strong {
+            color: #b33838;
+        }
+        .rejection-reason {
+            background: #ffebeb;
+            border-left: 6px solid #b13e3e;
+            padding: 16px 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            font-size: 16px;
+            color: #572626;
+        }
+        .quote-block {
+            background: #fff3f3;
+            border-radius: 40px 12px 40px 12px;
+            padding: 22px 26px;
+            margin: 25px 0 20px;
+            border: 1px solid #e6b2b2;
+            box-shadow: 0 6px 14px rgba(170, 60, 60, 0.1);
+        }
+        .quote-mark {
+            font-size: 40px;
+            color: #b44848;
+            font-family: 'Times New Roman', serif;
+            line-height: 0.6;
+            margin-right: 4px;
+        }
+        .quote-block p {
+            font-size: 18px;
+            font-style: italic;
+            color: #592b2b;
+            margin: 8px 0 10px;
+            font-weight: 500;
+        }
+        .director-name {
+            font-weight: 700;
+            color: #862b2b;
+            text-align: right;
+            font-size: 16px;
+        }
+        .signature {
+            margin: 25px 0 15px;
+            color: #592525;
+        }
+        .contact-footer {
+            background: #fae1e1;
+            padding: 18px 25px;
+            border-radius: 30px;
+            color: #6d3131;
+            font-size: 15px;
+            margin: 20px 0;
+        }
+        .contact-footer table {
+            width: 100%;
+        }
+        .contact-footer td {
+            padding: 4px 0;
+            text-align: center;
+        }
+        .contact-footer a {
+            color: #a13030;
+            text-decoration: underline;
+        }
+        .disclaimer {
+            font-size: 12px;
+            color: #ffe5e5;
+            background-color: #6d2b2b;
+            padding: 16px 24px;
+            text-align: left;
+            line-height: 1.5;
+        }
+        .footer-red {
+            background-color: #8f2626;
+            padding: 12px 20px;
+            text-align: center;
+            color: #ffd7d7;
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <img src="https://res.cloudinary.com/dpyry0mh1/image/upload/v1773287825/Screenshot_2026-03-11_141445_ibusnj.png" alt="" class="imgformate">
+        <div class="content">
+            <div class="greeting">Dear <strong>${student.name}</strong>,</div>
+            <div class="message">
+                Thank you for your recent payment towards your enrollment at RYMA ACADEMY.
+            </div>
+            <div class="message">
+                Unfortunately, we were unable to verify your payment at this time. As a result, your payment has been <strong>rejected</strong>.
+            </div>
+
+            <div class="section-title">PAYMENT DETAILS</div>
+            <table class="payment-table" cellpadding="0" cellspacing="0">
+                <tr>
+                    <td class="label-cell">Reference ID</td>
+                    <td class="value-cell"><strong>${payment.paymentNo}</strong></td>
+                </tr>
+                <tr>
+                    <td class="label-cell">Amount</td>
+                    <td class="value-cell"><strong>₹${payment.amountReceived}</strong></td>
+                </tr>
+                <tr>
+                    <td class="label-cell">Date Submitted</td>
+                    <td class="value-cell"><strong>${new Date(payment.date).toLocaleDateString('en-IN')}</strong></td>
+                </tr>
+                <tr>
+                    <td class="label-cell">Payment Mode</td>
+                    <td class="value-cell"><strong>${payment.paymentMode}</strong></td>
+                </tr>
+            </table>
+
+            ${reason ? `
+            <div class="rejection-reason">
+                <strong>Reason for rejection:</strong> ${reason}
+            </div>
+            ` : ''}
+
+            <div class="message">
+                <strong>Next steps:</strong>
+                <ul style="margin-top: 8px; padding-left: 20px;">
+                    <li>Please contact your education counsellor for clarification.</li>
+                    <li>If the rejection was due to incorrect details or missing proof, you may upload a corrected payment proof through your portal.</li>
+                    <li>You can also visit our branch for assistance.</li>
+                </ul>
+            </div>
+
+            <div class="signature">
+                We are here to help you every step of the way.<br>
+                <strong>RYMA ACADEMY</strong><br>
+                Team of Admissions & Student Services
+            </div>
+
+            <!-- CONTACT FOOTER (Email-Safe) -->
+            <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#fae1e1; border-radius:30px; margin:20px 0;" bgcolor="#fae1e1">
+              <tr>
+                <td style="padding:18px 25px; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color:#6d3131; font-size:15px;">
+                  <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:4px 0;">📞 +91-9873336133</td></tr></table>
+                  <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:4px 0;"><a href="mailto:services@rymaacademy.com" style="color:#a13030; text-decoration:underline;">services@rymaacademy.com</a></td></tr></table>
+                  <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:4px 0;"><a href="https://www.rymaacademy.com" style="color:#a13030; text-decoration:underline;">www.rymaacademy.com</a></td></tr></table>
+                  <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:8px 0 4px; word-break:break-word;">📍 D-7/32, 1st Floor, Main Vishram Chowk, Sec-6, Rohini, Delhi – 110085</td></tr></table>
+                </td>
+              </tr>
+            </table>
+
+            <div class="quote-block">
+                <span class="quote-mark">“</span>
+                <p>We do not just build careers. We build people who change the world.</p>
+                <div class="director-name">— Mr. Parveen Jain (Director), RYMA ACADEMY</div>
+            </div>
+        </div>
+
+        <div class="disclaimer">
+            <strong>Disclaimer:</strong> The information contained in this email is confidential to the addressee and may be protected by legal privilege. If you are not the intended recipient, please note that you may not disseminate, retransmit or make any other use of any material in this message. If you have received this email in error, please delete it and notify immediately by telephone or email.
+        </div>
+        <div class="footer-red">
+            © RYMA ACADEMY – Payment Update
+        </div>
+    </div>
+</body>
+</html>
+  `;
+  
+  return { subject, html };
+}
+
 /**
  * Generate email for one-time payment
  */
@@ -52,179 +333,312 @@ function generateOneTimePaymentEmail(payment, student, enrollment) {
   
   const html = `
     <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Payment Confirmation</title>
-      <style>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RYMA ACADEMY – Payment Confirmation</title>
+    <style>
         body {
-          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-          line-height: 1.6;
-          color: #333;
-          margin: 0;
-          padding: 0;
-          background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+            background-color: #f2e5e5;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
         }
-        .container {
-          max-width: 600px;
-          margin: 0 auto;
-          background-color: #ffffff;
-          border-radius: 10px;
-          overflow: hidden;
-          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        .email-container {
+            max-width: 1200px;
+            margin: 25px auto;
+            background-color: #ffffff;
+            overflow: hidden;
+            box-shadow: 0 12px 28px rgba(150, 30, 30, 0.2);
+            border: 1px solid #e0b7b7;
         }
-        .header {
-          background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-          color: white;
-          padding: 30px 20px;
-          text-align: center;
+        .header-image {
+            width: 100%;
+            background-color: #b31b1b;
+            text-align: center;
+            line-height: 0;
         }
-        .header h1 {
-          margin: 0;
-          font-size: 28px;
-          font-weight: 600;
+        .header-image img {
+            width: 100%;
+            height: auto;
+            display: block;
+            max-height: 180px;
+            object-fit: cover;
+            background-color: #8a1e1e;
+        }
+        .img-placeholder {
+            display: inline-block;
+            width: 100%;
+            background: linear-gradient(145deg, #b22222, #8b1a1a);
+            color: white;
+            font-size: 32px;
+            font-weight: 800;
+            text-align: center;
+            padding: 40px 20px;
+            box-sizing: border-box;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            border-bottom: 4px solid #f3c3c3;
         }
         .content {
-          padding: 30px;
+            padding: 28px 32px 32px;
         }
-        .congrats {
-          text-align: center;
-          margin-bottom: 30px;
+        .greeting {
+            font-size: 18px;
+            font-weight: 500;
+            color: #3b2323;
+            margin-bottom: 16px;
         }
-        .congrats h2 {
-          color: #28a745;
-          font-size: 24px;
-          margin-bottom: 10px;
+        .greeting strong {
+            color: #b13e3e;
         }
-        .payment-details {
-          background-color: #f8f9fa;
-          border-radius: 8px;
-          padding: 20px;
-          margin: 20px 0;
+        .message {
+            font-size: 16px;
+            color: #3a2a2a;
+            line-height: 1.5;
+            margin: 15px 0;
         }
-        .detail-row {
-          display: flex;
-          justify-content: space-between;
-          margin-bottom: 10px;
-          padding-bottom: 10px;
-          border-bottom: 1px solid #e9ecef;
+        .section-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #aa2929;
+            border-bottom: 2px solid #e0adad;
+            padding-bottom: 8px;
+            margin: 30px 0 20px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
-        .detail-row:last-child {
-          border-bottom: none;
-          margin-bottom: 0;
-          padding-bottom: 0;
+        .payment-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #ffffff;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(150, 40, 40, 0.1);
+            border: 1px solid #e9c1c1;
+            margin-bottom: 20px;
         }
-        .detail-label {
-          font-weight: 600;
-          color: #495057;
+        .payment-table td {
+            padding: 14px 18px;
+            border-bottom: 1px solid #f2d6d6;
+            font-size: 16px;
         }
-        .detail-value {
-          color: #212529;
-          text-align: right;
+        .payment-table tr:last-child td {
+            border-bottom: none;
         }
-        .completion-badge {
-          background-color: #28a745;
-          color: white;
-          padding: 10px 20px;
-          border-radius: 20px;
-          text-align: center;
-          margin: 20px 0;
-          font-weight: 600;
+        .label-cell {
+            background-color: #fde5e5;
+            color: #892b2b;
+            font-weight: 700;
+            width: 40%;
+            border-right: 1px solid #e2b2b2;
         }
-        .amount-highlight {
-          font-size: 24px;
-          font-weight: bold;
-          color: #28a745;
-          text-align: center;
-          margin: 15px 0;
+        .value-cell {
+            background-color: #fffbfb;
+            color: #2e1c1c;
+            font-weight: 500;
         }
-        .footer {
-          text-align: center;
-          padding: 20px;
-          background-color: #f8f9fa;
-          color: #6c757d;
-          font-size: 14px;
+        .value-cell strong {
+            color: #b33838;
         }
-      </style>
-    </head>
-    <body>
-      <div class="container">
-        <div class="header">
-          <h1>💳 Payment Confirmed</h1>
-        </div>
-        
+        .quote-block {
+            background: #fff3f3;
+            border-radius: 40px 12px 40px 12px;
+            padding: 22px 26px;
+            margin: 25px 0 20px;
+            border: 1px solid #e6b2b2;
+            box-shadow: 0 6px 14px rgba(170, 60, 60, 0.1);
+        }
+        .quote-mark {
+            font-size: 40px;
+            color: #b44848;
+            font-family: 'Times New Roman', serif;
+            line-height: 0.6;
+            margin-right: 4px;
+        }
+        .quote-block p {
+            font-size: 18px;
+            font-style: italic;
+            color: #592b2b;
+            margin: 8px 0 10px;
+            font-weight: 500;
+        }
+        .director-name {
+            font-weight: 700;
+            color: #862b2b;
+            text-align: right;
+            font-size: 16px;
+        }
+        .signature {
+            margin: 25px 0 15px;
+            color: #592525;
+        }
+        .contact-footer {
+            background: #fae1e1;
+            padding: 18px 25px;
+            border-radius: 30px;
+            color: #6d3131;
+            font-size: 15px;
+            margin: 20px 0;
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 12px 8px;
+            word-break: break-word;
+        }
+        .contact-footer a {
+            color: #a13030;
+            text-decoration: underline;
+            white-space: nowrap;
+        }
+        /* Responsive */
+        @media only screen and (max-width: 480px) {
+            .contact-footer {
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+                gap: 8px;
+            }
+            .contact-footer a {
+                white-space: normal;
+            }
+        }
+        .social-icons {
+            text-align: center;
+            margin: 20px 0;
+            font-size: 18px;
+            letter-spacing: 10px;
+            color: #b44848;
+        }
+        .social-icons span {
+            font-weight: 600;
+            color: #862b2b;
+        }
+        .disclaimer {
+            font-size: 12px;
+            color: #ffe5e5;
+            background-color: #6d2b2b;
+            padding: 16px 24px;
+            text-align: left;
+            line-height: 1.5;
+        }
+        .footer-red {
+            background-color: #8f2626;
+            padding: 12px 20px;
+            text-align: center;
+            color: #ffd7d7;
+            font-size: 13px;
+        }
+        hr {
+            border: none;
+            height: 1px;
+            background: linear-gradient(to right, #efc2c2, #c96666, #efc2c2);
+            margin: 20px 0;
+        }
+        .note-placeholder {
+            font-size: 13px;
+            color: #946060;
+            background: #faf0f0;
+            padding: 6px 10px;
+            border-radius: 50px;
+            margin-top: 8px;
+            text-align: center;
+        }
+        .imgformate{
+        width:1200px;
+    }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <!-- Header image (replace src with actual image) -->
+    
+         <img src="https://res.cloudinary.com/dpyry0mh1/image/upload/v1773287825/Screenshot_2026-03-11_141445_ibusnj.png" alt="" class="imgformate">
         <div class="content">
-          <div class="congrats">
-            <h2>Payment Successful! 🎉</h2>
-            <p>Dear ${student.name}, your full course fee has been received successfully.</p>
-          </div>
+            <!-- Dear student -->
+            <div class="greeting">Dear <strong>${student.name}</strong>,</div>
 
-          <div class="completion-badge">
-            ✅ Full Fee Paid - No Pending Amount
-          </div>
+            <!-- Thank you message -->
+            <div class="message">
+                Thank you for choosing RYMA ACADEMY as your preferred learning partner.
+            </div>
+            <div class="message">
+                We are pleased to confirm that your payment has been successfully received and recorded in our system. Your official fee receipt is attached to this email for your reference and records.
+            </div>
 
-          <div class="amount-highlight">
-            ₹${payment.amountReceived}
-          </div>
-          
-          <!-- Payment Details Section -->
-          <div class="payment-details">
-            <h3 style="color: #495057; margin-bottom: 15px; text-align: center;">📋 Payment Details</h3>
-            <div class="detail-row">
-              <span class="detail-label">Student Name:</span>
-              <span class="detail-value">${student.name}</span>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">Student ID:</span>
-              <span class="detail-value">${student.studentId}</span>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">Payment No:</span>
-              <span class="detail-value">${payment.paymentNo}</span>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">Enrollment No:</span>
-              <span class="detail-value">${enrollment.enrollmentNo}</span>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">Payment Date:</span>
-              <span class="detail-value">${new Date(payment.date).toLocaleDateString('en-IN')}</span>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">Payment Mode:</span>
-              <span class="detail-value">${payment.paymentMode}</span>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">Transaction No:</span>
-              <span class="detail-value">${payment.transactionNo || 'N/A'}</span>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">Fee Type:</span>
-              <span class="detail-value">One-Time Payment</span>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">Amount Received:</span>
-              <span class="detail-value" style="color: #28a745; font-weight: bold;">₹${payment.amountReceived}</span>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">Total Paid:</span>
-              <span class="detail-value" style="color: #28a745; font-weight: bold;">₹${enrollment.amountReceived}</span>
-            </div>
-          </div>
+            <!-- Payment details section -->
+            <div class="section-title">PAYMENT DETAILS</div>
 
-          <p style="text-align: center; color: #6c757d; font-style: italic;">
-            Thank you for choosing us! We look forward to helping you achieve your goals. 🚀
-          </p>
+            <table class="payment-table" cellpadding="0" cellspacing="0">
+                <tr>
+                    <td class="label-cell">Amount Received</td>
+                    <td class="value-cell"><strong>₹${payment.amountReceived}</strong></td>
+                </tr>
+                <tr>
+                    <td class="label-cell">Reference ID</td>
+                    <td class="value-cell"><strong>${payment.paymentNo}</strong></td>
+                </tr>
+                <tr>
+                    <td class="label-cell">Payment Date</td>
+                    <td class="value-cell"><strong>${new Date(payment.date).toLocaleDateString('en-IN')}</strong></td>
+                </tr>
+                <tr>
+                    <td class="label-cell">Payment Mode</td>
+                    <td class="value-cell"><strong>${payment.paymentMode}</strong></td>
+                </tr>
+            </table>
+
+            <div class="message">
+                Please quote Reference ID <strong>${payment.paymentNo}</strong> in all future communications with us regarding this payment.
+            </div>
+            <div class="message">
+                We look forward to a long and enriching association with you. Welcome to the <strong>RYMA ACADEMY</strong> family.
+            </div>
+
+            <!-- Regards -->
+            <div class="signature">
+                With the highest regards & warmest welcome,<br>
+                <strong>RYMA ACADEMY</strong><br>
+                Team of Admissions & Student Services
+            </div>
+
+            <!-- CONTACT FOOTER (Email-Safe) -->
+            <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#fae1e1; border-radius:30px; margin:20px 0;" bgcolor="#fae1e1">
+              <tr>
+                <td style="padding:18px 25px; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color:#6d3131; font-size:15px;">
+                  <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:4px 0;">📞 +91-9873336133</td></tr></table>
+                  <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:4px 0;"><a href="mailto:services@rymaacademy.com" style="color:#a13030; text-decoration:underline;">services@rymaacademy.com</a></td></tr></table>
+                  <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:4px 0;"><a href="https://www.rymaacademy.com" style="color:#a13030; text-decoration:underline;">www.rymaacademy.com</a></td></tr></table>
+                  <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:8px 0 4px; word-break:break-word;">📍 D-7/32, 1st Floor, Main Vishram Chowk, Sec-6, Rohini, Delhi – 110085</td></tr></table>
+                </td>
+              </tr>
+            </table>
+
+            <!-- Quote -->
+            <div class="quote-block">
+                <span class="quote-mark">“</span>
+                <p>We do not just build careers. We build people who change the world.</p>
+                <div class="director-name">— Mr. Parveen Jain (Director), RYMA ACADEMY</div>
+            </div>
+            <!-- Optional note about header (remove in production) -->
+            <div class="note-placeholder">
+                ⚡ Replace header image source with your actual logo.
+            </div>
         </div>
 
-        <div class="footer">
-          <p>This is an automated email. Please do not reply to this message.</p>
-          <p>&copy; ${new Date().getFullYear()} Your Institution Name. All rights reserved.</p>
+        <!-- Disclaimer -->
+        <div class="disclaimer">
+            <strong>Disclaimer:</strong> The information contained in this email is confidential to the addressee and may be protected by legal privilege. If you are not the intended recipient, please note that you may not disseminate, retransmit or make any other use of any material in this message. If you have received this email in error, please delete it and notify immediately by telephone or email.
         </div>
-      </div>
-    </body>
-    </html>
+        <div class="footer-red">
+            © RYMA ACADEMY – Payment Receipt
+        </div>
+    </div>
+</body>
+</html>
   `;
   
   return { subject, html };
@@ -239,200 +653,313 @@ function generateInstallmentPaymentEmail(payment, student, enrollment) {
   const installmentText = payment.installmentNo ? `Installment ${payment.installmentNo}` : 'Installment';
   
   const html = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Installment Payment Confirmation</title>
-      <style>
+  <!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RYMA ACADEMY – Payment Confirmation</title>
+    <style>
         body {
-          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-          line-height: 1.6;
-          color: #333;
-          margin: 0;
-          padding: 0;
-          background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+            background-color: #f2e5e5;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
         }
-        .container {
-          max-width: 600px;
-          margin: 0 auto;
-          background-color: #ffffff;
-          border-radius: 10px;
-          overflow: hidden;
-          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        .email-container {
+            max-width: 1200px;
+            margin: 25px auto;
+            background-color: #ffffff;
+            overflow: hidden;
+            box-shadow: 0 12px 28px rgba(150, 30, 30, 0.2);
+            border: 1px solid #e0b7b7;
         }
-        .header {
-          background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
-          color: white;
-          padding: 30px 20px;
-          text-align: center;
+        .header-image {
+            width: 100%;
+            background-color: #b31b1b;
+            text-align: center;
+            line-height: 0;
         }
-        .header h1 {
-          margin: 0;
-          font-size: 28px;
-          font-weight: 600;
+        .header-image img {
+            width: 100%;
+            height: auto;
+            display: block;
+            max-height: 180px;
+            object-fit: cover;
+            background-color: #8a1e1e;
+        }
+        .img-placeholder {
+            display: inline-block;
+            width: 100%;
+            background: linear-gradient(145deg, #b22222, #8b1a1a);
+            color: white;
+            font-size: 32px;
+            font-weight: 800;
+            text-align: center;
+            padding: 40px 20px;
+            box-sizing: border-box;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            border-bottom: 4px solid #f3c3c3;
         }
         .content {
-          padding: 30px;
+            padding: 28px 32px 32px;
         }
-        .congrats {
-          text-align: center;
-          margin-bottom: 30px;
+        .greeting {
+            font-size: 18px;
+            font-weight: 500;
+            color: #3b2323;
+            margin-bottom: 16px;
         }
-        .congrats h2 {
-          color: #ee5a24;
-          font-size: 24px;
-          margin-bottom: 10px;
+        .greeting strong {
+            color: #b13e3e;
         }
-        .payment-details {
-          background-color: #f8f9fa;
-          border-radius: 8px;
-          padding: 20px;
-          margin: 20px 0;
+        .message {
+            font-size: 16px;
+            color: #3a2a2a;
+            line-height: 1.5;
+            margin: 15px 0;
         }
-        .detail-row {
-          display: flex;
-          justify-content: space-between;
-          margin-bottom: 10px;
-          padding-bottom: 10px;
-          border-bottom: 1px solid #e9ecef;
+        .section-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #aa2929;
+            border-bottom: 2px solid #e0adad;
+            padding-bottom: 8px;
+            margin: 30px 0 20px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
-        .detail-row:last-child {
-          border-bottom: none;
-          margin-bottom: 0;
-          padding-bottom: 0;
+        .payment-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #ffffff;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(150, 40, 40, 0.1);
+            border: 1px solid #e9c1c1;
+            margin-bottom: 20px;
         }
-        .detail-label {
-          font-weight: 600;
-          color: #495057;
+        .payment-table td {
+            padding: 14px 18px;
+            border-bottom: 1px solid #f2d6d6;
+            font-size: 16px;
         }
-        .detail-value {
-          color: #212529;
-          text-align: right;
+        .payment-table tr:last-child td {
+            border-bottom: none;
         }
-        .progress-container {
-          background-color: #e9ecef;
-          border-radius: 10px;
-          height: 20px;
-          margin: 20px 0;
-          overflow: hidden;
+        .label-cell {
+            background-color: #fde5e5;
+            color: #892b2b;
+            font-weight: 700;
+            width: 40%;
+            border-right: 1px solid #e2b2b2;
         }
-        .progress-bar {
-          height: 100%;
-          background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
-          border-radius: 10px;
-          transition: width 0.3s ease;
+        .value-cell {
+            background-color: #fffbfb;
+            color: #2e1c1c;
+            font-weight: 500;
         }
-        .amount-highlight {
-          font-size: 24px;
-          font-weight: bold;
-          color: #ee5a24;
-          text-align: center;
-          margin: 15px 0;
+        .value-cell strong {
+            color: #b33838;
         }
-        .completion-message {
-          background-color: #d4edda;
-          color: #155724;
-          padding: 15px;
-          border-radius: 5px;
-          text-align: center;
-          margin: 20px 0;
-          font-weight: 600;
+        .quote-block {
+            background: #fff3f3;
+            border-radius: 40px 12px 40px 12px;
+            padding: 22px 26px;
+            margin: 25px 0 20px;
+            border: 1px solid #e6b2b2;
+            box-shadow: 0 6px 14px rgba(170, 60, 60, 0.1);
         }
-        .footer {
-          text-align: center;
-          padding: 20px;
-          background-color: #f8f9fa;
-          color: #6c757d;
-          font-size: 14px;
+        .quote-mark {
+            font-size: 40px;
+            color: #b44848;
+            font-family: 'Times New Roman', serif;
+            line-height: 0.6;
+            margin-right: 4px;
         }
-      </style>
-    </head>
-    <body>
-      <div class="container">
-        <div class="header">
-          <h1>📊 Installment Payment</h1>
-        </div>
-        
+        .quote-block p {
+            font-size: 18px;
+            font-style: italic;
+            color: #592b2b;
+            margin: 8px 0 10px;
+            font-weight: 500;
+        }
+        .director-name {
+            font-weight: 700;
+            color: #862b2b;
+            text-align: right;
+            font-size: 16px;
+        }
+        .signature {
+            margin: 25px 0 15px;
+            color: #592525;
+        }
+        .contact-footer {
+            background: #fae1e1;
+            padding: 18px 25px;
+            border-radius: 30px;
+            color: #6d3131;
+            font-size: 15px;
+            margin: 20px 0;
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 12px 8px;
+            word-break: break-word;
+        }
+        .contact-footer a {
+            color: #a13030;
+            text-decoration: underline;
+            white-space: nowrap;
+        }
+        /* Responsive */
+        @media only screen and (max-width: 480px) {
+            .contact-footer {
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+                gap: 8px;
+            }
+            .contact-footer a {
+                white-space: normal;
+            }
+        }
+        .social-icons {
+            text-align: center;
+            margin: 20px 0;
+            font-size: 18px;
+            letter-spacing: 10px;
+            color: #b44848;
+        }
+        .social-icons span {
+            font-weight: 600;
+            color: #862b2b;
+        }
+        .disclaimer {
+            font-size: 12px;
+            color: #ffe5e5;
+            background-color: #6d2b2b;
+            padding: 16px 24px;
+            text-align: left;
+            line-height: 1.5;
+        }
+        .footer-red {
+            background-color: #8f2626;
+            padding: 12px 20px;
+            text-align: center;
+            color: #ffd7d7;
+            font-size: 13px;
+        }
+        hr {
+            border: none;
+            height: 1px;
+            background: linear-gradient(to right, #efc2c2, #c96666, #efc2c2);
+            margin: 20px 0;
+        }
+        .note-placeholder {
+            font-size: 13px;
+            color: #946060;
+            background: #faf0f0;
+            padding: 6px 10px;
+            border-radius: 50px;
+            margin-top: 8px;
+            text-align: center;
+        }
+        .imgformate{
+        width:1200px;
+    }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <!-- Header image (replace src with actual image) -->
+    
+         <img src="https://res.cloudinary.com/dpyry0mh1/image/upload/v1773287825/Screenshot_2026-03-11_141445_ibusnj.png" alt="" class="imgformate">
         <div class="content">
-          <div class="congrats">
-            <h2>${installmentText} Received! ✅</h2>
-            <p>Dear ${student.name}, your installment has been processed successfully.</p>
-          </div>
+            <!-- Dear student -->
+            <div class="greeting">Dear <strong>${student.name}</strong>,</div>
 
-          <div class="amount-highlight">
-            ₹${payment.amountReceived}
-          </div>
-          
-          <!-- Payment Details Section -->
-          <div class="payment-details">
-            <h3 style="color: #495057; margin-bottom: 15px; text-align: center;">📋 Payment Details</h3>
-            <div class="detail-row">
-              <span class="detail-label">Student Name:</span>
-              <span class="detail-value">${student.name}</span>
+            <!-- Thank you message -->
+            <div class="message">
+                Thank you for choosing RYMA ACADEMY as your preferred learning partner.
             </div>
-            <div class="detail-row">
-              <span class="detail-label">Payment No:</span>
-              <span class="detail-value">${payment.paymentNo}</span>
+            <div class="message">
+                We are pleased to confirm that your payment has been successfully received and recorded in our system. Your official fee receipt is attached to this email for your reference and records.
             </div>
-            <div class="detail-row">
-              <span class="detail-label">Fee Type:</span>
-              <span class="detail-value">Installment</span>
-            </div>
-            ${payment.installmentNo ? `
-            <div class="detail-row">
-              <span class="detail-label">Installment Number:</span>
-              <span class="detail-value">${payment.installmentNo}</span>
-            </div>
-            ` : ''}
-            <div class="detail-row">
-              <span class="detail-label">Payment Date:</span>
-              <span class="detail-value">${new Date(payment.date).toLocaleDateString('en-IN')}</span>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">Payment Mode:</span>
-              <span class="detail-value">${payment.paymentMode}</span>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">Total Paid:</span>
-              <span class="detail-value" style="color: #28a745; font-weight: bold;">₹${enrollment.amountReceived}</span>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">Pending Amount:</span>
-              <span class="detail-value" style="color: ${enrollment.pendingAmount > 0 ? '#dc3545' : '#28a745'}; font-weight: bold;">₹${enrollment.pendingAmount}</span>
-            </div>
-          </div>
 
-          <!-- Payment Progress -->
-          <h3 style="text-align: center; margin-bottom: 10px;">Payment Progress</h3>
-          <div class="progress-container">
-            <div class="progress-bar" style="width: ${(enrollment.amountReceived / enrollment.totalAmount) * 100}%"></div>
-          </div>
-          
-          ${enrollment.pendingAmount <= 0 ? `
-            <div class="completion-message">
-              🎉 Congratulations! You have successfully paid all installments. Your course fee is now complete!
-            </div>
-          ` : `
-            <div style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; border-radius: 4px;">
-              <h3>📅 Payment Status</h3>
-              <p>You have paid ₹${enrollment.amountReceived} out of ₹${enrollment.totalAmount}. Pending amount: ₹${enrollment.pendingAmount}</p>
-            </div>
-          `}
+            <!-- Payment details section -->
+            <div class="section-title">PAYMENT DETAILS</div>
 
-          <p style="text-align: center; color: #6c757d; font-style: italic;">
-            Thank you for your timely payment! 💫
-          </p>
+            <table class="payment-table" cellpadding="0" cellspacing="0">
+                <tr>
+                    <td class="label-cell">Amount Received</td>
+                    <td class="value-cell"><strong>₹${payment.amountReceived}</strong></td>
+                </tr>
+                <tr>
+                    <td class="label-cell">Reference ID</td>
+                    <td class="value-cell"><strong>${payment.paymentNo}</strong></td>
+                </tr>
+                <tr>
+                    <td class="label-cell">Payment Date</td>
+                    <td class="value-cell"><strong>${new Date(payment.date).toLocaleDateString('en-IN')}</strong></td>
+                </tr>
+                <tr>
+                    <td class="label-cell">Payment Mode</td>
+                    <td class="value-cell"><strong>${payment.paymentMode}</strong></td>
+                </tr>
+            </table>
+
+            <div class="message">
+                Please quote Reference ID <strong>${payment.paymentNo}</strong> in all future communications with us regarding this payment.
+            </div>
+            <div class="message">
+                We look forward to a long and enriching association with you. Welcome to the <strong>RYMA ACADEMY</strong> family.
+            </div>
+
+            <!-- Regards -->
+            <div class="signature">
+                With the highest regards & warmest welcome,<br>
+                <strong>RYMA ACADEMY</strong><br>
+                Team of Admissions & Student Services
+            </div>
+
+            <!-- CONTACT FOOTER (Email-Safe) -->
+            <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#fae1e1; border-radius:30px; margin:20px 0;" bgcolor="#fae1e1">
+              <tr>
+                <td style="padding:18px 25px; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color:#6d3131; font-size:15px;">
+                  <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:4px 0;">📞 +91-9873336133</td></tr></table>
+                  <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:4px 0;"><a href="mailto:services@rymaacademy.com" style="color:#a13030; text-decoration:underline;">services@rymaacademy.com</a></td></tr></table>
+                  <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:4px 0;"><a href="https://www.rymaacademy.com" style="color:#a13030; text-decoration:underline;">www.rymaacademy.com</a></td></tr></table>
+                  <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:8px 0 4px; word-break:break-word;">📍 D-7/32, 1st Floor, Main Vishram Chowk, Sec-6, Rohini, Delhi – 110085</td></tr></table>
+                </td>
+              </tr>
+            </table>
+
+            <!-- Quote -->
+            <div class="quote-block">
+                <span class="quote-mark">“</span>
+                <p>We do not just build careers. We build people who change the world.</p>
+                <div class="director-name">— Mr. Parveen Jain (Director), RYMA ACADEMY</div>
+            </div>
+            <!-- Optional note about header (remove in production) -->
+            <div class="note-placeholder">
+                ⚡ Replace header image source with your actual logo.
+            </div>
         </div>
 
-        <div class="footer">
-          <p>This is an automated email. Please do not reply to this message.</p>
-          <p>&copy; ${new Date().getFullYear()} Your Institution Name. All rights reserved.</p>
+        <!-- Disclaimer -->
+        <div class="disclaimer">
+            <strong>Disclaimer:</strong> The information contained in this email is confidential to the addressee and may be protected by legal privilege. If you are not the intended recipient, please note that you may not disseminate, retransmit or make any other use of any material in this message. If you have received this email in error, please delete it and notify immediately by telephone or email.
         </div>
-      </div>
-    </body>
-    </html>
+        <div class="footer-red">
+            © RYMA ACADEMY – Payment Receipt
+        </div>
+    </div>
+</body>
+</html>
   `;
 
   return { subject, html };
@@ -670,7 +1197,7 @@ function generateGenericPaymentEmail(payment, student, enrollment) {
     <div class="email-container">
         <!-- Header image (replace src with actual image) -->
     
-         <img src=${server/assets/header.png} alt="" class="imgformate">
+       <img src="https://res.cloudinary.com/dpyry0mh1/image/upload/v1773287825/Screenshot_2026-03-11_141445_ibusnj.png" alt="" class="imgformate">
         <div class="content">
             <!-- Dear student -->
             <div class="greeting">Dear <strong>${student.name}</strong>,</div>
@@ -1173,6 +1700,8 @@ const rejectPayment = async (req, res) => {
       { path: 'receivedBy', select: 'name email' },
       { path: 'verifiedBy', select: 'name email' }
     ]);
+
+    await sendPaymentRejectionEmail(payment, verificationNotes);
 
     res.json({
       success: true,
