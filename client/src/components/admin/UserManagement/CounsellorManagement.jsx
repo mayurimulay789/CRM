@@ -32,6 +32,8 @@ const CounsellorManagement = () => {
   const [selectedCounsellor, setSelectedCounsellor] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [openpop, setopenpopUp] = useState(false); // registration modal state
+  const [deleteConfirmModal, setDeleteConfirmModal] = useState({ show: false, counsellor: null });
+
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [recordsPerPage] = useState(7);
