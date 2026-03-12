@@ -32,6 +32,9 @@ const CounsellorManagement = () => {
   const [selectedCounsellor, setSelectedCounsellor] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [openpop, setopenpopUp] = useState(false); // registration modal state
+  const [deleteConfirmModal, setDeleteConfirmModal] = useState({ show: false, counsellor: null });
+  const [validationErrors, setValidationErrors] = useState({});
+
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [recordsPerPage] = useState(7);
@@ -76,6 +79,7 @@ const CounsellorManagement = () => {
       });
     }
   };
+
   // Validation functions
   const validateEmail = (email) => {
     const emailRegex = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
@@ -151,63 +155,64 @@ const CounsellorManagement = () => {
   };
 
   const onSubmit = async (e) => {
-    e.preventDefault();
-    setLocalMessage('');
-    dispatch(clearError());
-    setValidationErrors({});
+  e.preventDefault();
+  setLocalMessage('');
+  dispatch(clearError());
+  setValidationErrors({});
 
-    // Validate form
-    if (!validateForm()) {
-      return;
-    }
+  // Validate form
+  if (!validateForm()) {
+    return;
+  }
 
-    try {
-      const token = localStorage.getItem('token');
-      
-      const response = await axios.post(
-        `${import.meta.env.VITE_BASE_URL}api/auth/register`,
-        formData,
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`
-          }
-        }
-      );
-      
-      console.log(response);
-      if (response.status === 201) {
-        toast.success('Counsellor added successfully!');
-        setopenpopUp(false);
-        setFormData({
-          FullName: '',
-          email: '',
-          password: '',
-          role: 'Counsellor',
-          phone: '',
-          education: ''
-        });
-        // Refresh the counsellors list
-        dispatch(getAllCounsellors());
+  try {
+    const token = localStorage.getItem('token');
+    // ✅ Fixed: ensure slash between base URL and path
+    const url = `${import.meta.env.VITE_BASE_URL}/api/auth/register`;
+
+    const response = await axios.post(url, formData, {
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`
       }
-    } catch (error) {
-      console.error('Registration error:', error);
-      
-      // Handle duplicate key errors from MongoDB
-      if (error.response?.data?.message) {
-        const errorMsg = error.response.data.message;
-        if (errorMsg.includes('email')) {
-          setValidationErrors(prev => ({ ...prev, email: 'This email is already registered' }));
-        } else if (errorMsg.includes('phone')) {
-          setValidationErrors(prev => ({ ...prev, phone: 'This phone number is already registered' }));
-        } else {
-          setLocalMessage(errorMsg);
-        }
+    });
+
+    if (response.status === 201 || response.status === 200) {
+      toast.success('Counsellor added successfully!');
+      setopenpopUp(false);
+      setFormData({
+        FullName: '',
+        email: '',
+        password: '',
+        role: 'Counsellor',
+        phone: '',
+        education: ''
+      });
+      dispatch(getAllCounsellors()); // Refresh list
+    } else {
+      setLocalMessage('Unexpected response from server. Please try again.');
+    }
+  } catch (error) {
+    console.error('Registration error:', error);
+
+    // Handle duplicate key errors from MongoDB (sent as 400 with specific message)
+    if (error.response?.data?.message) {
+      const errorMsg = error.response.data.message;
+      if (errorMsg.includes('email') && errorMsg.includes('duplicate')) {
+        setValidationErrors(prev => ({ ...prev, email: 'This email is already registered' }));
+      } else if (errorMsg.includes('phone') && errorMsg.includes('duplicate')) {
+        setValidationErrors(prev => ({ ...prev, phone: 'This phone number is already registered' }));
       } else {
-        setLocalMessage('Failed to add counsellor. Please try again.');
+        setLocalMessage(errorMsg);
       }
+    } else if (error.response?.status === 400) {
+      // If the backend sends validation errors in a structured way, you could map them here
+      setLocalMessage('Validation failed. Please check your inputs.');
+    } else {
+      setLocalMessage('Failed to add counsellor. Please check your connection and try again.');
     }
-  };
+  }
+};
 
   // Handle delete counsellor
   const handleDeleteClick = (counsellor) => {
@@ -236,7 +241,6 @@ const CounsellorManagement = () => {
   // Handle success/error toasts and close modal on success
   useEffect(() => {
     if (success) {
-      toast.success('Counsellor added successfully!');
       setopenpopUp(false); // close modal
       dispatch(clearSuccess());
     }
