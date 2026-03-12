@@ -76,7 +76,6 @@ const CounsellorManagement = () => {
       });
     }
   };
-
   // Validation functions
   const validateEmail = (email) => {
     const emailRegex = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
