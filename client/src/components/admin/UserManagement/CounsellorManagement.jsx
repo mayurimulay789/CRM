@@ -33,6 +33,7 @@ const CounsellorManagement = () => {
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [openpop, setopenpopUp] = useState(false); // registration modal state
   const [deleteConfirmModal, setDeleteConfirmModal] = useState({ show: false, counsellor: null });
+  const [validationErrors, setValidationErrors] = useState({});
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -239,7 +240,6 @@ const CounsellorManagement = () => {
   // Handle success/error toasts and close modal on success
   useEffect(() => {
     if (success) {
-      toast.success('Counsellor added successfully!');
       setopenpopUp(false); // close modal
       dispatch(clearSuccess());
     }
