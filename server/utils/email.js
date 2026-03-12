@@ -51,7 +51,7 @@ const transporter = nodemailer.createTransport({
  * @param {string} html - email HTML content
  * @param {boolean} isSubmission - whether this is a submission notification (adds BCC)
  */
-async function sendMail(email, subject, html,isSubmission = false, policyattachments) {
+async function sendMail(email, subject, html,isSubmission = false) {
   console.log(`📧 Preparing to send email:`, {
     to: email,
     subject: subject.substring(0, 50),
@@ -65,7 +65,6 @@ async function sendMail(email, subject, html,isSubmission = false, policyattachm
     to: email,
     subject,
     html,
-    attachments:policyattachments,
   };
   // Add BCC only if it's a submission AND bcc environment variable is set
   if (isSubmission && bcc) {

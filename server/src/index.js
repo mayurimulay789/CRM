@@ -23,20 +23,6 @@ const enrollmentRoutes = require('../routes/enrollmentRoutes');
 const studentGrievanceRoutes = require("../routes/studentGrievanceRoutes");
 const campusGrievanceRoutes = require("../routes/campusGrievanceRoutes");
 
-const filePathforPolicy = path.join(__dirname, '..', 'assets', 'policy.pdf');
-const fileNameforPolicy = 'policy.pdf';
-const policyBuffer = fs.readFileSync(filePathforPolicy);
-let policyattachments = [
-  {
-    filename: fileNameforPolicy,
-    content: policyBuffer,
-    contentType: 'application/pdf'
-  }
-];
-
-console.log(policyattachments)
-
-
 // Force all variables into process.env
 dotenv.config({
   path: path.resolve(__dirname, "../.env"),
@@ -108,4 +94,6 @@ app.listen(PORT, async () => {
   // Verify email connection on startup
   await verifyConnection();
 });
+
+
 
