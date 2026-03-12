@@ -168,7 +168,7 @@ const CounsellorManagement = () => {
   try {
     const token = localStorage.getItem('token');
     // ✅ Fixed: ensure slash between base URL and path
-    const url = `${import.meta.env.VITE_BASE_URL}/api/auth/register`;
+    const url = `${import.meta.env.VITE_BASE_URL}api/auth/register`;
 
     const response = await axios.post(url, formData, {
       headers: {
