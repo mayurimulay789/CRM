@@ -675,7 +675,7 @@ const AdmissionsManagement = () => {
                       column.visible && (
                         <th
                           key={column.key}
-                          className="px-2 lg:px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap border-b border-gray-200 bg-gray-50"
+                          className="px-2 lg:px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap border-b border-gray-200 bg-gray-50 text-center"
                         >
                           {column.label}
                         </th>

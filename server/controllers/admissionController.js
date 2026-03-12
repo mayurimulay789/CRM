@@ -40,7 +40,7 @@ function makeDownloadUrl(url, filename) {
   if (!url) return url;
   console.log(`🔗 Processing URL for download: ${url}`);
   const safeFilename = filename.replace(/[^a-zA-Z0-9._-]/g, '_');
-  
+
   try {
     if (url.includes('/raw/upload/')) {
       const baseUrl = url.split('/raw/upload/')[0];
@@ -107,6 +107,7 @@ async function sendAdmissionEmail(admission, type = 'approved') {
     }));
 
     let subject, html;
+    const downloadpolicyDocument = makeDownloadUrl('https://res.cloudinary.com/dpyry0mh1/image/upload/v1773289421/RYMA_ACADEMY_PRIVACY_POLICIES_1_1_2_ycygav.pdf', "policydocument")
     subject = '🎓 Welcome to RYMA ACADEMY – Your Admission is Officially Confirmed';
     html = `
       <!DOCTYPE html>
@@ -191,9 +192,15 @@ async function sendAdmissionEmail(admission, type = 'approved') {
                 `).join('')}
                 <li>
                    <strong>Policy Document</strong><br>
-                    <a href="https://res.cloudinary.com/dpyry0mh1/image/upload/v1773289421/RYMA_ACADEMY_PRIVACY_POLICIES_1_1_2_ycygav.pdf" download target="_blank">
-                      📥 Download
-                    </a>
+                    <a
+  href=${downloadpolicyDocument}
+  download="RYMA_ACADEMY_Privacy_Policies.pdf" // Optional: suggest a filename
+  className="your-button-classes"
+  target="_blank"
+  rel="noopener noreferrer"
+>
+  📥 Download Privacy Policies (PDF)
+</a>
                 </li>
               </ul>
               <p style="font-size:0.9em; color:#666;">Right-click and "Save As" if the download does not start automatically.</p>
@@ -364,8 +371,26 @@ const createAdmission = async (req, res) => {
       source,
       notes
     } = req.body;
+    console.log('1. Reading request body...');
+    console.log('Request body data:', {
+      student,
+      course,
+      trainingBranch,
+      counsellor,
+      termsCondition,
+      appliedBatch,
+      source
+    });
 
-    let admissionFrontPageUrl = '', admissionBackPageUrl = '', studentStatementUrl = '', confidentialFormUrl = '';
+    console.log('2. Checking uploaded files...');
+    console.log('Files received:', req.files ? Object.keys(req.files) : 'No files');
+
+    // Handle file uploads to Cloudinary
+    let admissionFrontPageUrl = '';
+    let admissionBackPageUrl = '';
+    let studentStatementUrl = '';
+    let confidentialFormUrl = '';
+
     if (req.files) {
       try {
         if (req.files.admissionFrontPage?.[0]) {
