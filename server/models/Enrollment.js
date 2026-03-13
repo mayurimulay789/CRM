@@ -1,6 +1,20 @@
 const mongoose = require('mongoose');
 
-
+const installmentSchema = new mongoose.Schema({
+  installmentNumber: {
+    type: Number,
+    required: true
+  },
+  amount: {
+    type: Number,
+    required: true,
+    min: 0
+  },
+  dueDate: {
+    type: Date,
+    required: true
+  }
+});
 
 const studentActivitySchema = new mongoose.Schema({
   type: {
@@ -24,11 +38,11 @@ const studentActivitySchema = new mongoose.Schema({
 });
 
 const enrollmentSchema = new mongoose.Schema({
-    admissionRegistrationPayment: {
-      type: Number,
-      default: 0,
-      description: 'Payment made at the time of admission registration.'
-    },
+  admissionRegistrationPayment: {
+    type: Number,
+    default: 0,
+    description: 'Payment made at the time of admission registration.'
+  },
   enrollmentNo: {
     type: String,
     required: true,
@@ -60,19 +74,25 @@ const enrollmentSchema = new mongoose.Schema({
     required: true,
     default: Date.now
   },
-  // trainingBranch removed
   mode: {
     type: String,
     enum: ['Online', 'Offline', 'Hybrid'],
     default: 'Offline'
   },
+  // Enrollment approval status
+  enrollmentStatus: {
+    type: String,
+    enum: ['pending', 'approved', 'rejected'],
+    default: 'pending'
+  },
+  // Student status
   status: {
     type: String,
     enum: ['active', 'inactive', 'dropout', 'notattending', 'completed', 'cancelled', 'on_hold'],
     default: 'active'
   },
   
-  // Fee Details - CLEANED VERSION (actualAmount removed)
+  // Fee Details - NO AUTO CALCULATION
   totalAmount: {
     type: Number,
     required: true
@@ -80,26 +100,29 @@ const enrollmentSchema = new mongoose.Schema({
   
   amountReceived: {
     type: Number,
-    default: 0,
-    // Will be recalculated as baseAmount - pendingAmount
+    default: 0
   },
+  
   courseAmount: {
     type: Number,
     default: 0,
     description: 'Base course amount before any calculation (same as totalAmount)'
   },
+  
   refundAmount: {
     type: Number,
     default: 0
   },
+  
   pendingAmount: {
     type: Number,
-    default: function() {
-      const actualTotal = (this.totalAmount || 0) - (this.admissionRegistrationPayment || 0);
-      return (actualTotal - (this.discount || 0)) - (this.amountReceived || 0);
-    }
+    default: 0  // Just default 0, no function
   },
- 
+  
+  discount: {
+    type: Number,
+    default: 0
+  },
   
   // Fee Structure
   feeType: {
@@ -107,24 +130,14 @@ const enrollmentSchema = new mongoose.Schema({
     enum: ['one-time', 'installment'],
     default: 'one-time'
   },
+  
   dueDate: {
     type: Date,
     default: null
   },
   
-  
-  // Last Payment Details (Updated only when payment is approved)
-  lastTransactionNo: String,
-  lastPaidAmount: Number,
-  lastPaidDate: Date,
-  lastPaidMode: {
-    type: String,
-    enum: ['cash', 'card', 'online', 'cheque', 'bank_transfer']
-  },
-  lastAmountReceivedBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User'
-  },
+  // Installment Array
+  installments: [installmentSchema],
   
   // Lead Information
   leadDate: Date,
@@ -155,6 +168,7 @@ enrollmentSchema.index({ student: 1 });
 enrollmentSchema.index({ course: 1 });
 enrollmentSchema.index({ batch: 1 });
 enrollmentSchema.index({ status: 1 });
+enrollmentSchema.index({ enrollmentStatus: 1 });
 enrollmentSchema.index({ trainingBranch: 1 });
 enrollmentSchema.index({ counsellor: 1 });
 enrollmentSchema.index({ enrollmentDate: -1 });
@@ -168,8 +182,6 @@ enrollmentSchema.virtual('hasFeeDelay').get(function() {
   return false;
 });
 
-
-
 // Virtual for approved payments total
 enrollmentSchema.virtual('approvedPayments', {
   ref: 'Payment',
@@ -178,8 +190,9 @@ enrollmentSchema.virtual('approvedPayments', {
   match: { verificationStatus: 'approved' }
 });
 
-// Pre-save middleware to generate enrollment number
+// Pre-save middleware - ONLY generates enrollment number, NO calculations
 enrollmentSchema.pre('save', async function(next) {
+  // Only generate enrollment number for new documents
   if (this.isNew && !this.enrollmentNo) {
     const year = new Date().getFullYear();
     const count = await mongoose.model('Enrollment').countDocuments({
@@ -190,17 +203,8 @@ enrollmentSchema.pre('save', async function(next) {
     });
     this.enrollmentNo = `ENR${year}${(count + 1).toString().padStart(4, '0')}`;
   }
-
-  // Update pending amount using new business rule (totalAmount - admissionRegistrationPayment)
-  if (this.isModified('totalAmount') || this.isModified('discount') || this.isModified('amountReceived') ||
-      this.isModified('admissionRegistrationPayment')) {
-    const actualTotal = this.calculateActualTotal();
-    this.courseAmount = this.totalAmount || 0;
-    this.pendingAmount = (actualTotal - this.discount) - this.amountReceived;
-    this.amountReceived = this.courseAmount - this.pendingAmount;
-  }
-
- 
+  
+  // ❌ ALL CALCULATIONS REMOVED - Values must be set explicitly in controllers
   next();
 });
 
@@ -216,38 +220,68 @@ enrollmentSchema.methods.addActivity = function(type, description, createdBy, pa
   return this.save();
 };
 
-// Helper method to calculate actual total using new business rule (totalAmount - admissionRegistrationPayment)
+// Helper method to calculate actual total (kept for reference if needed)
 enrollmentSchema.methods.calculateActualTotal = function() {
   const baseAmount = this.totalAmount || 0;
   const registrationFees = this.admissionRegistrationPayment || 0;
   return baseAmount - registrationFees;
 };
 
-// Instance method to update enrollment after payment approval
-enrollmentSchema.methods.updateAfterPaymentApproval = async function(payment) {
-  // Update amount received
-  this.amountReceived += payment.amountReceived;
+// Method to calculate total installment amount
+enrollmentSchema.methods.calculateTotalInstallmentAmount = function() {
+  if (!this.installments || this.installments.length === 0) return 0;
+  return this.installments.reduce((total, inst) => total + (inst.amount || 0), 0);
+};
+
+// Method to validate installments total matches expected amount
+enrollmentSchema.methods.validateInstallmentsTotal = function() {
+  if (this.feeType !== 'installment') return true;
   
-  // Calculate pending amount using new business rule (totalAmount - admissionRegistrationPayment)
-  const actualTotal = this.calculateActualTotal();
-  this.pendingAmount = (actualTotal - this.discount) - this.amountReceived;
+  const totalInstallmentAmount = this.calculateTotalInstallmentAmount();
+  const expectedTotal = (this.totalAmount || 0) - (this.admissionRegistrationPayment || 0);
   
-  // Update last payment details
-  this.lastTransactionNo = payment.transactionNo || payment.paymentNo;
-  this.lastPaidAmount = payment.amountReceived;
-  this.lastPaidDate = payment.date;
-  this.lastPaidMode = payment.paymentMode;
-  this.lastAmountReceivedBy = payment.receivedBy;
+  return Math.abs(totalInstallmentAmount - expectedTotal) < 0.01;
+};
+
+// Method to add an installment
+enrollmentSchema.methods.addInstallment = function(installmentData) {
+  const nextNumber = this.installments.length + 1;
+  this.installments.push({
+    installmentNumber: nextNumber,
+    amount: installmentData.amount,
+    dueDate: installmentData.dueDate
+  });
+  return this.save();
+};
+
+// Method to remove an installment
+enrollmentSchema.methods.removeInstallment = function(installmentId) {
+  const installment = this.installments.id(installmentId);
+  if (!installment) return this;
   
-  await this.save();
-  await this.addActivity(
-    'payment_approved', 
-    `Payment of ₹${payment.amountReceived} approved for ${payment.feeType}`,
-    payment.verifiedBy,
-    payment._id
-  );
+  // Check if any payment exists for this installment number
+  const hasPayments = false; // You can implement payment check logic here
   
-  return this;
+  if (!hasPayments) {
+    installment.deleteOne();
+    // Re-number remaining installments
+    this.installments.forEach((inst, index) => {
+      inst.installmentNumber = index + 1;
+    });
+  }
+  return this.save();
+};
+
+// ❌ REMOVED updateAfterPaymentApproval method - now handled in payment controller
+
+// Static method to find enrollments by enrollmentStatus
+enrollmentSchema.statics.findByEnrollmentStatus = function(enrollmentStatus) {
+  return this.find({ enrollmentStatus })
+    .populate('student', 'studentId name email phone')
+    .populate('course', 'name fee duration')
+    .populate('batch', 'name timing')
+    .populate('counsellor', 'name email')
+    .sort({ enrollmentDate: -1 });
 };
 
 // Static method to find enrollments by status
@@ -308,6 +342,15 @@ enrollmentSchema.statics.getStatistics = async function(branch = null) {
         totalEnrollments: { $sum: 1 },
         totalRevenue: { $sum: '$totalApprovedAmount' },
         totalPending: { $sum: { $subtract: ['$totalAmount', '$totalApprovedAmount'] } },
+        pendingEnrollments: {
+          $sum: { $cond: [{ $eq: ['$enrollmentStatus', 'pending'] }, 1, 0] }
+        },
+        approvedEnrollments: {
+          $sum: { $cond: [{ $eq: ['$enrollmentStatus', 'approved'] }, 1, 0] }
+        },
+        rejectedEnrollments: {
+          $sum: { $cond: [{ $eq: ['$enrollmentStatus', 'rejected'] }, 1, 0] }
+        },
         activeEnrollments: {
           $sum: { $cond: [{ $eq: ['$status', 'active'] }, 1, 0] }
         },
@@ -323,6 +366,16 @@ enrollmentSchema.statics.getStatistics = async function(branch = null) {
     {
       $group: {
         _id: '$status',
+        count: { $sum: 1 }
+      }
+    }
+  ]);
+
+  const enrollmentStatusStats = await this.aggregate([
+    { $match: matchStage },
+    {
+      $group: {
+        _id: '$enrollmentStatus',
         count: { $sum: 1 }
       }
     }
@@ -362,10 +415,14 @@ enrollmentSchema.statics.getStatistics = async function(branch = null) {
       totalEnrollments: 0,
       totalRevenue: 0,
       totalPending: 0,
+      pendingEnrollments: 0,
+      approvedEnrollments: 0,
+      rejectedEnrollments: 0,
       activeEnrollments: 0,
       completedEnrollments: 0
     }),
     statusDistribution: statusStats,
+    enrollmentStatusDistribution: enrollmentStatusStats,
     topCounsellors: counsellorStats
   };
 };

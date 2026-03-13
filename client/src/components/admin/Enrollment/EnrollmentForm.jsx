@@ -9,7 +9,7 @@ import {
 import { fetchAdmissions } from '../../../store/slices/admissionSlice';
 import { getBatches } from '../../../store/slices/batchSlice';
 
-const EnrollmentForm = ({ enrollment, onClose, isCounsellor = true, counsellorId = null }) => {
+const EnrollmentForm = ({ enrollment, onClose }) => {
   const dispatch = useDispatch();
   const { operationLoading, error, success } = useSelector(state => state.enrollments);
   const { admissions } = useSelector(state => state.admissions);
@@ -19,14 +19,15 @@ const EnrollmentForm = ({ enrollment, onClose, isCounsellor = true, counsellorId
     admission: '',
     batch: '',
     mode: 'Offline',
-    actualAmount: '',
     totalAmount: '',
     feeType: 'one-time',
     dueDate: '',
+    installments: [],
     leadDate: new Date().toISOString().split('T')[0],
     leadSource: 'website',
     call: '',
     status: 'active',
+    counsellor: '',
     admissionRegistrationPayment: 0
   });
 
@@ -35,57 +36,51 @@ const EnrollmentForm = ({ enrollment, onClose, isCounsellor = true, counsellorId
   const [touched, setTouched] = useState({});
 
   useEffect(() => {
-    console.log('isCounsellor:', isCounsellor);
-    console.log('enrollment:', enrollment);
     dispatch(fetchAdmissions());
     dispatch(getBatches());
   }, [dispatch]);
 
-  // Helper function to format date for input fields
+  // Format date for input
   const formatDateForInput = (dateString) => {
     if (!dateString) return '';
-    
     try {
       const date = new Date(dateString);
-      // Check if date is valid
-      if (isNaN(date.getTime())) return '';
-      
-      return date.toISOString().split('T')[0];
-    } catch (error) {
-      console.error('Date formatting error:', error);
+      return isNaN(date.getTime()) ? '' : date.toISOString().split('T')[0];
+    } catch {
       return '';
     }
   };
 
+  // Load enrollment data for editing
   useEffect(() => {
     if (enrollment) {
-      // Format enrollment data for form with proper date handling
       setFormData({
         admission: enrollment.admission?._id || enrollment.admission || '',
         batch: enrollment.batch?._id || enrollment.batch || '',
         mode: enrollment.mode || 'Offline',
         totalAmount: enrollment.totalAmount || '',
-        actualAmount: enrollment.actualAmount || enrollment.totalAmount || '',
         feeType: enrollment.feeType || 'one-time',
         dueDate: formatDateForInput(enrollment.dueDate) || '',
+        installments: enrollment.installments || [],
         leadDate: formatDateForInput(enrollment.leadDate) || new Date().toISOString().split('T')[0],
         leadSource: enrollment.leadSource || 'website',
         call: enrollment.call || '',
         status: enrollment.status || 'active',
+        counsellor: enrollment.counsellor?._id || enrollment.counsellor || '',
         admissionRegistrationPayment: enrollment.admissionRegistrationPayment || 0
       });
     }
   }, [enrollment]);
 
+  // Auto-close on success
   useEffect(() => {
     if (success) {
-      const timer = setTimeout(() => {
-        onClose();
-      }, 1000);
+      const timer = setTimeout(onClose, 1000);
       return () => clearTimeout(timer);
     }
   }, [success, onClose]);
 
+  // Cleanup
   useEffect(() => {
     return () => {
       dispatch(clearError());
@@ -93,90 +88,122 @@ const EnrollmentForm = ({ enrollment, onClose, isCounsellor = true, counsellorId
     };
   }, [dispatch]);
 
-  // Update selected admission when formData.admission changes
+  // Update selected admission
   useEffect(() => {
     if (formData.admission) {
       const admission = admissions.find(a => a._id === formData.admission);
       setSelectedAdmission(admission);
-      if (admission && !enrollment) {
-        // For new enrollments, auto-populate from admission
-        setFormData(prev => ({
-          ...prev,
-          trainingBranch: admission.trainingBranch || prev.trainingBranch
-        }));
-      }
     }
-  }, [formData.admission, admissions, enrollment]);
+  }, [formData.admission, admissions]);
 
-  const handleBlur = (field) => {
-    setTouched(prev => ({ ...prev, [field]: true }));
-    validateField(field, formData[field]);
-  };
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
+  // Handle installment changes
+  const handleInstallmentChange = (index, field, value) => {
+    const updatedInstallments = [...formData.installments];
+    updatedInstallments[index] = {
+      ...updatedInstallments[index],
+      [field]: field === 'amount' ? parseFloat(value) || 0 : value
+    };
+    
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      installments: updatedInstallments
     }));
 
-    // Validate field immediately after change if it's been touched before
-    if (touched[name]) {
-      validateField(name, value);
-    }
-
-    if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: '' }));
-    }
-
-    // Trigger EMI validation when registration payment changes
-    if ((name === 'admissionRegistrationPayment') && formData.feeType === 'installment') {
-      setTimeout(() => validateEMITotals(), 0);
+    if (touched.totalAmount) {
+      validateInstallmentsTotal(updatedInstallments);
     }
   };
 
-  const handleEMIChange = (emiIndex, field, value) => {
-    // EMI change handler removed (no longer needed)
+  // Add new installment
+  const addInstallment = () => {
+    const newInstallment = {
+      installmentNumber: formData.installments.length + 1,
+      amount: 0,
+      dueDate: ''
+    };
+    
+    setFormData(prev => ({
+      ...prev,
+      installments: [...prev.installments, newInstallment]
+    }));
   };
 
+  // Remove installment
+  const removeInstallment = (index) => {
+    const updatedInstallments = formData.installments.filter((_, i) => i !== index);
+    
+    // Re-number installments
+    const renumberedInstallments = updatedInstallments.map((inst, idx) => ({
+      ...inst,
+      installmentNumber: idx + 1
+    }));
+    
+    setFormData(prev => ({
+      ...prev,
+      installments: renumberedInstallments
+    }));
+  };
+
+  // Validate installments total
+  const validateInstallmentsTotal = (installments = formData.installments) => {
+    const totalInstallmentAmount = installments.reduce((sum, inst) => sum + (inst.amount || 0), 0);
+    const expectedTotal = (parseFloat(formData.totalAmount) || 0) - (parseFloat(formData.admissionRegistrationPayment) || 0);
+    
+    if (Math.abs(totalInstallmentAmount - expectedTotal) > 0.01) {
+      setErrors(prev => ({
+        ...prev,
+        installments: `Total installments (₹${totalInstallmentAmount}) must equal course fee (₹${expectedTotal})`
+      }));
+    } else {
+      const { installments, ...rest } = errors;
+      setErrors(rest);
+    }
+  };
+
+  // Validate field
   const validateField = (fieldName, value) => {
     const newErrors = { ...errors };
 
     switch (fieldName) {
       case 'admission':
-        if (!value) {
-          newErrors.admission = 'Admission is required';
-        } else {
-          delete newErrors.admission;
-        }
+        if (!value) newErrors.admission = 'Admission is required';
+        else delete newErrors.admission;
         break;
 
       case 'batch':
-        if (!value) {
-          newErrors.batch = 'Batch is required';
-        } else {
-          delete newErrors.batch;
-        }
+        if (!value) newErrors.batch = 'Batch is required';
+        else delete newErrors.batch;
+        break;
+
+      case 'counsellor':
+        if (!value) newErrors.counsellor = 'Counsellor is required';
+        else delete newErrors.counsellor;
         break;
 
       case 'totalAmount':
-        if (!value || value === '') {
-          newErrors.totalAmount = 'Total amount is required';
-        } else if (parseFloat(value) <= 0) {
-          newErrors.totalAmount = 'Total amount must be greater than 0';
-        } else if (parseFloat(value) > 1000000) {
-          newErrors.totalAmount = 'Total amount cannot exceed ₹10,00,000';
-        } else {
+        if (!value) newErrors.totalAmount = 'Total amount is required';
+        else if (parseFloat(value) <= 0) newErrors.totalAmount = 'Amount must be greater than 0';
+        else if (parseFloat(value) > 1000000) newErrors.totalAmount = 'Amount cannot exceed ₹10,00,000';
+        else {
           delete newErrors.totalAmount;
-          // Revalidate EMI totals if total amount changes
           if (formData.feeType === 'installment') {
-            validateEMITotals();
+            validateInstallmentsTotal();
           }
         }
         break;
 
-      case 'feeType':
-        // EMI validation removed
+      case 'dueDate':
+        if (formData.feeType === 'installment' && !value) {
+          newErrors.dueDate = 'Due date is required for installment';
+        } else if (value) {
+          const dueDate = new Date(value);
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          if (dueDate < today) newErrors.dueDate = 'Due date cannot be in the past';
+          else delete newErrors.dueDate;
+        } else {
+          delete newErrors.dueDate;
+        }
         break;
 
       default:
@@ -186,75 +213,99 @@ const EnrollmentForm = ({ enrollment, onClose, isCounsellor = true, counsellorId
     setErrors(newErrors);
   };
 
-  const validateEMITotals = () => {
-    // EMI validation removed
+  const handleBlur = (field) => {
+    setTouched(prev => ({ ...prev, [field]: true }));
+    validateField(field, formData[field]);
+  };
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+
+    if (touched[name]) validateField(name, value);
+    if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
   };
 
   const validateForm = () => {
-    // Mark all fields as touched to show all errors
-    const allFields = ['admission', 'batch', 'totalAmount'];
-    const newTouched = {};
-    allFields.forEach(field => {
-      newTouched[field] = true;
-    });
-    setTouched(newTouched);
-
-    // Validate all fields
     const newErrors = {};
 
-    // Required fields validation
     if (!formData.admission) newErrors.admission = 'Admission is required';
     if (!formData.batch) newErrors.batch = 'Batch is required';
+    if (!formData.counsellor) newErrors.counsellor = 'Counsellor is required';
     
-    // Amount validation
-    if (!formData.totalAmount || formData.totalAmount === '') {
+    if (!formData.totalAmount) {
       newErrors.totalAmount = 'Total amount is required';
     } else if (parseFloat(formData.totalAmount) <= 0) {
-      newErrors.totalAmount = 'Total amount must be greater than 0';
-    } else if (parseFloat(formData.totalAmount) > 1000000) {
-      newErrors.totalAmount = 'Total amount cannot exceed ₹10,00,000';
+      newErrors.totalAmount = 'Amount must be greater than 0';
     }
 
-    // Fee type specific validations
-    // EMI validation removed
+    if (formData.feeType === 'installment') {
+      if (!formData.dueDate) {
+        newErrors.dueDate = 'Due date is required for installment';
+      } else {
+        const dueDate = new Date(formData.dueDate);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        if (dueDate < today) newErrors.dueDate = 'Due date cannot be in the past';
+      }
 
-    // charges validation removed
+      if (formData.installments.length === 0) {
+        newErrors.installments = 'At least one installment is required';
+      } else {
+        const totalInstallmentAmount = formData.installments.reduce((sum, inst) => sum + (inst.amount || 0), 0);
+        const expectedTotal = parseFloat(formData.totalAmount) - (parseFloat(formData.admissionRegistrationPayment) || 0);
+        
+        if (Math.abs(totalInstallmentAmount - expectedTotal) > 0.01) {
+          newErrors.installments = `Installments total (₹${totalInstallmentAmount}) must equal ₹${expectedTotal}`;
+        }
+
+        formData.installments.forEach((inst, idx) => {
+          if (!inst.amount || inst.amount <= 0) {
+            newErrors[`installment_${idx}_amount`] = 'Amount required';
+          }
+          if (!inst.dueDate) {
+            newErrors[`installment_${idx}_date`] = 'Due date required';
+          }
+        });
+      }
+    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const prepareSubmitData = () => {
-    const baseData = {
+    const submitData = {
       admission: formData.admission,
       batch: formData.batch,
       mode: formData.mode,
       totalAmount: parseFloat(formData.totalAmount),
-      actualAmount: formData.actualAmount ? parseFloat(formData.actualAmount) : parseFloat(formData.totalAmount),
       feeType: formData.feeType,
       dueDate: formData.dueDate ? new Date(formData.dueDate) : null,
       leadDate: formData.leadDate ? new Date(formData.leadDate) : new Date(),
       leadSource: formData.leadSource,
       call: formData.call,
       status: formData.status,
+      counsellor: formData.counsellor,
       admissionRegistrationPayment: parseFloat(formData.admissionRegistrationPayment) || 0
     };
 
-    // Add counsellor for new enrollments
-    if (!enrollment && counsellorId) {
-      baseData.counsellor = counsellorId;
+    // Add installments for installment type
+    if (formData.feeType === 'installment') {
+      submitData.installments = formData.installments.map(inst => ({
+        installmentNumber: inst.installmentNumber,
+        amount: parseFloat(inst.amount) || 0,
+        dueDate: new Date(inst.dueDate)
+      }));
     }
 
-    // EMI data removed from submission
-    return baseData;
+    return submitData;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!validateForm()) {
-      return;
-    }
+    if (!validateForm()) return;
 
     dispatch(clearError());
 
@@ -274,141 +325,123 @@ const EnrollmentForm = ({ enrollment, onClose, isCounsellor = true, counsellorId
     }
   };
 
-  const getFormTitle = () => {
-    if (enrollment) {
-      return `Edit Enrollment - ${enrollment.enrollmentNo}`;
-    }
-    return 'Create New Enrollment';
-  };
+  // Get approved admissions
+  const approvedAdmissions = admissions.filter(a => a.status === 'approved');
 
-  // Counsellor can only see approved admissions
-  const approvedAdmissions = admissions.filter(admission => 
-    admission.status === 'approved'
+  // Get all active batches
+  const activeBatches = batches.filter(b => 
+    b.status === 'Running' || b.status === 'Upcoming'
   );
 
-  // Active batches
-  const activeBatches = batches.filter(batch => 
-    batch.status === 'Running' || batch.status === 'Upcoming'
-  );
+  // Get unique counsellors from admissions (you might want to fetch from users)
+  const counsellors = [...new Set(admissions.map(a => a.counsellor?._id || a.counsellor))]
+    .filter(Boolean)
+    .map(id => {
+      const admission = admissions.find(a => a.counsellor?._id === id || a.counsellor === id);
+      return {
+        id,
+        name: admission?.counsellor?.FullName || 'Unknown Counsellor'
+      };
+    });
 
-  const totalEMIAmount = 0;
-  // EMI comparison removed
-
-  // Helper component for required field indicator
   const RequiredStar = () => <span className="text-red-500 ml-1">*</span>;
 
   return (
     <div className="max-h-[80vh] overflow-y-auto">
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-bold text-gray-800">{getFormTitle()}</h2>
-            {enrollment && (
-              <div className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
-                {enrollment.enrollmentNo}
-              </div>
-            )}
-            <button
-              type="button"
-              onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 text-lg"
-            >
-              ✖
-            </button>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="bg-white rounded-lg border p-4">
+          {/* Header */}
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-bold">
+              {enrollment ? `Edit Enrollment - ${enrollment.enrollmentNo}` : 'New Enrollment'}
+            </h2>
+            <button type="button" onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl">×</button>
           </div>
 
+          {/* Error Message */}
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
-              <div className="flex items-center space-x-2">
-                <span>❌</span>
-                <span>{error}</span>
-              </div>
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded-lg mb-4 text-sm">
+              ❌ {error}
             </div>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Admission Selection */}
+          {/* Form Fields */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Admission */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Admission <RequiredStar />
-              </label>
+              <label className="block text-sm font-medium mb-1">Admission <RequiredStar /></label>
               <select
                 name="admission"
                 value={formData.admission}
                 onChange={handleChange}
                 onBlur={() => handleBlur('admission')}
-                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  errors.admission ? 'border-red-500' : 'border-gray-300'
-                }`}
+                className={`w-full px-3 py-2 border rounded-lg text-sm ${errors.admission ? 'border-red-500' : 'border-gray-300'}`}
                 disabled={!!enrollment}
               >
                 <option value="">Select Admission</option>
-                {approvedAdmissions.map(admission => (
-                  <option key={admission._id} value={admission._id}>
-                    {admission.admissionNo} - {admission.student?.name} - {admission.course?.name}
+                {approvedAdmissions.map(ad => (
+                  <option key={ad._id} value={ad._id}>
+                    {ad.admissionNo} - {ad.student?.name} - {ad.course?.name}
                   </option>
                 ))}
               </select>
-              {errors.admission && (
-                <p className="text-red-500 text-xs mt-1 flex items-center">
-                  <span className="mr-1">⚠</span>
-                  {errors.admission}
-                </p>
-              )}
+              {errors.admission && <p className="text-red-500 text-xs mt-1">{errors.admission}</p>}
               
               {selectedAdmission && (
-                <div className="mt-2 p-3 bg-blue-50 rounded-lg">
-                  <div className="text-sm text-blue-800">
-                    <div><strong>Student:</strong> {selectedAdmission.student?.name}</div>
-                    <div><strong>Course:</strong> {selectedAdmission.course?.name}</div>
-                    <div><strong>Course Fee:</strong> ₹{selectedAdmission.course?.fee}</div>
-                    <div><strong>Branch:</strong> {selectedAdmission.trainingBranch}</div>
-                  </div>
+                <div className="mt-2 p-2 bg-blue-50 rounded text-xs">
+                  <div><strong>Student:</strong> {selectedAdmission.student?.name}</div>
+                  <div><strong>Course:</strong> {selectedAdmission.course?.name}</div>
+                  <div><strong>Course Fee:</strong> ₹{selectedAdmission.course?.fee}</div>
                 </div>
               )}
             </div>
 
-            {/* Batch Selection */}
+            {/* Batch */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Batch <RequiredStar />
-              </label>
+              <label className="block text-sm font-medium mb-1">Batch <RequiredStar /></label>
               <select
                 name="batch"
                 value={formData.batch}
                 onChange={handleChange}
                 onBlur={() => handleBlur('batch')}
-                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  errors.batch ? 'border-red-500' : 'border-gray-300'
-                }`}
+                className={`w-full px-3 py-2 border rounded-lg text-sm ${errors.batch ? 'border-red-500' : 'border-gray-300'}`}
               >
                 <option value="">Select Batch</option>
-                {activeBatches.map(batch => (
-                  <option key={batch._id} value={batch._id}>
-                    {batch.name} - {batch.timing} ({batch.status})
+                {activeBatches.map(b => (
+                  <option key={b._id} value={b._id}>
+                    {b.name} - {b.timing} ({b.status})
                   </option>
                 ))}
               </select>
-              {errors.batch && (
-                <p className="text-red-500 text-xs mt-1 flex items-center">
-                  <span className="mr-1">⚠</span>
-                  {errors.batch}
-                </p>
-              )}
+              {errors.batch && <p className="text-red-500 text-xs mt-1">{errors.batch}</p>}
             </div>
 
-            {/* Removed Training Branch field */}
+            {/* Counsellor */}
+            <div>
+              <label className="block text-sm font-medium mb-1">Counsellor <RequiredStar /></label>
+              <select
+                name="counsellor"
+                value={formData.counsellor}
+                onChange={handleChange}
+                onBlur={() => handleBlur('counsellor')}
+                className={`w-full px-3 py-2 border rounded-lg text-sm ${errors.counsellor ? 'border-red-500' : 'border-gray-300'}`}
+              >
+                <option value="">Select Counsellor</option>
+                {counsellors.map(c => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+              {errors.counsellor && <p className="text-red-500 text-xs mt-1">{errors.counsellor}</p>}
+            </div>
 
             {/* Mode */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Training Mode
-              </label>
+              <label className="block text-sm font-medium mb-1">Training Mode</label>
               <select
                 name="mode"
                 value={formData.mode}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
               >
                 <option value="Online">Online</option>
                 <option value="Offline">Offline</option>
@@ -416,147 +449,194 @@ const EnrollmentForm = ({ enrollment, onClose, isCounsellor = true, counsellorId
               </select>
             </div>
 
-            {/* Status (for editing) */}
-            {enrollment && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Status
-                </label>
-                <select
-                  name="status"
-                  value={formData.status}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="active">Active</option>
-                  <option value="inactive">Inactive</option>
-                  <option value="completed">Completed</option>
-                  <option value="on_hold">On Hold</option>
-                  <option value="dropout">Dropout</option>
-                </select>
-              </div>
-            )}
-
-            {/* Fee Details */}
+            {/* Student Status */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Total Amount <RequiredStar />
-              </label>
+              <label className="block text-sm font-medium mb-1">Student Status</label>
+              <select
+                name="status"
+                value={formData.status}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+              >
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+                <option value="completed">Completed</option>
+                <option value="on_hold">On Hold</option>
+                <option value="dropout">Dropout</option>
+              </select>
+            </div>
+
+            {/* Total Amount */}
+            <div>
+              <label className="block text-sm font-medium mb-1">Total Amount <RequiredStar /></label>
               <input
                 type="number"
                 name="totalAmount"
                 value={formData.totalAmount}
                 onChange={handleChange}
                 onBlur={() => handleBlur('totalAmount')}
-                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  errors.totalAmount ? 'border-red-500' : 'border-gray-300'
-                }`}
+                className={`w-full px-3 py-2 border rounded-lg text-sm ${errors.totalAmount ? 'border-red-500' : 'border-gray-300'}`}
                 placeholder="Enter total amount"
                 min="0"
-                step="1"
               />
-              {errors.totalAmount && (
-                <p className="text-red-500 text-xs mt-1 flex items-center">
-                  <span className="mr-1">⚠</span>
-                  {errors.totalAmount}
-                </p>
-              )}
+              {errors.totalAmount && <p className="text-red-500 text-xs mt-1">{errors.totalAmount}</p>}
             </div>
 
             {/* Fee Type */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Fee Type
-              </label>
+              <label className="block text-sm font-medium mb-1">Fee Type</label>
               <select
                 name="feeType"
                 value={formData.feeType}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
               >
                 <option value="one-time">One Time Payment</option>
                 <option value="installment">Installment</option>
               </select>
             </div>
 
-            {/* Due Date */}
+            {/* Registration Payment */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Due Date
-              </label>
+              <label className="block text-sm font-medium mb-1">Registration Payment</label>
               <input
-                type="date"
-                name="dueDate"
-                value={formData.dueDate}
+                type="number"
+                name="admissionRegistrationPayment"
+                value={formData.admissionRegistrationPayment}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                placeholder="Amount paid at registration"
+                min="0"
               />
             </div>
-          </div>
 
-          {/* Admission Registration Payment */}
-          <div className="mt-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Admission Registration Payment
-            </label>
-            <input
-              type="number"
-              name="admissionRegistrationPayment"
-              value={formData.admissionRegistrationPayment}
-              onChange={handleChange}
-              onBlur={() => handleBlur('admissionRegistrationPayment')}
-              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                errors.admissionRegistrationPayment ? 'border-red-500' : 'border-gray-300'
-              }`}
-              placeholder="Enter admission registration payment"
-              min="0"
-              step="1"
-            />
-            {errors.admissionRegistrationPayment && (
-              <p className="text-red-500 text-xs mt-1 flex items-center">
-                <span className="mr-1">⚠</span>
-                {errors.admissionRegistrationPayment}
-              </p>
-            )}
-
-            {/* Payment summary and pending amount */}
-            {(formData.feeType === 'one-time' || formData.feeType === 'installment') && (
-              <div className={`mt-4 p-3 rounded-lg bg-blue-50 border border-blue-200 text-blue-800`}>
-                <div className="text-sm">
-                  <strong>Payment Summary:</strong><br />
-                  Total Amount: ₹{parseFloat(formData.totalAmount || 0)}<br />
-                  Admission Registration Payment: ₹{parseFloat(formData.admissionRegistrationPayment || 0)}<br />
-                  <strong>Final Fee to Pay: ₹{parseFloat(formData.totalAmount || 0) - parseFloat(formData.admissionRegistrationPayment || 0)}</strong><br />
-                  <strong>Pending Amount: ₹{
-                    Math.max(
-                      (parseFloat(formData.totalAmount || 0) - parseFloat(formData.admissionRegistrationPayment || 0))
-                      - (parseFloat(formData.amountReceived || 0) || 0)
-                      - (parseFloat(formData.discount || 0) || 0)
-                    , 0)
-                  }</strong>
-                  <br />
-                  <span className="text-xs text-gray-600">(Pending = Final Fee - Amount Received - Discount)</span>
-                </div>
+            {/* Due Date - for installment */}
+            {formData.feeType === 'installment' && (
+              <div>
+                <label className="block text-sm font-medium mb-1">Due Date <RequiredStar /></label>
+                <input
+                  type="date"
+                  name="dueDate"
+                  value={formData.dueDate}
+                  onChange={handleChange}
+                  onBlur={() => handleBlur('dueDate')}
+                  min={new Date().toISOString().split('T')[0]}
+                  className={`w-full px-3 py-2 border rounded-lg text-sm ${errors.dueDate ? 'border-red-500' : 'border-gray-300'}`}
+                />
+                {errors.dueDate && <p className="text-red-500 text-xs mt-1">{errors.dueDate}</p>}
               </div>
             )}
           </div>
 
-          {/* EMI Details - Show only for installment */}
-          {/* EMI Details removed for installment fee type */}
+          {/* Installments Section */}
+          {formData.feeType === 'installment' && (
+            <div className="mt-4 border-t pt-4">
+              <div className="flex justify-between items-center mb-3">
+                <h3 className="font-semibold">Installment Details</h3>
+                <button
+                  type="button"
+                  onClick={addInstallment}
+                  className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700"
+                >
+                  + Add Installment
+                </button>
+              </div>
+
+              {errors.installments && (
+                <p className="text-red-500 text-xs mb-2">{errors.installments}</p>
+              )}
+
+              {formData.installments.length > 0 ? (
+                <div className="border rounded overflow-hidden">
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-3 py-2 text-left">#</th>
+                        <th className="px-3 py-2 text-left">Amount (₹)</th>
+                        <th className="px-3 py-2 text-left">Due Date</th>
+                        <th className="px-3 py-2 text-center">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                      {formData.installments.map((inst, idx) => (
+                        <tr key={idx}>
+                          <td className="px-3 py-2">{idx + 1}</td>
+                          <td className="px-3 py-2">
+                            <input
+                              type="number"
+                              value={inst.amount}
+                              onChange={(e) => handleInstallmentChange(idx, 'amount', e.target.value)}
+                              className="w-24 px-2 py-1 border rounded text-sm"
+                              min="0"
+                              placeholder="Amount"
+                            />
+                            {errors[`installment_${idx}_amount`] && (
+                              <p className="text-red-500 text-xs">{errors[`installment_${idx}_amount`]}</p>
+                            )}
+                          </td>
+                          <td className="px-3 py-2">
+                            <input
+                              type="date"
+                              value={formatDateForInput(inst.dueDate)}
+                              onChange={(e) => handleInstallmentChange(idx, 'dueDate', e.target.value)}
+                              className="px-2 py-1 border rounded text-sm"
+                              min={new Date().toISOString().split('T')[0]}
+                            />
+                            {errors[`installment_${idx}_date`] && (
+                              <p className="text-red-500 text-xs">{errors[`installment_${idx}_date`]}</p>
+                            )}
+                          </td>
+                          <td className="px-3 py-2 text-center">
+                            <button
+                              type="button"
+                              onClick={() => removeInstallment(idx)}
+                              className="text-red-600 hover:text-red-800 text-xs"
+                              disabled={formData.installments.length === 1}
+                            >
+                              ✖ Remove
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot className="bg-gray-50">
+                      <tr>
+                        <td colSpan="4" className="px-3 py-2 text-sm">
+                          <strong>Total: </strong>
+                          ₹{formData.installments.reduce((sum, i) => sum + (i.amount || 0), 0)}
+                          {' '}/ ₹{(parseFloat(formData.totalAmount) - (parseFloat(formData.admissionRegistrationPayment) || 0)) || 0}
+                        </td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              ) : (
+                <p className="text-sm text-gray-500 italic">No installments added. Click "Add Installment" to add.</p>
+              )}
+            </div>
+          )}
+
+          {/* Payment Summary */}
+          {(formData.totalAmount || formData.admissionRegistrationPayment) && (
+            <div className="mt-4 p-3 bg-blue-50 rounded text-sm">
+              <strong>Payment Summary:</strong><br />
+              Total Amount: ₹{parseFloat(formData.totalAmount || 0)}<br />
+              Registration Paid: ₹{parseFloat(formData.admissionRegistrationPayment || 0)}<br />
+              <strong>Balance to Pay: ₹{parseFloat(formData.totalAmount || 0) - parseFloat(formData.admissionRegistrationPayment || 0)}</strong>
+            </div>
+          )}
 
           {/* Additional Information */}
-          <div className="mt-6 border-t pt-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">Additional Information</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="mt-4 border-t pt-4">
+            <h3 className="font-semibold mb-3">Additional Information</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Lead Source
-                </label>
+                <label className="block text-sm font-medium mb-1">Lead Source</label>
                 <select
                   name="leadSource"
                   value={formData.leadSource}
                   onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                 >
                   <option value="website">Website</option>
                   <option value="walkin">Walk-in</option>
@@ -568,59 +648,55 @@ const EnrollmentForm = ({ enrollment, onClose, isCounsellor = true, counsellorId
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Lead Date
-                </label>
+                <label className="block text-sm font-medium mb-1">Lead Date</label>
                 <input
                   type="date"
                   name="leadDate"
                   value={formData.leadDate}
                   onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                 />
               </div>
 
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Call/Contact Notes
-                </label>
+                <label className="block text-sm font-medium mb-1">Call/Contact Notes</label>
                 <textarea
                   name="call"
                   value={formData.call}
                   onChange={handleChange}
-                  rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  rows={2}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                   placeholder="Any notes from calls or contact with the student..."
                 />
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Form Actions */}
-        <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={operationLoading}
-            className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={operationLoading || Object.keys(errors).length > 0}
-            className="px-6 py-2 bg-[#890c25] text-white rounded-md hover:bg-[#890c25] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 flex items-center space-x-2"
-          >
-            {operationLoading ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                <span>{enrollment ? 'Updating...' : 'Creating...'}</span>
-              </>
-            ) : (
-              <span>{enrollment ? 'Update Enrollment' : 'Create Enrollment'}</span>
-            )}
-          </button>
+          {/* Form Actions */}
+          <div className="flex justify-end gap-3 mt-6 pt-4 border-t">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={operationLoading}
+              className="px-4 py-2 border rounded text-sm hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={operationLoading || Object.keys(errors).length > 0}
+              className="px-4 py-2 bg-[#890c25] text-white rounded text-sm hover:bg-[#6a091d] disabled:opacity-50 flex items-center gap-2"
+            >
+              {operationLoading ? (
+                <>
+                  <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                  <span>{enrollment ? 'Updating...' : 'Creating...'}</span>
+                </>
+              ) : (
+                <span>{enrollment ? 'Update Enrollment' : 'Create Enrollment'}</span>
+              )}
+            </button>
+          </div>
         </div>
       </form>
     </div>
