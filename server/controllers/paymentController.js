@@ -312,7 +312,7 @@ function generatePaymentRejectionEmail(payment, student, enrollment, reason) {
         </div>
 
         <div class="disclaimer">
-            <strong>Disclaimer:</strong> The information contained in this email is confidential to the addressee and may be protected by legal privilege. If you are not the intended recipient, please note that you may not disseminate, retransmit or make any other use of any material in this message. If you have received this email in error, please delete it and notify immediately by telephone or email.
+            <strong>Disclaimer:</strong> The information contained in this email is confidential to the address and may be protected by legal privilege. If you are not the intended recipient, please note that you may not disseminate, retransmit or make any other use of any material in this message. If you have received this email in error, please delete it and notify immediately by telephone or email.
         </div>
         <div class="footer-red">
             © RYMA ACADEMY – Payment Update
@@ -631,7 +631,7 @@ function generateOneTimePaymentEmail(payment, student, enrollment) {
 
         <!-- Disclaimer -->
         <div class="disclaimer">
-            <strong>Disclaimer:</strong> The information contained in this email is confidential to the addressee and may be protected by legal privilege. If you are not the intended recipient, please note that you may not disseminate, retransmit or make any other use of any material in this message. If you have received this email in error, please delete it and notify immediately by telephone or email.
+            <strong>Disclaimer:</strong> The information contained in this email is confidential to the address and may be protected by legal privilege. If you are not the intended recipient, please note that you may not disseminate, retransmit or make any other use of any material in this message. If you have received this email in error, please delete it and notify immediately by telephone or email.
         </div>
         <div class="footer-red">
             © RYMA ACADEMY – Payment Receipt
@@ -941,7 +941,7 @@ function generateInstallmentPaymentEmail(payment, student, enrollment) {
 
         <!-- Disclaimer -->
         <div class="disclaimer">
-            <strong>Disclaimer:</strong> The information contained in this email is confidential to the addressee and may be protected by legal privilege. If you are not the intended recipient, please note that you may not disseminate, retransmit or make any other use of any material in this message. If you have received this email in error, please delete it and notify immediately by telephone or email.
+            <strong>Disclaimer:</strong> The information contained in this email is confidential to the address and may be protected by legal privilege. If you are not the intended recipient, please note that you may not disseminate, retransmit or make any other use of any material in this message. If you have received this email in error, please delete it and notify immediately by telephone or email.
         </div>
         <div class="footer-red">
             © RYMA ACADEMY – Payment Receipt
@@ -1257,7 +1257,7 @@ function generateGenericPaymentEmail(payment, student, enrollment) {
 
         <!-- Disclaimer -->
         <div class="disclaimer">
-            <strong>Disclaimer:</strong> The information contained in this email is confidential to the addressee and may be protected by legal privilege. If you are not the intended recipient, please note that you may not disseminate, retransmit or make any other use of any material in this message. If you have received this email in error, please delete it and notify immediately by telephone or email.
+            <strong>Disclaimer:</strong> The information contained in this email is confidential to the address and may be protected by legal privilege. If you are not the intended recipient, please note that you may not disseminate, retransmit or make any other use of any material in this message. If you have received this email in error, please delete it and notify immediately by telephone or email.
         </div>
         <div class="footer-red">
             © RYMA ACADEMY – Payment Receipt

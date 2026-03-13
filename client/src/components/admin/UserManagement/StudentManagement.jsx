@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { 
-  fetchStudents, 
+  fetchStudentswithlimit, 
   createStudent, 
   updateStudent, 
   deleteStudent, 
@@ -65,7 +65,7 @@ const StudentManagement = () => {
 
   useEffect(() => {
     const refetchStudents = () => {
-      dispatch(fetchStudents({ 
+      dispatch(fetchStudentswithlimit({ 
         page: currentPage, 
         limit: recordsPerPage, 
         search: searchTerm, 
@@ -721,13 +721,13 @@ const StudentManagement = () => {
                               return (
                                 <td key={column.key} className={`${baseCellClasses} text-center whitespace-nowrap`}>
                                   <div className="flex flex-row lg:flex-row items-center justify-center  space-x-1 lg:space-y-0 lg:space-x-1">
-                                    <button 
+                                    {/* <button 
                                       onClick={() => handleViewDetails(student)} 
                                       className="text-green-600 hover:text-green-900 px-1 lg:px-2 py-1 rounded hover:bg-green-50 transition-colors border border-green-200 text-xs w-full lg:w-auto" 
                                       title="View Details"
                                     >
                                       View
-                                    </button>
+                                    </button> */}
                                     <button 
                                       onClick={() => handleEdit(student)} 
                                       className="text-blue-600 hover:text-blue-900 px-1 lg:px-2 py-1 rounded hover:bg-blue-50 transition-colors border border-blue-200 text-xs w-full lg:w-auto" 

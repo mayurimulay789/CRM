@@ -22,6 +22,8 @@ const AdmissionForm = ({ admission, onClose }) => {
     notes: ''
   });
 
+  console.log(students)
+
   // File states
   const [files, setFiles] = useState({
     admissionFrontPage: null,

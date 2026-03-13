@@ -34,6 +34,8 @@ const AdmissionForm = ({ admission, onClose, isCounsellor = false }) => {
     admissionDate: '' // ADDED
   });
 
+  console.log(students)
+
   // Store initial values for reset
   const initialFormDataRef = useRef(null);
 

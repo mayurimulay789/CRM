@@ -33,6 +33,16 @@ const studentAPI = {
     return response;
   },
 
+  getAllStudentswithlimit: async (params = {}) => {
+    // Remove undefined values from params
+    const cleanParams = Object.fromEntries(
+      Object.entries(params).filter(([_, value]) => value !== undefined && value !== '')
+    );
+    console.log('Sending params to backend:', cleanParams);
+    const response = await studentApi.get('/limit', { params: cleanParams });
+    return response;
+  },
+
   // Get student by ID
   getStudentById: async (studentId) => {
     const response = await studentApi.get(`/${studentId}`);

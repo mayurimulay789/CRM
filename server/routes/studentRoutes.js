@@ -9,12 +9,14 @@ const {
   updateStudent,
   deleteStudent,
   toggleStudentStatus,
-  getStudentStats
+  getStudentStats,
+  getAllStudentswithlimit
 } = require('../controllers/studentController');
 
 const { uploadStudentFiles, handleUploadErrors } = require('../middleware/uploadMiddleware');
 
 router.get('/', getAllStudents);
+router.get('/limit',getAllStudentswithlimit);
 router.get('/stats/summary', getStudentStats);
 router.get('/:id', getStudentById);
 router.get('/studentId/:studentId', getStudentByStudentId);

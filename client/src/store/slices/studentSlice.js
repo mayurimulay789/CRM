@@ -19,6 +19,21 @@ export const fetchStudents = createAsyncThunk(
   }
 );
 
+export const fetchStudentswithlimit = createAsyncThunk(
+  'students/fetchStudents',
+  async (params = {}, { rejectWithValue }) => {
+    try {
+      const response = await studentAPI.getAllStudentswithlimit(params);
+      console.log('Fetched Students *************************************:', response.data);
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || 'Failed to fetch students'
+      );
+    }
+  }
+);
+
 export const fetchStudentById = createAsyncThunk(
   'students/fetchStudentById',
   async (studentId, { rejectWithValue }) => {
