@@ -1,8 +1,8 @@
 import React from 'react';
-import OnlineDemo from '../../counsellor/Demo/OnlineDemo';
-import OfflineDemo from '../../counsellor/Demo/OfflineDemo';
-import OneToOneDemo from '../../counsellor/Demo/OneToOneDemo';
-import LiveClassDemo from '../../counsellor/Demo/LiveClassDemo';
+import OnlineDemo from '../Demo/OnlineDemo';
+import OfflineDemo from '../Demo/OfflineDemo';
+import OneToOneDemo from '../Demo/OneToOneDemo';
+import LiveClassDemo from '../Demo/LiveClassDemo';
 
 const DemoManagement = ({ activeSection }) => {
   const renderDemoContent = () => {

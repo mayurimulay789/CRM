@@ -24,7 +24,12 @@ studentApi.interceptors.request.use(
 const studentAPI = {
   // Get all students with filtering and pagination
   getAllStudents: async (params = {}) => {
-    const response = await studentApi.get('/', { params });
+    // Remove undefined values from params
+    const cleanParams = Object.fromEntries(
+      Object.entries(params).filter(([_, value]) => value !== undefined && value !== '')
+    );
+    console.log('Sending params to backend:', cleanParams);
+    const response = await studentApi.get('/', { params: cleanParams });
     return response;
   },
 

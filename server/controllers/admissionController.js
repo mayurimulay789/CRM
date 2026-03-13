@@ -107,7 +107,6 @@ async function sendAdmissionEmail(admission, type = 'approved') {
     }));
 
     let subject, html;
-    const downloadpolicyDocument = makeDownloadUrl('https://res.cloudinary.com/dpyry0mh1/image/upload/v1773289421/RYMA_ACADEMY_PRIVACY_POLICIES_1_1_2_ycygav.pdf', "policydocument")
     subject = '🎓 Welcome to RYMA ACADEMY – Your Admission is Officially Confirmed';
     html = `
       <!DOCTYPE html>
@@ -177,8 +176,6 @@ async function sendAdmissionEmail(admission, type = 'approved') {
               <tr><td class="label-cell">Admission Date</td><td class="value-cell"><strong>${new Date(admission.admissionDate).toLocaleDateString('en-IN')}</strong></td></tr>
               <tr><td class="label-cell">Processed By</td><td class="value-cell"><strong>${admission.counsellor}</strong></td></tr>
             </table>
-
-            ${downloadableDocs.length > 0 ? `
             <div class="documents-section">
               <h3>📄 Your Admission Documents</h3>
               <ul>
@@ -192,21 +189,13 @@ async function sendAdmissionEmail(admission, type = 'approved') {
                 `).join('')}
                 <li>
                    <strong>Policy Document</strong><br>
-                    <a
-  href=${downloadpolicyDocument}
-  download="RYMA_ACADEMY_Privacy_Policies.pdf" // Optional: suggest a filename
-  className="your-button-classes"
-  target="_blank"
-  rel="noopener noreferrer"
->
+                    <a href= 'https://res.cloudinary.com/dpyry0mh1/image/upload/fl_attachment/v1773289421/RYMA_ACADEMY_PRIVACY_POLICIES_1_1_2_ycygav.pdf' download="RYMA_ACADEMY_Privacy_Policies.pdf" className="your-button-classes" target="_blank" rel="noopener noreferrer">
   📥 Download Privacy Policies (PDF)
 </a>
                 </li>
               </ul>
               <p style="font-size:0.9em; color:#666;">Right-click and "Save As" if the download does not start automatically.</p>
             </div>
-            ` : ''}
-
             <div class="footnote">
               <span style="font-size: 1.2em;">⏳</span> <strong>Please verify all details above.</strong><br>
               Any discrepancy must be reported to your Education Counsellor within 48 hours.

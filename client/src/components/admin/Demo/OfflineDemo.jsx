@@ -20,6 +20,7 @@ import {
   FiRefreshCw,
   FiDownload,
   FiEdit,
+  FiTrash2,
   FiPlus,
   FiArrowLeft,
   FiX,
@@ -27,8 +28,8 @@ import {
   FiColumns,
   FiEye,
   FiMenu,
-  FiFileText,
-} from "react-icons/fi";  // removed FiTrash2
+  FiFileText,   // <-- added for CSV icon
+} from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import { jsPDF } from "jspdf";
 import { autoTable } from "jspdf-autotable";
@@ -43,7 +44,6 @@ const OfflineDemo = () => {
 
   // Role checks
   const isAdmin = user?.role === 'Admin';
-  const isCounsellor = user?.role === 'Counsellor';
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isColumnsOpen, setIsColumnsOpen] = useState(false);
@@ -345,6 +345,14 @@ const OfflineDemo = () => {
     setIsFilterOpen(false);
   };
 
+  // Handle delete
+  const handleDelete = async (id) => {
+    if (window.confirm("Are you sure you want to delete this demo?")) {
+      await dispatch(deleteOfflineDemo(id));
+      dispatch(fetchOfflineDemos());
+    }
+  };
+
   // Export to PDF with formatted dates
   const handleExport = () => {
     const doc = new jsPDF();
@@ -537,7 +545,7 @@ const OfflineDemo = () => {
                 <span>Filter</span>
               </button>
 
-              {/* CSV Export Button */}
+              {/* NEW: CSV Export Button */}
               <button
                 onClick={handleExportCSV}
                 className="flex items-center gap-1 bg-gray-200 text-gray-700 px-3 py-2 rounded-md hover:bg-gray-300 transition text-sm"
@@ -546,16 +554,6 @@ const OfflineDemo = () => {
                 <FiFileText className="text-sm" />
                 <span>CSV</span>
               </button>
-
-              {isCounsellor && (
-                <button
-                  onClick={openCreateForm}
-                  className="flex items-center gap-1 bg-[#890c25] text-white px-3 py-2 rounded-md hover:bg-[#890c25] transition text-sm"
-                >
-                  <FiPlus className="text-sm" />
-                  <span>Add</span>
-                </button>
-              )}
             </div>
           </div>
         </div>
@@ -580,7 +578,7 @@ const OfflineDemo = () => {
             {isAdmin ? '' : ''}
           </span>
 
-          {/* Filter Button */}
+          {/* Filter Button - Available for both roles */}
           <button
             onClick={() => setIsFilterOpen(true)}
             className="flex items-center gap-2 bg-gray-200 text-gray-700 px-3 py-2 rounded-md hover:bg-gray-300 transition"
@@ -588,8 +586,7 @@ const OfflineDemo = () => {
           >
             <FiFilter />
           </button>
-
-          {/* CSV Export Button */}
+          {/* NEW: Export CSV Button - Available for both roles */}
           <button
             onClick={handleExportCSV}
             className="flex items-center gap-2 bg-gray-200 text-gray-700 px-3 py-2 rounded-md hover:bg-gray-300 transition"
@@ -607,18 +604,10 @@ const OfflineDemo = () => {
             Offline Demo {isAdmin && <span className="text-xs lg:text-sm text-gray-600 ml-2">(View Only)</span>}
           </h2>
           
-          {/* Add Button - Only for Counsellors */}
-          {isCounsellor && (
-            <button
-              onClick={openCreateForm}
-              className="hidden lg:flex items-center gap-2 bg-[#890c25] text-white px-4 py-2 rounded-md hover:bg-[#890c25] transition shadow"
-            >
-              <FiPlus /> Add Offline Demo
-            </button>
-          )}
+          {/* Add Button - Only for Counsellors - Hidden on mobile, shown in mobile menu */}
         </div>
 
-        {/* Columns + Search/Reload */}
+        {/* Columns + Search/Reload/Export */}
         <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-3">
           <div className="relative">
             <button
@@ -697,7 +686,7 @@ const OfflineDemo = () => {
           </div>
 
           <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
-            {isCounsellor && (
+            {true && (
               <>
                 <div className="relative w-full sm:w-64">
                   <FiSearch className="absolute left-3 top-3 text-gray-400" />
@@ -747,7 +736,7 @@ const OfflineDemo = () => {
                         </th>
                       )
                   )}
-                  {isCounsellor && (
+                  {true && (
                     <th className="px-4 py-3 font-medium whitespace-nowrap">Actions</th>
                   )}
                   {isAdmin && (
@@ -797,7 +786,7 @@ const OfflineDemo = () => {
                         <td className="px-4 py-3 border-r">{row.trainer}</td>
                       )}
                       
-                      {isCounsellor && (
+                      {true && (
                         <td className="px-4 py-3">
                           <div className="flex gap-3">
                             <button
@@ -816,7 +805,13 @@ const OfflineDemo = () => {
                             >
                               <FiEdit size={16} />
                             </button>
-                            {/* Delete button removed */}
+                            <button
+                              onClick={() => handleDelete(row._id)}
+                              className="text-red-500 hover:text-red-700 p-2 rounded-lg transition hover:bg-red-50"
+                              title="Delete"
+                            >
+                              <FiTrash2 size={16} />
+                            </button>
                           </div>
                         </td>
                       )}
@@ -833,7 +828,7 @@ const OfflineDemo = () => {
                 ) : (
                   <tr>
                     <td
-                      colSpan={visibleColumns.length + (isCounsellor ? 2 : isAdmin ? 2 : 1)}
+                      colSpan={visibleColumns.length + (true ? 2 : isAdmin ? 2 : 1)}
                       className="text-center py-12 text-gray-500 text-sm"
                     >
                       <div className="flex flex-col items-center justify-center">
@@ -942,7 +937,7 @@ const OfflineDemo = () => {
 
                     {/* Actions for Mobile */}
                     <div className="col-span-2 flex justify-end gap-4 pt-2 mt-2 border-t">
-                      {isCounsellor && (
+                      {true && (
                         <>
                           <button
                             onClick={() => {
@@ -960,7 +955,13 @@ const OfflineDemo = () => {
                             <FiEdit size={14} />
                             Edit
                           </button>
-                          {/* Delete button removed */}
+                          <button
+                            onClick={() => handleDelete(row._id)}
+                            className="text-red-500 hover:text-red-700 transition flex items-center gap-1 text-sm"
+                          >
+                            <FiTrash2 size={14} />
+                            Delete
+                          </button>
                         </>
                       )}
                       {isAdmin && (
@@ -1002,7 +1003,7 @@ const OfflineDemo = () => {
       </div>
 
       {/* ✅ Responsive Modal Form - ONLY FOR COUNSELLORS */}
-      {isFormOpen && isCounsellor && (
+      {isFormOpen && true && (
         <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50 p-4">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto relative border border-gray-200">
             <button
@@ -1270,7 +1271,7 @@ const OfflineDemo = () => {
         </div>
       )}
 
-      {/* ✅ Responsive Filter Modal */}
+      {/* ✅ Responsive Filter Modal - AVAILABLE FOR BOTH ROLES */}
       {isFilterOpen && (
         <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50 p-4">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto relative border border-gray-200">
@@ -1387,4 +1388,4 @@ const OfflineDemo = () => {
   );
 };
 
-export default OfflineDemo;
+export default OfflineDemo; 

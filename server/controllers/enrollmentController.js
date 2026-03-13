@@ -530,14 +530,6 @@ const createEnrollment = async (req, res) => {
                 Education Counsellor within 48 hours. RYMA ACADEMY shall not be held responsible for errors arising from
                 unverified or incorrect information submitted at the time of admission.
             </div>
-
-            <!-- need assistance box -->
-            <div class="help-box">
-                <strong>⚠️ Need assistance?</strong> We are always here to help — reach out to your Education Counsellor
-                or contact us at <strong>+91-9873336133</strong> | <a
-                    href="mailto:services@rymaacademy.com">services@rymaacademy.com</a>
-            </div>
-
             <!-- inspirational quote (from both screenshots) -->
             <div class="quote-block">
                 <span class="quote-mark">“</span>
@@ -1425,14 +1417,6 @@ const deleteEnrollmentByCounsellor = async (req, res) => {
     });
   }
 };
-
-
-
-
-
-
-
-
 module.exports = {
   createEnrollment,
   getEnrollments,

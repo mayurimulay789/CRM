@@ -369,6 +369,7 @@ const LiveClasses = () => {
                       type={field.type}
                       name={field.name}
                       value={formData[field.name]}
+                      min={field.type === "date" ? new Date().toISOString().split("T")[0] : undefined}
                       onChange={(e) =>
                         setFormData({ ...formData, [field.name]: e.target.value })
                       }

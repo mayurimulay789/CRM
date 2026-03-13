@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { 
   fetchStudents, 
@@ -13,7 +13,7 @@ import StudentForm from './StudentForm';
 
 const StudentManagement = () => {
   const dispatch = useDispatch();
-  const { students, loading, error, operationSuccess, currentStudent } = useSelector(state => state.students);
+  const { students, loading, error, operationSuccess, currentStudent, pagination } = useSelector(state => state.students);
   
   const [showForm, setShowForm] = useState(false);
   const [editingStudent, setEditingStudent] = useState(null);
@@ -29,7 +29,7 @@ const StudentManagement = () => {
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
-  const [recordsPerPage] = useState(7);
+  const [recordsPerPage, setRecordsPerPage] = useState(10);
 
   // Refs for dropdown menus
   const filterMenuRef = useRef(null);
@@ -64,8 +64,16 @@ const StudentManagement = () => {
   const [columns, setColumns] = useState(allColumns);
 
   useEffect(() => {
-    dispatch(fetchStudents());
-  }, [dispatch]);
+    const refetchStudents = () => {
+      dispatch(fetchStudents({ 
+        page: currentPage, 
+        limit: recordsPerPage, 
+        search: searchTerm, 
+        isActive: filterActive === 'all' ? undefined : filterActive === 'active' ? true : false 
+      }));
+    };
+    refetchStudents();
+  }, [dispatch, currentPage, recordsPerPage, searchTerm, filterActive]);
 
   useEffect(() => {
     if (operationSuccess) {
@@ -120,11 +128,13 @@ const StudentManagement = () => {
     if (window.confirm('Are you sure you want to delete this student? This action cannot be undone.')) {
       try {
         await dispatch(deleteStudent(studentId)).unwrap();
-        dispatch(fetchStudents());
-        // Reset to first page if current page becomes empty
-        if (filteredStudents.length === 1 && currentPage > 1) {
-          setCurrentPage(currentPage - 1);
-        }
+        // Refetch with current pagination and filters
+        dispatch(fetchStudents({ 
+          page: currentPage, 
+          limit: recordsPerPage, 
+          search: searchTerm, 
+          isActive: filterActive === 'all' ? undefined : filterActive === 'active' ? true : false 
+        }));
       } catch (error) {
         console.error('Delete failed:', error);
       }
@@ -134,7 +144,13 @@ const StudentManagement = () => {
   const handleToggleStatus = async (studentId) => {
     try {
       await dispatch(toggleStudentStatus(studentId)).unwrap();
-      dispatch(fetchStudents());
+      // Refetch with current pagination and filters
+      dispatch(fetchStudents({ 
+        page: currentPage, 
+        limit: recordsPerPage, 
+        search: searchTerm, 
+        isActive: filterActive === 'all' ? undefined : filterActive === 'active' ? true : false 
+      }));
     } catch (error) {
       console.error('Status toggle failed:', error);
     }
@@ -153,7 +169,13 @@ const StudentManagement = () => {
   const handleCloseForm = () => {
     setShowForm(false);
     setEditingStudent(null);
-    dispatch(fetchStudents());
+    // Refetch with current pagination and filters
+    dispatch(fetchStudents({ 
+      page: currentPage, 
+      limit: recordsPerPage, 
+      search: searchTerm, 
+      isActive: filterActive === 'all' ? undefined : filterActive === 'active' ? true : false 
+    }));
   };
 
   const handleCloseDetails = () => {
@@ -193,28 +215,10 @@ const StudentManagement = () => {
     );
   };
 
-  // Filter students based on active filters and search
-  const filteredStudents = students.filter(student => {
-    const matchesActive = filterActive === 'all' || 
-      (filterActive === 'active' && student.isActive) || 
-      (filterActive === 'inactive' && !student.isActive);
-    
-    const matchesSearch = 
-      student.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student.phone?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student.studentId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student.address?.city?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student.idProof?.number?.toLowerCase().includes(searchTerm.toLowerCase());
-
-    return matchesActive && matchesSearch;
-  });
-
-  // Pagination logic
-  const indexOfLastRecord = currentPage * recordsPerPage;
-  const indexOfFirstRecord = indexOfLastRecord - recordsPerPage;
-  const currentRecords = filteredStudents.slice(indexOfFirstRecord, indexOfLastRecord);
-  const totalPages = Math.ceil(filteredStudents.length / recordsPerPage);
+  // Use backend-paginated data directly (no local filtering/pagination)
+  const currentRecords = students; // Already paginated by backend
+  const totalPages = pagination?.pages || 0;
+  const totalRecords = pagination?.total || 0;
 
   // Change page
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
@@ -769,14 +773,14 @@ const StudentManagement = () => {
           </div>
 
           {/* Table Footer with Pagination */}
-          {filteredStudents.length > 0 && (
+          {currentRecords.length > 0 && (
             <div className="flex-shrink-0 bg-gray-50 px-4 lg:px-6 py-3 lg:py-4 border-t border-gray-200">
               <div className="flex flex-col lg:flex-row justify-between items-center space-y-3 lg:space-y-0">
                 {/* Records Info */}
                 <div className="text-xs lg:text-sm text-gray-700">
                   Showing <span className="font-semibold">{currentRecords.length}</span> of{' '}
-                  <span className="font-semibold">{filteredStudents.length}</span> students 
-                  (Page <span className="font-semibold">{currentPage}</span> of{' '}
+                  <span className="font-semibold">{totalRecords}</span> students 
+                  (Page <span className="font-semibold">{currentPage || pagination?.page}</span> of{' '}
                   <span className="font-semibold">{totalPages}</span>)
                 </div>
                 

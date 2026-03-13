@@ -48,7 +48,7 @@ const admissionSchema = new mongoose.Schema({
   },
   emailVerified: {
     type: Boolean,
-    default: false
+    default: true
   },
   status: {
     type: String,
