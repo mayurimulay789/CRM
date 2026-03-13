@@ -73,13 +73,19 @@ const AdmissionsManagement = () => {
   }, [dispatch]);
 
   useEffect(() => {
-    if (operationSuccess && !showForm) {
-      const timer = setTimeout(() => {
-        dispatch(clearSuccess());
-      }, 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [operationSuccess, dispatch, showForm]);
+  if (operationSuccess) {
+    // Close the form immediately on successful operation
+    setShowForm(false);
+    setEditingAdmission(null);
+    
+    // Clear success message after 3 seconds
+    const timer = setTimeout(() => {
+      dispatch(clearSuccess());
+    }, 3000);
+    
+    return () => clearTimeout(timer);
+  }
+}, [operationSuccess, dispatch]);
 
   useEffect(() => {
     if (error) {
@@ -669,7 +675,7 @@ const AdmissionsManagement = () => {
                       column.visible && (
                         <th
                           key={column.key}
-                          className="px-2 lg:px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap border-b border-gray-200 bg-gray-50"
+                          className="px-2 lg:px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap border-b border-gray-200 bg-gray-50 text-center"
                         >
                           {column.label}
                         </th>

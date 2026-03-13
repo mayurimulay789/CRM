@@ -499,7 +499,6 @@ const PaymentManagement = () => {
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Amount</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Fee Type</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Payment Mode</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Branch</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Status</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Date</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Actions</th>
@@ -568,9 +567,7 @@ const PaymentManagement = () => {
                           {safeRender(payment.paymentMode)?.replace('_', ' ')}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-700">
-                        {safeExtract(payment.trainingBranch, 'branch')}
-                      </td>
+                     
                       <td className="px-4 py-3 text-sm">
                         {getStatusBadge(payment.verificationStatus)}
                         {payment.verificationStatus === 'pending' && (

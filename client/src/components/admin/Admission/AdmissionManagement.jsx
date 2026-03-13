@@ -285,6 +285,7 @@ const AdmissionManagement = () => {
       </span>
     );
   };
+
   const formatDate = (dateString) => {
     if (!dateString) return '-';
     return new Date(dateString).toLocaleDateString('en-IN');
@@ -312,7 +313,7 @@ const AdmissionManagement = () => {
     return 'N/A';
   };
 
-  // ========== FIXED: getFilePreview with clickable PDF ==========
+  // ========== IMPROVED: getFilePreview with clickable PDF and fixed tooltip ==========
   const getFilePreview = (url, title = 'Document') => {
     if (!url) return null;
 
@@ -320,7 +321,7 @@ const AdmissionManagement = () => {
       return (
         <div
           onClick={() => handleImageClick(url, title)}
-          className="flex items-center space-x-2 text-blue-600 cursor-pointer hover:text-blue-800 transition-colors duration-200"
+          className="relative flex items-center space-x-2 text-blue-600 cursor-pointer hover:text-blue-800 transition-colors duration-200 group"
           title={`Click to view ${title}`}
         >
           <span>📄</span>
@@ -331,18 +332,20 @@ const AdmissionManagement = () => {
           </div>
         </div>
       );
-    } else if (url.toLowerCase().endsWith('.jpeg') || url.toLowerCase().endsWith('.jpg') || url.toLowerCase().endsWith('.png') || url.toLowerCase().endsWith('.gif') || url.toLowerCase().endsWith('.bmp') || url.toLowerCase().endsWith('.webp') || url.toLowerCase().endsWith('.svg')) {
+    } else if (/\.(jpe?g|png|gif|bmp|webp|svg)$/i.test(url)) {
+      // Image files
       return (
         <div
           onClick={() => handleImageClick(url, title)}
           className="flex items-center space-x-2 text-blue-600 cursor-pointer hover:text-blue-800 transition-colors duration-200"
           title={`Click to view ${title}`}
         >
-          <span>📄</span>
+          <span>🖼️</span>
           <span className="text-sm hidden lg:inline">Image</span>
         </div>
       );
     } else {
+      // Fallback for other file types (though unlikely)
       return (
         <div className="flex justify-center">
           <img
@@ -655,7 +658,7 @@ const AdmissionManagement = () => {
                       column.visible && (
                         <th
                           key={column.key}
-                          className="px-2 lg:px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap border-b border-gray-200 bg-gray-50"
+                          className="px-2 lg:px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap border-b border-gray-200 bg-gray-50 text-center"
                         >
                           {column.label}
                         </th>
@@ -1011,7 +1014,7 @@ const AdmissionManagement = () => {
 
                 {/* Documents Section */}
                 <div className="bg-purple-50 p-3 lg:p-4 rounded-lg md:col-span-2">
-                  <h3 className="text-base lg:text-lg font-semibold text-purple-800 mb-3 lg:mb-4">Documents</h3>
+                  <h3 className="text-base lg:text-lg font-semibold text-purple-800 mb-3 lg:mb-4 text-center">Documents</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 lg:gap-4">
                     {/* Admission Front Page */}
                     <div>

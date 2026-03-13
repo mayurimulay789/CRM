@@ -3,55 +3,7 @@ const Enrollment = require('../models/Enrollment');
 const Student = require('../models/Student');
 const { sendMail } = require('../utils/email');
 
-// @desc    Validate payment amount against enrollment fee structure - STRICT VERSION
-const validatePaymentAmountStrict = async (enrollment, amountReceived, feeType, emiNumber) => {
-  // For one-time fee: STRICTLY require single full payment
-  if (enrollment.feeType === 'one-time') {
-    // Calculate actual total including late fees and registration fees
-    const actualTotal = calculateActualTotal(enrollment);
-    const totalPending = actualTotal - enrollment.amountReceived;
-    
-    // If ANY payment already exists, block new payments
-    if (enrollment.amountReceived > 0) {
-      return 'One-time fee already has payments. Cannot add more payments.';
-    }
-    
-    // Require full amount in single payment (including all fees)
-    if (amountReceived !== actualTotal) {
-      return `One-time fee requires single full payment of ₹${actualTotal} (including all fees)`;
-    }
-    
-    return null; // Validation passed
-  }
-
-  // For installment fee: Require EXACT EMI amount and tracking
-  if (enrollment.feeType === 'installment') {
-    if (!emiNumber) {
-      return 'EMI number is required for installment payments';
-    }
-
-    const emiField = `${emiNumber}EMI`; // firstEMI, secondEMI, thirdEMI
-    const emi = enrollment[emiField];
-    
-    if (!emi) {
-      return `Invalid EMI number: ${emiNumber}`;
-    }
-
-    // Check if EMI is already paid
-    if (emi.pending <= 0) {
-      return `EMI ${emiNumber} is already paid`;
-    }
-
-    // STRICT: Require exact EMI amount
-    if (amountReceived !== emi.amount) {
-      return `EMI ${emiNumber} requires exact payment of ₹${emi.amount}`;
-    }
-
-    return null; // Validation passed
-  }
-
-  return 'Invalid fee type';
-};
+// ==================== Email Functions ====================
 
 /**
  * Send payment confirmation email to student and BCC
@@ -61,34 +13,29 @@ async function sendPaymentConfirmationEmail(payment) {
     // Populate payment with necessary data
     await payment.populate([
       { path: 'student', select: 'studentId name email phone' },
-      { path: 'enrollment', select: 'enrollmentNo courseName totalAmount amountReceived feeType charges admissionRegistrationPayment firstEMI secondEMI thirdEMI' },
+      { path: 'enrollment', select: 'enrollmentNo courseName totalAmount amountReceived pendingAmount feeType' },
       { path: 'receivedBy', select: 'name email' }
     ]);
+    
     const { student, enrollment } = payment;
-    // Debug: Log enrollment data
-    console.log('📧 Email Debug - Enrollment data:', {
-      enrollmentNo: enrollment?.enrollmentNo,
-      totalAmount: enrollment?.totalAmount,
-      charges: enrollment?.charges,
-      admissionRegistrationPayment: enrollment?.admissionRegistrationPayment,
-      amountReceived: enrollment?.amountReceived
-    });
     
     if (!student || !student.email) {
       console.error('❌ Student email not found for payment:', payment.paymentNo);
       return false;
     }
+
     let subject, html;
+    
     // Different email templates based on fee type
-    if (enrollment.feeType === 'one-time') {
+    if (payment.feeType === 'one-time') {
       ({ subject, html } = generateOneTimePaymentEmail(payment, student, enrollment));
-    } else if (enrollment.feeType === 'installment') {
-      ({ subject, html } = generateInstallmentPaymentEmail(payment, student, enrollment));
     } else {
-      ({ subject, html } = generateGenericPaymentEmail(payment, student, enrollment));
+      ({ subject, html } = generateInstallmentPaymentEmail(payment, student, enrollment));
     }
+
     // Send email to student with BCC
-    await sendMail(student.email, subject, html, true);   
+    await sendMail(student.email, subject, html, true);
+    
     console.log(`✅ Payment confirmation email sent to ${student.email} with BCC`);
     return true;
   } catch (error) {
@@ -96,487 +43,923 @@ async function sendPaymentConfirmationEmail(payment) {
     return false;
   }
 }
-/**
- * Calculate actual total including late fees and registration fees
- */
-function calculateActualTotal(enrollment) {
-  const baseAmount = enrollment.totalAmount || 0;
-  const lateFees = enrollment.charges || 0;
-  const registrationFees = enrollment.admissionRegistrationPayment || 0;
-  return baseAmount + lateFees + registrationFees;
+
+
+async function sendPaymentRejectionEmail(payment, reason) {
+  try {
+    await payment.populate([
+      { path: 'student', select: 'studentId name email phone' },
+      { path: 'enrollment', select: 'enrollmentNo courseName' },
+      { path: 'receivedBy', select: 'name' }
+    ]);
+
+    const { student, enrollment } = payment;
+    if (!student || !student.email) {
+      console.error('❌ Student email not found for payment rejection:', payment.paymentNo);
+      return false;
+    }
+
+    const { subject, html } = generatePaymentRejectionEmail(payment, student, enrollment, reason);
+
+    await sendMail(student.email, subject, html, true);
+    console.log(`✅ Payment rejection email sent to ${student.email} with BCC`);
+    return true;
+  } catch (error) {
+    console.error('❌ Failed to send payment rejection email:', error.message);
+    return false;
+  }
 }
 
-/**
- * Generate fee breakdown HTML – always shows all fee components
- */
-function generateFeeBreakdown(enrollment) {
-  const base = enrollment.totalAmount || 0;
-  const late = enrollment.charges || 0;
-  const reg = enrollment.admissionRegistrationPayment || 0;
-  const actualTotal = base + late + reg;
-  const actualPending = actualTotal - (enrollment.amountReceived || 0);
+function generatePaymentRejectionEmail(payment, student, enrollment, reason) {
+  const subject = `⚠️ Payment Update – Action Needed | ${payment.paymentNo}`;
+  
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RYMA ACADEMY – Payment Rejected</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #f2e5e5;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+        .email-container {
+            max-width: 1200px;
+            margin: 25px auto;
+            background-color: #ffffff;
+            overflow: hidden;
+            box-shadow: 0 12px 28px rgba(150, 30, 30, 0.2);
+            border: 1px solid #e0b7b7;
+        }
+        .imgformate {
+            width: 100%;
+            max-width: 1200px;
+            height: auto;
+            display: block;
+        }
+        .content {
+            padding: 28px 32px 32px;
+        }
+        .greeting {
+            font-size: 18px;
+            font-weight: 500;
+            color: #3b2323;
+            margin-bottom: 16px;
+        }
+        .greeting strong {
+            color: #b13e3e;
+        }
+        .message {
+            font-size: 16px;
+            color: #3a2a2a;
+            line-height: 1.5;
+            margin: 15px 0;
+        }
+        .section-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #aa2929;
+            border-bottom: 2px solid #e0adad;
+            padding-bottom: 8px;
+            margin: 30px 0 20px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .payment-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #ffffff;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(150, 40, 40, 0.1);
+            border: 1px solid #e9c1c1;
+            margin-bottom: 20px;
+        }
+        .payment-table td {
+            padding: 14px 18px;
+            border-bottom: 1px solid #f2d6d6;
+            font-size: 16px;
+        }
+        .payment-table tr:last-child td {
+            border-bottom: none;
+        }
+        .label-cell {
+            background-color: #fde5e5;
+            color: #892b2b;
+            font-weight: 700;
+            width: 40%;
+            border-right: 1px solid #e2b2b2;
+        }
+        .value-cell {
+            background-color: #fffbfb;
+            color: #2e1c1c;
+            font-weight: 500;
+        }
+        .value-cell strong {
+            color: #b33838;
+        }
+        .rejection-reason {
+            background: #ffebeb;
+            border-left: 6px solid #b13e3e;
+            padding: 16px 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            font-size: 16px;
+            color: #572626;
+        }
+        .quote-block {
+            background: #fff3f3;
+            border-radius: 40px 12px 40px 12px;
+            padding: 22px 26px;
+            margin: 25px 0 20px;
+            border: 1px solid #e6b2b2;
+            box-shadow: 0 6px 14px rgba(170, 60, 60, 0.1);
+        }
+        .quote-mark {
+            font-size: 40px;
+            color: #b44848;
+            font-family: 'Times New Roman', serif;
+            line-height: 0.6;
+            margin-right: 4px;
+        }
+        .quote-block p {
+            font-size: 18px;
+            font-style: italic;
+            color: #592b2b;
+            margin: 8px 0 10px;
+            font-weight: 500;
+        }
+        .director-name {
+            font-weight: 700;
+            color: #862b2b;
+            text-align: right;
+            font-size: 16px;
+        }
+        .signature {
+            margin: 25px 0 15px;
+            color: #592525;
+        }
+        .contact-footer {
+            background: #fae1e1;
+            padding: 18px 25px;
+            border-radius: 30px;
+            color: #6d3131;
+            font-size: 15px;
+            margin: 20px 0;
+        }
+        .contact-footer table {
+            width: 100%;
+        }
+        .contact-footer td {
+            padding: 4px 0;
+            text-align: center;
+        }
+        .contact-footer a {
+            color: #a13030;
+            text-decoration: underline;
+        }
+        .disclaimer {
+            font-size: 12px;
+            color: #ffe5e5;
+            background-color: #6d2b2b;
+            padding: 16px 24px;
+            text-align: left;
+            line-height: 1.5;
+        }
+        .footer-red {
+            background-color: #8f2626;
+            padding: 12px 20px;
+            text-align: center;
+            color: #ffd7d7;
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <img src="https://res.cloudinary.com/dpyry0mh1/image/upload/v1773287825/Screenshot_2026-03-11_141445_ibusnj.png" alt="" class="imgformate">
+        <div class="content">
+            <div class="greeting">Dear <strong>${student.name}</strong>,</div>
+            <div class="message">
+                Thank you for your recent payment towards your enrollment at RYMA ACADEMY.
+            </div>
+            <div class="message">
+                Unfortunately, we were unable to verify your payment at this time. As a result, your payment has been <strong>rejected</strong>.
+            </div>
 
-  let breakdownHtml = `
-    <div class="detail-row">
-      <span class="detail-label">Base Course Fee:</span>
-      <span class="detail-value">₹${base}</span>
-    </div>
-    <div class="detail-row">
-      <span class="detail-label">Late Fees:</span>
-      <span class="detail-value" style="color: ${late > 0 ? '#ff6b6b' : '#6c757d'};">₹${late}</span>
-    </div>
-    <div class="detail-row">
-      <span class="detail-label">Registration Fees:</span>
-      <span class="detail-value" style="color: ${reg > 0 ? '#9c88ff' : '#6c757d'};">₹${reg}</span>
-    </div>
-    <div class="detail-row" style="border-top: 2px solid #dee2e6; margin-top: 10px; padding-top: 10px;">
-      <span class="detail-label" style="font-weight: bold;">Total Amount:</span>
-      <span class="detail-value" style="font-weight: bold;">₹${actualTotal}</span>
-    </div>`;
+            <div class="section-title">PAYMENT DETAILS</div>
+            <table class="payment-table" cellpadding="0" cellspacing="0">
+                <tr>
+                    <td class="label-cell">Reference ID</td>
+                    <td class="value-cell"><strong>${payment.paymentNo}</strong></td>
+                </tr>
+                <tr>
+                    <td class="label-cell">Amount</td>
+                    <td class="value-cell"><strong>₹${payment.amountReceived}</strong></td>
+                </tr>
+                <tr>
+                    <td class="label-cell">Date Submitted</td>
+                    <td class="value-cell"><strong>${new Date(payment.date).toLocaleDateString('en-IN')}</strong></td>
+                </tr>
+                <tr>
+                    <td class="label-cell">Payment Mode</td>
+                    <td class="value-cell"><strong>${payment.paymentMode}</strong></td>
+                </tr>
+            </table>
 
-  return { breakdownHtml, actualTotal, actualPending };
+            ${reason ? `
+            <div class="rejection-reason">
+                <strong>Reason for rejection:</strong> ${reason}
+            </div>
+            ` : ''}
+
+            <div class="message">
+                <strong>Next steps:</strong>
+                <ul style="margin-top: 8px; padding-left: 20px;">
+                    <li>Please contact your education counsellor for clarification.</li>
+                    <li>If the rejection was due to incorrect details or missing proof, you may upload a corrected payment proof through your portal.</li>
+                    <li>You can also visit our branch for assistance.</li>
+                </ul>
+            </div>
+
+            <div class="signature">
+                We are here to help you every step of the way.<br>
+                <strong>RYMA ACADEMY</strong><br>
+                Team of Admissions & Student Services
+            </div>
+
+            <!-- CONTACT FOOTER (Email-Safe) -->
+            <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#fae1e1; border-radius:30px; margin:20px 0;" bgcolor="#fae1e1">
+              <tr>
+                <td style="padding:18px 25px; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color:#6d3131; font-size:15px;">
+                  <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:4px 0;">📞 +91-9873336133</td></tr></table>
+                  <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:4px 0;"><a href="mailto:services@rymaacademy.com" style="color:#a13030; text-decoration:underline;">services@rymaacademy.com</a></td></tr></table>
+                  <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:4px 0;"><a href="https://www.rymaacademy.com" style="color:#a13030; text-decoration:underline;">www.rymaacademy.com</a></td></tr></table>
+                  <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:8px 0 4px; word-break:break-word;">📍 D-7/32, 1st Floor, Main Vishram Chowk, Sec-6, Rohini, Delhi – 110085</td></tr></table>
+                </td>
+              </tr>
+            </table>
+
+            <div class="quote-block">
+                <span class="quote-mark">“</span>
+                <p>We do not just build careers. We build people who change the world.</p>
+                <div class="director-name">— Mr. Parveen Jain (Director), RYMA ACADEMY</div>
+            </div>
+        </div>
+
+        <div class="disclaimer">
+            <strong>Disclaimer:</strong> The information contained in this email is confidential to the addressee and may be protected by legal privilege. If you are not the intended recipient, please note that you may not disseminate, retransmit or make any other use of any material in this message. If you have received this email in error, please delete it and notify immediately by telephone or email.
+        </div>
+        <div class="footer-red">
+            © RYMA ACADEMY – Payment Update
+        </div>
+    </div>
+</body>
+</html>
+  `;
+  
+  return { subject, html };
 }
 
 /**
  * Generate email for one-time payment
  */
 function generateOneTimePaymentEmail(payment, student, enrollment) {
-  const { breakdownHtml, actualTotal, actualPending } = generateFeeBreakdown(enrollment);
   const subject = `🎉 Payment Confirmed - Full Fee Received | ${payment.paymentNo}`;
   
   const html = `
     <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Payment Confirmation</title>
-      <style>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RYMA ACADEMY – Payment Confirmation</title>
+    <style>
         body {
-          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-          line-height: 1.6;
-          color: #333;
-          margin: 0;
-          padding: 0;
-          background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+            background-color: #f2e5e5;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
         }
-        .container {
-          max-width: 600px;
-          margin: 0 auto;
-          background-color: #ffffff;
-          border-radius: 10px;
-          overflow: hidden;
-          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        .email-container {
+            max-width: 1200px;
+            margin: 25px auto;
+            background-color: #ffffff;
+            overflow: hidden;
+            box-shadow: 0 12px 28px rgba(150, 30, 30, 0.2);
+            border: 1px solid #e0b7b7;
         }
-        .header {
-          background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-          color: white;
-          padding: 30px 20px;
-          text-align: center;
+        .header-image {
+            width: 100%;
+            background-color: #b31b1b;
+            text-align: center;
+            line-height: 0;
         }
-        .header h1 {
-          margin: 0;
-          font-size: 28px;
-          font-weight: 600;
+        .header-image img {
+            width: 100%;
+            height: auto;
+            display: block;
+            max-height: 180px;
+            object-fit: cover;
+            background-color: #8a1e1e;
+        }
+        .img-placeholder {
+            display: inline-block;
+            width: 100%;
+            background: linear-gradient(145deg, #b22222, #8b1a1a);
+            color: white;
+            font-size: 32px;
+            font-weight: 800;
+            text-align: center;
+            padding: 40px 20px;
+            box-sizing: border-box;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            border-bottom: 4px solid #f3c3c3;
         }
         .content {
-          padding: 30px;
+            padding: 28px 32px 32px;
         }
-        .congrats {
-          text-align: center;
-          margin-bottom: 30px;
+        .greeting {
+            font-size: 18px;
+            font-weight: 500;
+            color: #3b2323;
+            margin-bottom: 16px;
         }
-        .congrats h2 {
-          color: #28a745;
-          font-size: 24px;
-          margin-bottom: 10px;
+        .greeting strong {
+            color: #b13e3e;
         }
-        .payment-details {
-          background-color: #f8f9fa;
-          border-radius: 8px;
-          padding: 20px;
-          margin: 20px 0;
+        .message {
+            font-size: 16px;
+            color: #3a2a2a;
+            line-height: 1.5;
+            margin: 15px 0;
         }
-        .detail-row {
-          display: flex;
-          justify-content: space-between;
-          margin-bottom: 10px;
-          padding-bottom: 10px;
-          border-bottom: 1px solid #e9ecef;
+        .section-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #aa2929;
+            border-bottom: 2px solid #e0adad;
+            padding-bottom: 8px;
+            margin: 30px 0 20px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
-        .detail-row:last-child {
-          border-bottom: none;
-          margin-bottom: 0;
-          padding-bottom: 0;
+        .payment-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #ffffff;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(150, 40, 40, 0.1);
+            border: 1px solid #e9c1c1;
+            margin-bottom: 20px;
         }
-        .detail-label {
-          font-weight: 600;
-          color: #495057;
+        .payment-table td {
+            padding: 14px 18px;
+            border-bottom: 1px solid #f2d6d6;
+            font-size: 16px;
         }
-        .detail-value {
-          color: #212529;
-          text-align: right;
+        .payment-table tr:last-child td {
+            border-bottom: none;
         }
-        .completion-badge {
-          background-color: #28a745;
-          color: white;
-          padding: 10px 20px;
-          border-radius: 20px;
-          text-align: center;
-          margin: 20px 0;
-          font-weight: 600;
+        .label-cell {
+            background-color: #fde5e5;
+            color: #892b2b;
+            font-weight: 700;
+            width: 40%;
+            border-right: 1px solid #e2b2b2;
         }
-        .next-steps {
-          background-color: #e7f3ff;
-          border-left: 4px solid #007bff;
-          padding: 15px 20px;
-          margin: 20px 0;
-          border-radius: 4px;
+        .value-cell {
+            background-color: #fffbfb;
+            color: #2e1c1c;
+            font-weight: 500;
         }
-        .footer {
-          text-align: center;
-          padding: 20px;
-          background-color: #f8f9fa;
-          color: #6c757d;
-          font-size: 14px;
+        .value-cell strong {
+            color: #b33838;
         }
-        .amount-highlight {
-          font-size: 24px;
-          font-weight: bold;
-          color: #28a745;
-          text-align: center;
-          margin: 15px 0;
+        .quote-block {
+            background: #fff3f3;
+            border-radius: 40px 12px 40px 12px;
+            padding: 22px 26px;
+            margin: 25px 0 20px;
+            border: 1px solid #e6b2b2;
+            box-shadow: 0 6px 14px rgba(170, 60, 60, 0.1);
         }
-      </style>
-    </head>
-    <body>
-      <div class="container">
-        <div class="header">
-          <h1>💳 Payment Confirmed</h1>
-        </div>
-        
+        .quote-mark {
+            font-size: 40px;
+            color: #b44848;
+            font-family: 'Times New Roman', serif;
+            line-height: 0.6;
+            margin-right: 4px;
+        }
+        .quote-block p {
+            font-size: 18px;
+            font-style: italic;
+            color: #592b2b;
+            margin: 8px 0 10px;
+            font-weight: 500;
+        }
+        .director-name {
+            font-weight: 700;
+            color: #862b2b;
+            text-align: right;
+            font-size: 16px;
+        }
+        .signature {
+            margin: 25px 0 15px;
+            color: #592525;
+        }
+        .contact-footer {
+            background: #fae1e1;
+            padding: 18px 25px;
+            border-radius: 30px;
+            color: #6d3131;
+            font-size: 15px;
+            margin: 20px 0;
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 12px 8px;
+            word-break: break-word;
+        }
+        .contact-footer a {
+            color: #a13030;
+            text-decoration: underline;
+            white-space: nowrap;
+        }
+        /* Responsive */
+        @media only screen and (max-width: 480px) {
+            .contact-footer {
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+                gap: 8px;
+            }
+            .contact-footer a {
+                white-space: normal;
+            }
+        }
+        .social-icons {
+            text-align: center;
+            margin: 20px 0;
+            font-size: 18px;
+            letter-spacing: 10px;
+            color: #b44848;
+        }
+        .social-icons span {
+            font-weight: 600;
+            color: #862b2b;
+        }
+        .disclaimer {
+            font-size: 12px;
+            color: #ffe5e5;
+            background-color: #6d2b2b;
+            padding: 16px 24px;
+            text-align: left;
+            line-height: 1.5;
+        }
+        .footer-red {
+            background-color: #8f2626;
+            padding: 12px 20px;
+            text-align: center;
+            color: #ffd7d7;
+            font-size: 13px;
+        }
+        hr {
+            border: none;
+            height: 1px;
+            background: linear-gradient(to right, #efc2c2, #c96666, #efc2c2);
+            margin: 20px 0;
+        }
+        .note-placeholder {
+            font-size: 13px;
+            color: #946060;
+            background: #faf0f0;
+            padding: 6px 10px;
+            border-radius: 50px;
+            margin-top: 8px;
+            text-align: center;
+        }
+        .imgformate{
+        width:1200px;
+    }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <!-- Header image (replace src with actual image) -->
+    
+         <img src="https://res.cloudinary.com/dpyry0mh1/image/upload/v1773287825/Screenshot_2026-03-11_141445_ibusnj.png" alt="" class="imgformate">
         <div class="content">
-          <div class="congrats">
-            <h2>Payment Successful! 🎉</h2>
-            <p>Dear ${student.name}, your full course fee has been received successfully.</p>
-          </div>
+            <!-- Dear student -->
+            <div class="greeting">Dear <strong>${student.name}</strong>,</div>
 
-          <div class="completion-badge">
-            ✅ Full Fee Paid - No Pending Amount
-          </div>
+            <!-- Thank you message -->
+            <div class="message">
+                Thank you for choosing RYMA ACADEMY as your preferred learning partner.
+            </div>
+            <div class="message">
+                We are pleased to confirm that your payment has been successfully received and recorded in our system. Your official fee receipt is attached to this email for your reference and records.
+            </div>
 
-          <div class="amount-highlight">
-            ₹${payment.amountReceived}
-          </div>
+            <!-- Payment details section -->
+            <div class="section-title">PAYMENT DETAILS</div>
 
-          <!-- Fee Breakdown Section -->
-          <div class="payment-details" style="margin-bottom: 20px;">
-            <h3 style="color: #495057; margin-bottom: 15px; text-align: center;">💰 Fee Breakdown</h3>
-            ${breakdownHtml}
-          </div>
-          
-          <!-- Payment Details Section -->
-          <div class="payment-details">
-            <h3 style="color: #495057; margin-bottom: 15px; text-align: center;">📋 Payment Details</h3>
-            <div class="detail-row">
-              <span class="detail-label">Student Name:</span>
-              <span class="detail-value">${student.name}</span>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">Student ID:</span>
-              <span class="detail-value">${student.studentId}</span>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">Payment No:</span>
-              <span class="detail-value">${payment.paymentNo}</span>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">Enrollment No:</span>
-              <span class="detail-value">${enrollment.enrollmentNo}</span>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">Payment Date:</span>
-              <span class="detail-value">${new Date(payment.date).toLocaleDateString('en-IN')}</span>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">Payment Mode:</span>
-              <span class="detail-value">${payment.paymentMode}</span>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">Transaction No:</span>
-              <span class="detail-value">${payment.transactionNo || 'N/A'}</span>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">Amount Received:</span>
-              <span class="detail-value" style="color: #28a745; font-weight: bold;">₹${payment.amountReceived}</span>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">Pending Amount:</span>
-              <span class="detail-value" style="color: #28a745; font-weight: bold;">₹0</span>
-            </div>
-          </div>
+            <table class="payment-table" cellpadding="0" cellspacing="0">
+                <tr>
+                    <td class="label-cell">Amount Received</td>
+                    <td class="value-cell"><strong>₹${payment.amountReceived}</strong></td>
+                </tr>
+                <tr>
+                    <td class="label-cell">Reference ID</td>
+                    <td class="value-cell"><strong>${payment.paymentNo}</strong></td>
+                </tr>
+                <tr>
+                    <td class="label-cell">Payment Date</td>
+                    <td class="value-cell"><strong>${new Date(payment.date).toLocaleDateString('en-IN')}</strong></td>
+                </tr>
+                <tr>
+                    <td class="label-cell">Payment Mode</td>
+                    <td class="value-cell"><strong>${payment.paymentMode}</strong></td>
+                </tr>
+            </table>
 
-          <div class="next-steps">
-            <h3>📋 What's Next?</h3>
-            <ul>
-              <li>Your admission process is now complete</li>
-              <li>You will receive course access details shortly</li>
-              <li>Keep your payment receipt for future reference</li>
-              <li>Contact your counsellor for any queries</li>
-            </ul>
-          </div>
+            <div class="message">
+                Please quote Reference ID <strong>${payment.paymentNo}</strong> in all future communications with us regarding this payment.
+            </div>
+            <div class="message">
+                We look forward to a long and enriching association with you. Welcome to the <strong>RYMA ACADEMY</strong> family.
+            </div>
 
-          <p style="text-align: center; color: #6c757d; font-style: italic;">
-            Thank you for choosing us! We look forward to helping you achieve your goals. 🚀
-          </p>
+            <!-- Regards -->
+            <div class="signature">
+                With the highest regards & warmest welcome,<br>
+                <strong>RYMA ACADEMY</strong><br>
+                Team of Admissions & Student Services
+            </div>
+
+            <!-- CONTACT FOOTER (Email-Safe) -->
+            <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#fae1e1; border-radius:30px; margin:20px 0;" bgcolor="#fae1e1">
+              <tr>
+                <td style="padding:18px 25px; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color:#6d3131; font-size:15px;">
+                  <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:4px 0;">📞 +91-9873336133</td></tr></table>
+                  <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:4px 0;"><a href="mailto:services@rymaacademy.com" style="color:#a13030; text-decoration:underline;">services@rymaacademy.com</a></td></tr></table>
+                  <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:4px 0;"><a href="https://www.rymaacademy.com" style="color:#a13030; text-decoration:underline;">www.rymaacademy.com</a></td></tr></table>
+                  <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:8px 0 4px; word-break:break-word;">📍 D-7/32, 1st Floor, Main Vishram Chowk, Sec-6, Rohini, Delhi – 110085</td></tr></table>
+                </td>
+              </tr>
+            </table>
+
+            <!-- Quote -->
+            <div class="quote-block">
+                <span class="quote-mark">“</span>
+                <p>We do not just build careers. We build people who change the world.</p>
+                <div class="director-name">— Mr. Parveen Jain (Director), RYMA ACADEMY</div>
+            </div>
+            <!-- Optional note about header (remove in production) -->
+            <div class="note-placeholder">
+                ⚡ Replace header image source with your actual logo.
+            </div>
         </div>
 
-        <div class="footer">
-          <p>This is an automated email. Please do not reply to this message.</p>
-          <p>&copy; ${new Date().getFullYear()} Your Institution Name. All rights reserved.</p>
+        <!-- Disclaimer -->
+        <div class="disclaimer">
+            <strong>Disclaimer:</strong> The information contained in this email is confidential to the addressee and may be protected by legal privilege. If you are not the intended recipient, please note that you may not disseminate, retransmit or make any other use of any material in this message. If you have received this email in error, please delete it and notify immediately by telephone or email.
         </div>
-      </div>
-    </body>
-    </html>
+        <div class="footer-red">
+            © RYMA ACADEMY – Payment Receipt
+        </div>
+    </div>
+</body>
+</html>
   `;
+  
   return { subject, html };
 }
+
 /**
  * Generate email for installment payment
  */
 function generateInstallmentPaymentEmail(payment, student, enrollment) {
-  const { breakdownHtml, actualTotal, actualPending } = generateFeeBreakdown(enrollment);
-  const emiNumberMap = {
-    'first': '1st',
-    'second': '2nd', 
-    'third': '3rd'
-  };
+  const subject = `✅ Installment Received | ${payment.paymentNo}`;
   
-  const currentEMI = emiNumberMap[payment.emiNumber] || payment.emiNumber;
-  const subject = `✅ ${currentEMI} Installment Received | ${payment.paymentNo}`;
+  const installmentText = payment.installmentNo ? `Installment ${payment.installmentNo}` : 'Installment';
   
-  // Calculate remaining installments
-  const remainingEMIs = calculateRemainingEMIs(enrollment, payment.emiNumber);
-  const isFinalEMI = remainingEMIs === 0;
-
   const html = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Installment Payment Confirmation</title>
-      <style>
+  <!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RYMA ACADEMY – Payment Confirmation</title>
+    <style>
         body {
-          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-          line-height: 1.6;
-          color: #333;
-          margin: 0;
-          padding: 0;
-          background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+            background-color: #f2e5e5;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
         }
-        .container {
-          max-width: 600px;
-          margin: 0 auto;
-          background-color: #ffffff;
-          border-radius: 10px;
-          overflow: hidden;
-          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        .email-container {
+            max-width: 1200px;
+            margin: 25px auto;
+            background-color: #ffffff;
+            overflow: hidden;
+            box-shadow: 0 12px 28px rgba(150, 30, 30, 0.2);
+            border: 1px solid #e0b7b7;
         }
-        .header {
-          background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
-          color: white;
-          padding: 30px 20px;
-          text-align: center;
+        .header-image {
+            width: 100%;
+            background-color: #b31b1b;
+            text-align: center;
+            line-height: 0;
         }
-        .header h1 {
-          margin: 0;
-          font-size: 28px;
-          font-weight: 600;
+        .header-image img {
+            width: 100%;
+            height: auto;
+            display: block;
+            max-height: 180px;
+            object-fit: cover;
+            background-color: #8a1e1e;
+        }
+        .img-placeholder {
+            display: inline-block;
+            width: 100%;
+            background: linear-gradient(145deg, #b22222, #8b1a1a);
+            color: white;
+            font-size: 32px;
+            font-weight: 800;
+            text-align: center;
+            padding: 40px 20px;
+            box-sizing: border-box;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            border-bottom: 4px solid #f3c3c3;
         }
         .content {
-          padding: 30px;
+            padding: 28px 32px 32px;
         }
-        .congrats {
-          text-align: center;
-          margin-bottom: 30px;
+        .greeting {
+            font-size: 18px;
+            font-weight: 500;
+            color: #3b2323;
+            margin-bottom: 16px;
         }
-        .congrats h2 {
-          color: #ee5a24;
-          font-size: 24px;
-          margin-bottom: 10px;
+        .greeting strong {
+            color: #b13e3e;
         }
-        .payment-details {
-          background-color: #f8f9fa;
-          border-radius: 8px;
-          padding: 20px;
-          margin: 20px 0;
+        .message {
+            font-size: 16px;
+            color: #3a2a2a;
+            line-height: 1.5;
+            margin: 15px 0;
         }
-        .detail-row {
-          display: flex;
-          justify-content: space-between;
-          margin-bottom: 10px;
-          padding-bottom: 10px;
-          border-bottom: 1px solid #e9ecef;
+        .section-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #aa2929;
+            border-bottom: 2px solid #e0adad;
+            padding-bottom: 8px;
+            margin: 30px 0 20px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
-        .detail-row:last-child {
-          border-bottom: none;
-          margin-bottom: 0;
-          padding-bottom: 0;
+        .payment-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #ffffff;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(150, 40, 40, 0.1);
+            border: 1px solid #e9c1c1;
+            margin-bottom: 20px;
         }
-        .detail-label {
-          font-weight: 600;
-          color: #495057;
+        .payment-table td {
+            padding: 14px 18px;
+            border-bottom: 1px solid #f2d6d6;
+            font-size: 16px;
         }
-        .detail-value {
-          color: #212529;
-          text-align: right;
+        .payment-table tr:last-child td {
+            border-bottom: none;
         }
-        .progress-container {
-          background-color: #e9ecef;
-          border-radius: 10px;
-          height: 20px;
-          margin: 20px 0;
-          overflow: hidden;
+        .label-cell {
+            background-color: #fde5e5;
+            color: #892b2b;
+            font-weight: 700;
+            width: 40%;
+            border-right: 1px solid #e2b2b2;
         }
-        .progress-bar {
-          height: 100%;
-          background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
-          border-radius: 10px;
-          transition: width 0.3s ease;
+        .value-cell {
+            background-color: #fffbfb;
+            color: #2e1c1c;
+            font-weight: 500;
         }
-        .emi-status {
-          display: flex;
-          justify-content: space-between;
-          margin: 15px 0;
+        .value-cell strong {
+            color: #b33838;
         }
-        .emi-pill {
-          padding: 8px 15px;
-          border-radius: 20px;
-          font-size: 12px;
-          font-weight: 600;
+        .quote-block {
+            background: #fff3f3;
+            border-radius: 40px 12px 40px 12px;
+            padding: 22px 26px;
+            margin: 25px 0 20px;
+            border: 1px solid #e6b2b2;
+            box-shadow: 0 6px 14px rgba(170, 60, 60, 0.1);
         }
-        .emi-paid {
-          background-color: #28a745;
-          color: white;
+        .quote-mark {
+            font-size: 40px;
+            color: #b44848;
+            font-family: 'Times New Roman', serif;
+            line-height: 0.6;
+            margin-right: 4px;
         }
-        .emi-pending {
-          background-color: #6c757d;
-          color: white;
+        .quote-block p {
+            font-size: 18px;
+            font-style: italic;
+            color: #592b2b;
+            margin: 8px 0 10px;
+            font-weight: 500;
         }
-        .amount-highlight {
-          font-size: 24px;
-          font-weight: bold;
-          color: #ee5a24;
-          text-align: center;
-          margin: 15px 0;
+        .director-name {
+            font-weight: 700;
+            color: #862b2b;
+            text-align: right;
+            font-size: 16px;
         }
-        .completion-message {
-          background-color: #d4edda;
-          color: #155724;
-          padding: 15px;
-          border-radius: 5px;
-          text-align: center;
-          margin: 20px 0;
-          font-weight: 600;
+        .signature {
+            margin: 25px 0 15px;
+            color: #592525;
         }
-        .footer {
-          text-align: center;
-          padding: 20px;
-          background-color: #f8f9fa;
-          color: #6c757d;
-          font-size: 14px;
+        .contact-footer {
+            background: #fae1e1;
+            padding: 18px 25px;
+            border-radius: 30px;
+            color: #6d3131;
+            font-size: 15px;
+            margin: 20px 0;
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 12px 8px;
+            word-break: break-word;
         }
-      </style>
-    </head>
-    <body>
-      <div class="container">
-        <div class="header">
-          <h1>📊 Installment Payment</h1>
-        </div>
-        
+        .contact-footer a {
+            color: #a13030;
+            text-decoration: underline;
+            white-space: nowrap;
+        }
+        /* Responsive */
+        @media only screen and (max-width: 480px) {
+            .contact-footer {
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+                gap: 8px;
+            }
+            .contact-footer a {
+                white-space: normal;
+            }
+        }
+        .social-icons {
+            text-align: center;
+            margin: 20px 0;
+            font-size: 18px;
+            letter-spacing: 10px;
+            color: #b44848;
+        }
+        .social-icons span {
+            font-weight: 600;
+            color: #862b2b;
+        }
+        .disclaimer {
+            font-size: 12px;
+            color: #ffe5e5;
+            background-color: #6d2b2b;
+            padding: 16px 24px;
+            text-align: left;
+            line-height: 1.5;
+        }
+        .footer-red {
+            background-color: #8f2626;
+            padding: 12px 20px;
+            text-align: center;
+            color: #ffd7d7;
+            font-size: 13px;
+        }
+        hr {
+            border: none;
+            height: 1px;
+            background: linear-gradient(to right, #efc2c2, #c96666, #efc2c2);
+            margin: 20px 0;
+        }
+        .note-placeholder {
+            font-size: 13px;
+            color: #946060;
+            background: #faf0f0;
+            padding: 6px 10px;
+            border-radius: 50px;
+            margin-top: 8px;
+            text-align: center;
+        }
+        .imgformate{
+        width:1200px;
+    }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <!-- Header image (replace src with actual image) -->
+    
+         <img src="https://res.cloudinary.com/dpyry0mh1/image/upload/v1773287825/Screenshot_2026-03-11_141445_ibusnj.png" alt="" class="imgformate">
         <div class="content">
-          <div class="congrats">
-            <h2>${currentEMI} Installment Received! ✅</h2>
-            <p>Dear ${student.name}, your ${currentEMI.toLowerCase()} installment has been processed successfully.</p>
-          </div>
+            <!-- Dear student -->
+            <div class="greeting">Dear <strong>${student.name}</strong>,</div>
 
-          <div class="amount-highlight">
-            ₹${payment.amountReceived}
-          </div>
+            <!-- Thank you message -->
+            <div class="message">
+                Thank you for choosing RYMA ACADEMY as your preferred learning partner.
+            </div>
+            <div class="message">
+                We are pleased to confirm that your payment has been successfully received and recorded in our system. Your official fee receipt is attached to this email for your reference and records.
+            </div>
 
-          <!-- Fee Breakdown Section -->
-          <div class="payment-details" style="margin-bottom: 20px;">
-            <h3 style="color: #495057; margin-bottom: 15px; text-align: center;">💰 Fee Breakdown</h3>
-            ${breakdownHtml}
-          </div>
-          
-          <!-- Payment Details Section -->
-          <div class="payment-details">
-            <h3 style="color: #495057; margin-bottom: 15px; text-align: center;">📋 Payment Details</h3>
-            <div class="detail-row">
-              <span class="detail-label">Student Name:</span>
-              <span class="detail-value">${student.name}</span>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">Payment No:</span>
-              <span class="detail-value">${payment.paymentNo}</span>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">Installment:</span>
-              <span class="detail-value">${currentEMI} EMI</span>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">Payment Date:</span>
-              <span class="detail-value">${new Date(payment.date).toLocaleDateString('en-IN')}</span>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">Payment Mode:</span>
-              <span class="detail-value">${payment.paymentMode}</span>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">Total Paid:</span>
-              <span class="detail-value" style="color: #28a745; font-weight: bold;">₹${enrollment.amountReceived}</span>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">Pending Amount:</span>
-              <span class="detail-value" style="color: ${actualPending > 0 ? '#dc3545' : '#28a745'}; font-weight: bold;">₹${actualPending}</span>
-            </div>
-          </div>
+            <!-- Payment details section -->
+            <div class="section-title">PAYMENT DETAILS</div>
 
-          <!-- EMI Progress -->
-          <h3 style="text-align: center; margin-bottom: 10px;">Payment Progress</h3>
-          <div class="progress-container">
-            <div class="progress-bar" style="width: ${(enrollment.amountReceived / actualTotal) * 100}%"></div>
-          </div>
-          
-          <div class="emi-status">
-            ${generateEMIStatusPills(enrollment)}
-          </div>
+            <table class="payment-table" cellpadding="0" cellspacing="0">
+                <tr>
+                    <td class="label-cell">Amount Received</td>
+                    <td class="value-cell"><strong>₹${payment.amountReceived}</strong></td>
+                </tr>
+                <tr>
+                    <td class="label-cell">Reference ID</td>
+                    <td class="value-cell"><strong>${payment.paymentNo}</strong></td>
+                </tr>
+                <tr>
+                    <td class="label-cell">Payment Date</td>
+                    <td class="value-cell"><strong>${new Date(payment.date).toLocaleDateString('en-IN')}</strong></td>
+                </tr>
+                <tr>
+                    <td class="label-cell">Payment Mode</td>
+                    <td class="value-cell"><strong>${payment.paymentMode}</strong></td>
+                </tr>
+            </table>
 
-          ${isFinalEMI ? `
-            <div class="completion-message">
-              🎉 Congratulations! You have successfully paid all installments. Your course fee is now complete!
+            <div class="message">
+                Please quote Reference ID <strong>${payment.paymentNo}</strong> in all future communications with us regarding this payment.
             </div>
-          ` : `
-            <div style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; border-radius: 4px;">
-              <h3>📅 Next Installment</h3>
-              <p>You have ${remainingEMIs} installment${remainingEMIs > 1 ? 's' : ''} remaining. The next installment is due as per your payment schedule.</p>
+            <div class="message">
+                We look forward to a long and enriching association with you. Welcome to the <strong>RYMA ACADEMY</strong> family.
             </div>
-          `}
 
-          <p style="text-align: center; color: #6c757d; font-style: italic;">
-            Thank you for your timely payment! 💫
-          </p>
+            <!-- Regards -->
+            <div class="signature">
+                With the highest regards & warmest welcome,<br>
+                <strong>RYMA ACADEMY</strong><br>
+                Team of Admissions & Student Services
+            </div>
+
+            <!-- CONTACT FOOTER (Email-Safe) -->
+            <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#fae1e1; border-radius:30px; margin:20px 0;" bgcolor="#fae1e1">
+              <tr>
+                <td style="padding:18px 25px; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color:#6d3131; font-size:15px;">
+                  <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:4px 0;">📞 +91-9873336133</td></tr></table>
+                  <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:4px 0;"><a href="mailto:services@rymaacademy.com" style="color:#a13030; text-decoration:underline;">services@rymaacademy.com</a></td></tr></table>
+                  <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:4px 0;"><a href="https://www.rymaacademy.com" style="color:#a13030; text-decoration:underline;">www.rymaacademy.com</a></td></tr></table>
+                  <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:8px 0 4px; word-break:break-word;">📍 D-7/32, 1st Floor, Main Vishram Chowk, Sec-6, Rohini, Delhi – 110085</td></tr></table>
+                </td>
+              </tr>
+            </table>
+
+            <!-- Quote -->
+            <div class="quote-block">
+                <span class="quote-mark">“</span>
+                <p>We do not just build careers. We build people who change the world.</p>
+                <div class="director-name">— Mr. Parveen Jain (Director), RYMA ACADEMY</div>
+            </div>
+            <!-- Optional note about header (remove in production) -->
+            <div class="note-placeholder">
+                ⚡ Replace header image source with your actual logo.
+            </div>
         </div>
 
-        <div class="footer">
-          <p>This is an automated email. Please do not reply to this message.</p>
-          <p>&copy; ${new Date().getFullYear()} Your Institution Name. All rights reserved.</p>
+        <!-- Disclaimer -->
+        <div class="disclaimer">
+            <strong>Disclaimer:</strong> The information contained in this email is confidential to the addressee and may be protected by legal privilege. If you are not the intended recipient, please note that you may not disseminate, retransmit or make any other use of any material in this message. If you have received this email in error, please delete it and notify immediately by telephone or email.
         </div>
-      </div>
-    </body>
-    </html>
+        <div class="footer-red">
+            © RYMA ACADEMY – Payment Receipt
+        </div>
+    </div>
+</body>
+</html>
   `;
 
   return { subject, html };
@@ -590,157 +973,309 @@ function generateGenericPaymentEmail(payment, student, enrollment) {
   const subject = `✅ Payment Received | ${payment.paymentNo}`;
   
   const html = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Payment Confirmation</title>
-      <style>
+   <!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RYMA ACADEMY – Payment Confirmation</title>
+    <style>
         body {
-          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-          line-height: 1.6;
-          color: #333;
-          margin: 0;
-          padding: 0;
-          background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+            background-color: #f2e5e5;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
         }
-        .container {
-          max-width: 600px;
-          margin: 0 auto;
-          background-color: #ffffff;
-          border-radius: 10px;
-          overflow: hidden;
-          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        .email-container {
+            max-width: 1200px;
+            margin: 25px auto;
+            background-color: #ffffff;
+            overflow: hidden;
+            box-shadow: 0 12px 28px rgba(150, 30, 30, 0.2);
+            border: 1px solid #e0b7b7;
         }
-        .header {
-          background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
-          color: white;
-          padding: 30px 20px;
-          text-align: center;
+        .header-image {
+            width: 100%;
+            background-color: #b31b1b;
+            text-align: center;
+            line-height: 0;
         }
-        .header h1 {
-          margin: 0;
-          font-size: 28px;
-          font-weight: 600;
+        .header-image img {
+            width: 100%;
+            height: auto;
+            display: block;
+            max-height: 180px;
+            object-fit: cover;
+            background-color: #8a1e1e;
+        }
+        .img-placeholder {
+            display: inline-block;
+            width: 100%;
+            background: linear-gradient(145deg, #b22222, #8b1a1a);
+            color: white;
+            font-size: 32px;
+            font-weight: 800;
+            text-align: center;
+            padding: 40px 20px;
+            box-sizing: border-box;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            border-bottom: 4px solid #f3c3c3;
         }
         .content {
-          padding: 30px;
+            padding: 28px 32px 32px;
         }
-        .congrats {
-          text-align: center;
-          margin-bottom: 30px;
+        .greeting {
+            font-size: 18px;
+            font-weight: 500;
+            color: #3b2323;
+            margin-bottom: 16px;
         }
-        .congrats h2 {
-          color: #007bff;
-          font-size: 24px;
-          margin-bottom: 10px;
+        .greeting strong {
+            color: #b13e3e;
         }
-        .payment-details {
-          background-color: #f8f9fa;
-          border-radius: 8px;
-          padding: 20px;
-          margin: 20px 0;
+        .message {
+            font-size: 16px;
+            color: #3a2a2a;
+            line-height: 1.5;
+            margin: 15px 0;
         }
-        .detail-row {
-          display: flex;
-          justify-content: space-between;
-          margin-bottom: 10px;
-          padding-bottom: 10px;
-          border-bottom: 1px solid #e9ecef;
+        .section-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #aa2929;
+            border-bottom: 2px solid #e0adad;
+            padding-bottom: 8px;
+            margin: 30px 0 20px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
-        .detail-row:last-child {
-          border-bottom: none;
-          margin-bottom: 0;
-          padding-bottom: 0;
+        .payment-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #ffffff;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(150, 40, 40, 0.1);
+            border: 1px solid #e9c1c1;
+            margin-bottom: 20px;
         }
-        .detail-label {
-          font-weight: 600;
-          color: #495057;
+        .payment-table td {
+            padding: 14px 18px;
+            border-bottom: 1px solid #f2d6d6;
+            font-size: 16px;
         }
-        .detail-value {
-          color: #212529;
-          text-align: right;
+        .payment-table tr:last-child td {
+            border-bottom: none;
         }
-        .amount-highlight {
-          font-size: 24px;
-          font-weight: bold;
-          color: #007bff;
-          text-align: center;
-          margin: 15px 0;
+        .label-cell {
+            background-color: #fde5e5;
+            color: #892b2b;
+            font-weight: 700;
+            width: 40%;
+            border-right: 1px solid #e2b2b2;
         }
-        .footer {
-          text-align: center;
-          padding: 20px;
-          background-color: #f8f9fa;
-          color: #6c757d;
-          font-size: 14px;
+        .value-cell {
+            background-color: #fffbfb;
+            color: #2e1c1c;
+            font-weight: 500;
         }
-      </style>
-    </head>
-    <body>
-      <div class="container">
-        <div class="header">
-          <h1>💳 Payment Received</h1>
-        </div>
-        
+        .value-cell strong {
+            color: #b33838;
+        }
+        .quote-block {
+            background: #fff3f3;
+            border-radius: 40px 12px 40px 12px;
+            padding: 22px 26px;
+            margin: 25px 0 20px;
+            border: 1px solid #e6b2b2;
+            box-shadow: 0 6px 14px rgba(170, 60, 60, 0.1);
+        }
+        .quote-mark {
+            font-size: 40px;
+            color: #b44848;
+            font-family: 'Times New Roman', serif;
+            line-height: 0.6;
+            margin-right: 4px;
+        }
+        .quote-block p {
+            font-size: 18px;
+            font-style: italic;
+            color: #592b2b;
+            margin: 8px 0 10px;
+            font-weight: 500;
+        }
+        .director-name {
+            font-weight: 700;
+            color: #862b2b;
+            text-align: right;
+            font-size: 16px;
+        }
+        .signature {
+            margin: 25px 0 15px;
+            color: #592525;
+        }
+        .contact-footer {
+            background: #fae1e1;
+            padding: 18px 25px;
+            border-radius: 30px;
+            color: #6d3131;
+            font-size: 15px;
+            margin: 20px 0;
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 12px 8px;
+            word-break: break-word;
+        }
+        .contact-footer a {
+            color: #a13030;
+            text-decoration: underline;
+            white-space: nowrap;
+        }
+        /* Responsive */
+        @media only screen and (max-width: 480px) {
+            .contact-footer {
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+                gap: 8px;
+            }
+            .contact-footer a {
+                white-space: normal;
+            }
+        }
+        .social-icons {
+            text-align: center;
+            margin: 20px 0;
+            font-size: 18px;
+            letter-spacing: 10px;
+            color: #b44848;
+        }
+        .social-icons span {
+            font-weight: 600;
+            color: #862b2b;
+        }
+        .disclaimer {
+            font-size: 12px;
+            color: #ffe5e5;
+            background-color: #6d2b2b;
+            padding: 16px 24px;
+            text-align: left;
+            line-height: 1.5;
+        }
+        .footer-red {
+            background-color: #8f2626;
+            padding: 12px 20px;
+            text-align: center;
+            color: #ffd7d7;
+            font-size: 13px;
+        }
+        hr {
+            border: none;
+            height: 1px;
+            background: linear-gradient(to right, #efc2c2, #c96666, #efc2c2);
+            margin: 20px 0;
+        }
+        .note-placeholder {
+            font-size: 13px;
+            color: #946060;
+            background: #faf0f0;
+            padding: 6px 10px;
+            border-radius: 50px;
+            margin-top: 8px;
+            text-align: center;
+        }
+        .imgformate{
+        width:1200px;
+    }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <!-- Header image (replace src with actual image) -->
+    
+       <img src="https://res.cloudinary.com/dpyry0mh1/image/upload/v1773287825/Screenshot_2026-03-11_141445_ibusnj.png" alt="" class="imgformate">
         <div class="content">
-          <div class="congrats">
-            <h2>Payment Processed Successfully</h2>
-            <p>Dear ${student.name}, your payment has been received and approved.</p>
-          </div>
+            <!-- Dear student -->
+            <div class="greeting">Dear <strong>${student.name}</strong>,</div>
 
-          <div class="amount-highlight">
-            ₹${payment.amountReceived}
-          </div>
+            <!-- Thank you message -->
+            <div class="message">
+                Thank you for choosing RYMA ACADEMY as your preferred learning partner.
+            </div>
+            <div class="message">
+                We are pleased to confirm that your payment has been successfully received and recorded in our system. Your official fee receipt is attached to this email for your reference and records.
+            </div>
 
-          <!-- Fee Breakdown Section -->
-          <div class="payment-details" style="margin-bottom: 20px;">
-            <h3 style="color: #495057; margin-bottom: 15px; text-align: center;">💰 Fee Breakdown</h3>
-            ${breakdownHtml}
-          </div>
-          
-          <!-- Payment Details Section -->
-          <div class="payment-details">
-            <h3 style="color: #495057; margin-bottom: 15px; text-align: center;">📋 Payment Details</h3>
-            <div class="detail-row">
-              <span class="detail-label">Student Name:</span>
-              <span class="detail-value">${student.name}</span>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">Payment No:</span>
-              <span class="detail-value">${payment.paymentNo}</span>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">Payment Date:</span>
-              <span class="detail-value">${new Date(payment.date).toLocaleDateString('en-IN')}</span>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">Payment Mode:</span>
-              <span class="detail-value">${payment.paymentMode}</span>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">Amount Received:</span>
-              <span class="detail-value" style="color: #007bff; font-weight: bold;">₹${payment.amountReceived}</span>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">Pending Amount:</span>
-              <span class="detail-value" style="color: ${actualPending > 0 ? '#dc3545' : '#28a745'}; font-weight: bold;">₹${actualPending}</span>
-            </div>
-          </div>
+            <!-- Payment details section -->
+            <div class="section-title">PAYMENT DETAILS</div>
 
-          <p style="text-align: center; color: #6c757d; font-style: italic;">
-            Thank you for your payment!
-          </p>
+            <table class="payment-table" cellpadding="0" cellspacing="0">
+                <tr>
+                    <td class="label-cell">Amount Received</td>
+                    <td class="value-cell"><strong>₹${payment.amountReceived}</strong></td>
+                </tr>
+                <tr>
+                    <td class="label-cell">Reference ID</td>
+                    <td class="value-cell"><strong>${payment.paymentNo}</strong></td>
+                </tr>
+                <tr>
+                    <td class="label-cell">Payment Date</td>
+                    <td class="value-cell"><strong>${new Date(payment.date).toLocaleDateString('en-IN')}</strong></td>
+                </tr>
+                <tr>
+                    <td class="label-cell">Payment Mode</td>
+                    <td class="value-cell"><strong>${payment.paymentMode}</strong></td>
+                </tr>
+            </table>
+
+            <div class="message">
+                Please quote Reference ID <strong>${payment.paymentNo}</strong> in all future communications with us regarding this payment.
+            </div>
+            <div class="message">
+                We look forward to a long and enriching association with you. Welcome to the <strong>RYMA ACADEMY</strong> family.
+            </div>
+
+            <!-- Regards -->
+            <div class="signature">
+                With the highest regards & warmest welcome,<br>
+                <strong>RYMA ACADEMY</strong><br>
+                Team of Admissions & Student Services
+            </div>
+
+            <!-- Contact block (responsive) -->
+            <div class="contact-footer">
+                +91 98733 36133
+                <a href="mailto:services@rymaacademy.com">services@rymaacademy.com</a>
+                <a href="#">www.rymaacademy.com</a>
+                📍 D-7/32, 1st Floor, Main Vishram Chowk, Sec-6, Rohini, Delhi – 110085
+            </div>
+
+            <!-- Quote -->
+            <div class="quote-block">
+                <span class="quote-mark">“</span>
+                <p>We do not just build careers. We build people who change the world.</p>
+                <div class="director-name">— Mr. Parveen Jain (Director), RYMA ACADEMY</div>
+            </div>
+            <!-- Optional note about header (remove in production) -->
+            <div class="note-placeholder">
+                ⚡ Replace header image source with your actual logo.
+            </div>
         </div>
 
-        <div class="footer">
-          <p>This is an automated email. Please do not reply to this message.</p>
-          <p>&copy; ${new Date().getFullYear()} Your Institution Name. All rights reserved.</p>
+        <!-- Disclaimer -->
+        <div class="disclaimer">
+            <strong>Disclaimer:</strong> The information contained in this email is confidential to the addressee and may be protected by legal privilege. If you are not the intended recipient, please note that you may not disseminate, retransmit or make any other use of any material in this message. If you have received this email in error, please delete it and notify immediately by telephone or email.
         </div>
-      </div>
-    </body>
-    </html>
+        <div class="footer-red">
+            © RYMA ACADEMY – Payment Receipt
+        </div>
+    </div>
+</body>
+</html>
   `;
 
   return { subject, html };
@@ -788,6 +1323,11 @@ function generateEMIStatusPills(enrollment) {
 
 // ==================== Controller Functions ====================
 
+/**
+ * @desc    Record a new payment (pending approval)
+ * @route   POST /api/payments
+ * @access  Private (Counsellor)
+ */
 const recordPayment = async (req, res) => {
   try {
     const {
@@ -797,17 +1337,14 @@ const recordPayment = async (req, res) => {
       paymentMode,
       paymentBank,
       transactionNo,
-      receivedBranch,
+      receivedBranch='N/A',
       paymentProof,
       chequeDetails,
       remarks,
-      emiNumber // REQUIRED for installment payments
+      installmentNo
     } = req.body;
 
-    // Convert empty string to null for emiNumber (for one-time payments)
-    const normalizedEmiNumber = emiNumber === '' ? null : emiNumber;
-
-    // Verify enrollment exists and belongs to counsellor
+    // Verify enrollment exists
     const enrollmentDoc = await Enrollment.findById(enrollment);
     if (!enrollmentDoc) {
       return res.status(404).json({
@@ -824,25 +1361,19 @@ const recordPayment = async (req, res) => {
       });
     }
 
-    // ✅ STRICT VALIDATION: Check payment amount against enrollment fee structure
-    const validationError = await validatePaymentAmountStrict(
-      enrollmentDoc, 
-      amountReceived, 
-      feeType, 
-      normalizedEmiNumber
-    );
-    
-    if (validationError) {
-      return res.status(400).json({
-        success: false,
-        message: validationError
-      });
+    // Simple validation based on fee type
+    if (feeType === 'one-time') {
+      // No validation needed for one-time, just record the payment
+      console.log('Recording one-time payment');
+    } else if (feeType === 'installment') {
+      // For installment, just ensure we have installment number (optional)
+      console.log('Recording installment payment');
     }
 
     // Generate payment number
     const currentYear = new Date().getFullYear();
     
-    // Find the latest payment for this year to get the sequence number
+    // Find the latest payment for this year
     const latestPayment = await Payment.findOne(
       {
         paymentNo: new RegExp(`^PAY${currentYear}`)
@@ -859,17 +1390,17 @@ const recordPayment = async (req, res) => {
 
     const paymentNo = `PAY${currentYear}${sequenceNumber.toString().padStart(4, '0')}`;
 
-    // Create payment with generated payment number
+    // Create payment
     const payment = new Payment({
       paymentNo,
       enrollment,
       student: enrollmentDoc.student,
       amountReceived,
       feeType,
+      installmentNo: installmentNo || null,
       paymentMode,
       paymentBank,
       transactionNo,
-      emiNumber: normalizedEmiNumber, // Store which EMI this payment is for
       trainingBranch: enrollmentDoc.trainingBranch,
       trainingMode: enrollmentDoc.mode,
       admissionBranch: enrollmentDoc.trainingBranch,
@@ -905,6 +1436,11 @@ const recordPayment = async (req, res) => {
   }
 };
 
+/**
+ * @desc    Get all payments (with filters)
+ * @route   GET /api/payments
+ * @access  Private
+ */
 const getPayments = async (req, res) => {
   try {
     const {
@@ -912,6 +1448,7 @@ const getPayments = async (req, res) => {
       paymentMode,
       trainingBranch,
       counsellor,
+      feeType,
       startDate,
       endDate,
       page = 1,
@@ -933,6 +1470,7 @@ const getPayments = async (req, res) => {
     if (verificationStatus) query.verificationStatus = verificationStatus;
     if (paymentMode) query.paymentMode = paymentMode;
     if (trainingBranch) query.trainingBranch = trainingBranch;
+    if (feeType) query.feeType = feeType;
 
     // Date range filter
     if (startDate && endDate) {
@@ -947,7 +1485,7 @@ const getPayments = async (req, res) => {
     const skip = (pageNum - 1) * limitNum;
 
     const payments = await Payment.find(query)
-      .populate('enrollment', 'enrollmentNo courseName totalAmount amountReceived feeType charges admissionRegistrationPayment')
+      .populate('enrollment', 'enrollmentNo courseName totalAmount amountReceived pendingAmount feeType')
       .populate('student', 'studentId name email phone')
       .populate('receivedBy', 'name email')
       .populate('counsellor', 'name email')
@@ -978,6 +1516,11 @@ const getPayments = async (req, res) => {
   }
 };
 
+/**
+ * @desc    Get pending approvals
+ * @route   GET /api/payments/pending-approvals
+ * @access  Private (Admin only)
+ */
 const getPendingApprovals = async (req, res) => {
   try {
     if (req.user.role !== 'admin') {
@@ -987,7 +1530,12 @@ const getPendingApprovals = async (req, res) => {
       });
     }
 
-    const payments = await Payment.findPendingApprovals();
+    const payments = await Payment.find({ verificationStatus: 'pending' })
+      .populate('enrollment', 'enrollmentNo courseName totalAmount amountReceived pendingAmount feeType')
+      .populate('student', 'studentId name email phone')
+      .populate('receivedBy', 'name email')
+      .populate('counsellor', 'name email')
+      .sort({ date: 1 });
 
     res.json({
       success: true,
@@ -1003,6 +1551,11 @@ const getPendingApprovals = async (req, res) => {
   }
 };
 
+/**
+ * @desc    Approve a payment and update enrollment
+ * @route   PUT /api/payments/:id/approve
+ * @access  Private (Admin only)
+ */
 const approvePayment = async (req, res) => {
   try {
     if (req.user.role !== 'admin') {
@@ -1013,7 +1566,7 @@ const approvePayment = async (req, res) => {
     }
 
     const { verificationNotes } = req.body;
-    const payment = await Payment.findById(req.params.id);
+    const payment = await Payment.findById(req.params.id).populate('enrollment');
 
     if (!payment) {
       return res.status(404).json({
@@ -1029,14 +1582,48 @@ const approvePayment = async (req, res) => {
       });
     }
 
-    await payment.approvePayment(req.user.id, verificationNotes);
+    const enrollment = payment.enrollment;
+
+    // 🔥 IMPORTANT: Update enrollment amounts
+    enrollment.amountReceived = (enrollment.amountReceived || 0) + payment.amountReceived;
+    enrollment.pendingAmount = enrollment.totalAmount - enrollment.amountReceived;
+
+    // If pending amount is 0 or less, mark as completed
+    if (enrollment.pendingAmount <= 0) {
+      enrollment.status = 'completed';
+    }
+
+    // Update last payment details
+    enrollment.lastTransactionNo = payment.transactionNo || payment.paymentNo;
+    enrollment.lastPaidAmount = payment.amountReceived;
+    enrollment.lastPaidDate = new Date();
+    enrollment.lastPaidMode = payment.paymentMode;
+    enrollment.lastAmountReceivedBy = payment.receivedBy;
+
+    // Save enrollment first
+    await enrollment.save();
+
+    // Update payment status
+    payment.verificationStatus = 'approved';
+    payment.verifiedBy = req.user.id;
+    payment.verifiedAt = new Date();
+    payment.verificationNotes = verificationNotes;
+    await payment.save();
+
+    // Add activity to enrollment
+    await enrollment.addActivity(
+      'payment_approved',
+      `Payment of ₹${payment.amountReceived} approved`,
+      req.user.id,
+      payment._id
+    );
 
     // Send payment confirmation email
     await sendPaymentConfirmationEmail(payment);
 
     // Populate updated payment
     await payment.populate([
-      { path: 'enrollment', select: 'enrollmentNo' },
+      { path: 'enrollment', select: 'enrollmentNo courseName totalAmount amountReceived pendingAmount status' },
       { path: 'student', select: 'studentId name email phone' },
       { path: 'receivedBy', select: 'name email' },
       { path: 'verifiedBy', select: 'name email' }
@@ -1045,7 +1632,7 @@ const approvePayment = async (req, res) => {
     res.json({
       success: true,
       data: payment,
-      message: 'Payment approved successfully'
+      message: 'Payment approved and enrollment updated successfully'
     });
   } catch (error) {
     console.error('Approve payment error:', error);
@@ -1057,6 +1644,11 @@ const approvePayment = async (req, res) => {
   }
 };
 
+/**
+ * @desc    Reject a payment
+ * @route   PUT /api/payments/:id/reject
+ * @access  Private (Admin only)
+ */
 const rejectPayment = async (req, res) => {
   try {
     if (req.user.role !== 'admin') {
@@ -1083,7 +1675,23 @@ const rejectPayment = async (req, res) => {
       });
     }
 
-    await payment.rejectPayment(req.user.id, verificationNotes);
+    // Update payment status (no enrollment changes needed)
+    payment.verificationStatus = 'rejected';
+    payment.verifiedBy = req.user.id;
+    payment.verifiedAt = new Date();
+    payment.verificationNotes = verificationNotes;
+    await payment.save();
+
+    // Add activity to enrollment
+    const enrollment = await Enrollment.findById(payment.enrollment);
+    if (enrollment) {
+      await enrollment.addActivity(
+        'payment_rejected',
+        `Payment of ₹${payment.amountReceived} rejected: ${verificationNotes || 'No reason provided'}`,
+        req.user.id,
+        payment._id
+      );
+    }
 
     // Populate updated payment
     await payment.populate([
@@ -1092,6 +1700,8 @@ const rejectPayment = async (req, res) => {
       { path: 'receivedBy', select: 'name email' },
       { path: 'verifiedBy', select: 'name email' }
     ]);
+
+    await sendPaymentRejectionEmail(payment, verificationNotes);
 
     res.json({
       success: true,
@@ -1108,6 +1718,11 @@ const rejectPayment = async (req, res) => {
   }
 };
 
+/**
+ * @desc    Get payment statistics
+ * @route   GET /api/payments/stats
+ * @access  Private (Admin only)
+ */
 const getPaymentStats = async (req, res) => {
   try {
     if (req.user.role !== 'admin') {
@@ -1146,10 +1761,15 @@ const getPaymentStats = async (req, res) => {
   }
 };
 
+/**
+ * @desc    Get single payment by ID
+ * @route   GET /api/payments/:id
+ * @access  Private
+ */
 const getPayment = async (req, res) => {
   try {
     const payment = await Payment.findById(req.params.id)
-      .populate('enrollment', 'enrollmentNo courseName totalAmount amountReceived feeType')
+      .populate('enrollment', 'enrollmentNo courseName totalAmount amountReceived pendingAmount feeType')
       .populate('student', 'studentId name email phone')
       .populate('receivedBy', 'name email phone')
       .populate('counsellor', 'name email phone')
@@ -1184,6 +1804,11 @@ const getPayment = async (req, res) => {
   }
 };
 
+/**
+ * @desc    Bulk approve multiple payments
+ * @route   POST /api/payments/bulk-approve
+ * @access  Private (Admin only)
+ */
 const bulkApprovePayments = async (req, res) => {
   try {
     if (req.user.role !== 'admin') {
@@ -1211,7 +1836,7 @@ const bulkApprovePayments = async (req, res) => {
     // Process each payment individually
     for (const paymentId of paymentIds) {
       try {
-        const payment = await Payment.findById(paymentId);
+        const payment = await Payment.findById(paymentId).populate('enrollment');
         
         if (!payment) {
           results.errors.push(`Payment ${paymentId} not found`);
@@ -1225,9 +1850,38 @@ const bulkApprovePayments = async (req, res) => {
           continue;
         }
 
-        await payment.approvePayment(req.user.id, verificationNotes);
-        
-        // Send payment confirmation email for each approved payment
+        const enrollment = payment.enrollment;
+
+        // Update enrollment amounts
+        enrollment.amountReceived = (enrollment.amountReceived || 0) + payment.amountReceived;
+        enrollment.pendingAmount = enrollment.totalAmount - enrollment.amountReceived;
+
+        if (enrollment.pendingAmount <= 0) {
+          enrollment.status = 'completed';
+        }
+
+        enrollment.lastTransactionNo = payment.transactionNo || payment.paymentNo;
+        enrollment.lastPaidAmount = payment.amountReceived;
+        enrollment.lastPaidDate = new Date();
+        enrollment.lastPaidMode = payment.paymentMode;
+        enrollment.lastAmountReceivedBy = payment.receivedBy;
+
+        await enrollment.save();
+
+        // Update payment status
+        payment.verificationStatus = 'approved';
+        payment.verifiedBy = req.user.id;
+        payment.verifiedAt = new Date();
+        payment.verificationNotes = verificationNotes;
+        await payment.save();
+
+        await enrollment.addActivity(
+          'payment_approved',
+          `Payment of ₹${payment.amountReceived} approved (bulk)`,
+          req.user.id,
+          payment._id
+        );
+
         await sendPaymentConfirmationEmail(payment);
         
         results.approved++;
@@ -1252,8 +1906,104 @@ const bulkApprovePayments = async (req, res) => {
   }
 };
 
+/**
+ * @desc    Get payments by enrollment
+ * @route   GET /api/payments/enrollment/:enrollmentId
+ * @access  Private
+ */
+const getPaymentsByEnrollment = async (req, res) => {
+  try {
+    const { enrollmentId } = req.params;
+    const { status } = req.query;
+
+    const enrollment = await Enrollment.findById(enrollmentId);
+    if (!enrollment) {
+      return res.status(404).json({
+        success: false,
+        message: 'Enrollment not found'
+      });
+    }
+
+    // Check if counsellor owns this enrollment
+    if (req.user.role === 'counsellor' && enrollment.counsellor.toString() !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied to this enrollment'
+      });
+    }
+
+    const payments = await Payment.findByEnrollment(enrollmentId, status);
+
+    res.json({
+      success: true,
+      data: payments
+    });
+  } catch (error) {
+    console.error('Get payments by enrollment error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error fetching payments',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * @desc    Get payments by student
+ * @route   GET /api/payments/student/:studentId
+ * @access  Private
+ */
+const getPaymentsByStudent = async (req, res) => {
+  try {
+    const { studentId } = req.params;
+    const { status } = req.query;
+
+    const student = await Student.findById(studentId);
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        message: 'Student not found'
+      });
+    }
+
+    const payments = await Payment.findByStudent(studentId, status);
+
+    res.json({
+      success: true,
+      data: payments
+    });
+  } catch (error) {
+    console.error('Get payments by student error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error fetching payments',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * @desc    Delete all payments (DANGER ZONE - Development only)
+ * @route   DELETE /api/payments/delete-all
+ * @access  Private (Admin only)
+ */
 const deleteAllPayments = async (req, res) => {
   try {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. Admin only.'
+      });
+    }
+
+    // This should only be used in development
+    if (process.env.NODE_ENV === 'production') {
+      return res.status(403).json({
+        success: false,
+        message: 'This operation is not allowed in production'
+      });
+    }
+
     await Payment.deleteMany({});
 
     res.status(200).json({
@@ -1278,5 +2028,7 @@ module.exports = {
   getPaymentStats,
   getPayment,
   deleteAllPayments,
-  bulkApprovePayments
+  bulkApprovePayments,
+  getPaymentsByEnrollment,
+  getPaymentsByStudent
 };

@@ -266,7 +266,7 @@ const EnrollmentManagement = () => {
   };
 
   const getFeeStatus = (enrollment) => {
-    const pending = (enrollment.totalAmount || 0) - (enrollment.admissionRegistrationPayment || 0);
+    const pending = (enrollment.pendingAmount || 0);
     if (pending <= 0) {
       return { color: 'bg-green-100 text-green-800', label: 'Paid' };
     } else if (enrollment.dueDate && new Date(enrollment.dueDate) < new Date()) {
@@ -795,9 +795,9 @@ const EnrollmentManagement = () => {
                                   <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getFeeStatus(enrollment).color}`}>
                                     {getFeeStatus(enrollment).label}
                                   </span>
-                                  {((enrollment.totalAmount || 0) - (enrollment.admissionRegistrationPayment || 0)) > 0 && (
+                                  {((enrollment.totalAmount || 0) - (enrollment.pendingAmount || 0)) > 0 && (
                                     <div className="text-xs text-gray-500 mt-1 hidden lg:block">
-                                      Due: {formatCurrency((enrollment.totalAmount || 0) - (enrollment.admissionRegistrationPayment || 0))}
+                                      Due: {formatCurrency( (enrollment.pendingAmount|| 0))}
                                     </div>
                                   )}
                                 </td>
@@ -814,12 +814,12 @@ const EnrollmentManagement = () => {
                               // Amount received = admission registration payment
                               return (
                                 <td key={column.key} className={`${baseCellClasses} text-green-600 font-semibold whitespace-nowrap`}>
-                                  {formatCurrency(enrollment.admissionRegistrationPayment || 0)}
+                                  {formatCurrency(enrollment.amountReceived || 0)}
                                 </td>
                               );
                             case 'pendingAmount':
                               // Pending = total amount - admission registration payment
-                              const pendingAmt = Math.max((enrollment.totalAmount || 0) - (enrollment.admissionRegistrationPayment || 0), 0);
+                              const pendingAmt = (enrollment.pendingAmount || 0);
                               return (
                                 <td key={column.key} className={`${baseCellClasses} text-red-600 font-semibold whitespace-nowrap`}>
                                   {formatCurrency(pendingAmt)}
