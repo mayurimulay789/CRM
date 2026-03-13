@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { 
-  createEnrollment, 
-  updateEnrollment, 
-  clearError, 
-  clearSuccess 
+import {
+  createEnrollment,
+  updateEnrollment,
+  clearError,
+  clearSuccess
 } from '../../../store/slices/enrollmentSlice';
 import { fetchAdmissions } from '../../../store/slices/admissionSlice';
 import { getBatches } from '../../../store/slices/batchSlice';
@@ -14,7 +14,7 @@ const EnrollmentForm = ({ enrollment, onClose, counsellorId = null }) => {
   const { operationLoading, error, success } = useSelector(state => state.enrollments);
   const { admissions } = useSelector(state => state.admissions);
   const { batches } = useSelector(state => state.batch);
-  
+
   const [formData, setFormData] = useState({
     admission: '',
     batch: '',
@@ -99,7 +99,7 @@ const EnrollmentForm = ({ enrollment, onClose, counsellorId = null }) => {
       ...updatedInstallments[index],
       [field]: field === 'amount' ? parseFloat(value) || 0 : value
     };
-    
+
     setFormData(prev => ({
       ...prev,
       installments: updatedInstallments
@@ -118,7 +118,7 @@ const EnrollmentForm = ({ enrollment, onClose, counsellorId = null }) => {
       amount: 0,
       dueDate: ''
     };
-    
+
     setFormData(prev => ({
       ...prev,
       installments: [...prev.installments, newInstallment]
@@ -128,13 +128,13 @@ const EnrollmentForm = ({ enrollment, onClose, counsellorId = null }) => {
   // Remove installment
   const removeInstallment = (index) => {
     const updatedInstallments = formData.installments.filter((_, i) => i !== index);
-    
+
     // Re-number installments
     const renumberedInstallments = updatedInstallments.map((inst, idx) => ({
       ...inst,
       installmentNumber: idx + 1
     }));
-    
+
     setFormData(prev => ({
       ...prev,
       installments: renumberedInstallments
@@ -145,7 +145,7 @@ const EnrollmentForm = ({ enrollment, onClose, counsellorId = null }) => {
   const validateInstallmentsTotal = (installments = formData.installments) => {
     const totalInstallmentAmount = installments.reduce((sum, inst) => sum + (inst.amount || 0), 0);
     const expectedTotal = (parseFloat(formData.totalAmount) || 0) - (parseFloat(formData.admissionRegistrationPayment) || 0);
-    
+
     if (Math.abs(totalInstallmentAmount - expectedTotal) > 0.01) {
       setErrors(prev => ({
         ...prev,
@@ -223,7 +223,7 @@ const EnrollmentForm = ({ enrollment, onClose, counsellorId = null }) => {
 
     if (!formData.admission) newErrors.admission = 'Admission is required';
     if (!formData.batch) newErrors.batch = 'Batch is required';
-    
+
     if (!formData.totalAmount) {
       newErrors.totalAmount = 'Total amount is required';
     } else if (parseFloat(formData.totalAmount) <= 0) {
@@ -245,7 +245,7 @@ const EnrollmentForm = ({ enrollment, onClose, counsellorId = null }) => {
       } else {
         const totalInstallmentAmount = formData.installments.reduce((sum, inst) => sum + (inst.amount || 0), 0);
         const expectedTotal = parseFloat(formData.totalAmount) - (parseFloat(formData.admissionRegistrationPayment) || 0);
-        
+
         if (Math.abs(totalInstallmentAmount - expectedTotal) > 0.01) {
           newErrors.installments = `Installments total (₹${totalInstallmentAmount}) must equal ₹${expectedTotal}`;
         }
@@ -299,7 +299,7 @@ const EnrollmentForm = ({ enrollment, onClose, counsellorId = null }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) return;
 
     dispatch(clearError());
@@ -324,7 +324,7 @@ const EnrollmentForm = ({ enrollment, onClose, counsellorId = null }) => {
   const approvedAdmissions = admissions.filter(a => a.status === 'approved');
 
   // Get active batches
-  const activeBatches = batches.filter(b => 
+  const activeBatches = batches.filter(b =>
     b.status === 'Running' || b.status === 'Upcoming'
   );
 
@@ -370,7 +370,7 @@ const EnrollmentForm = ({ enrollment, onClose, counsellorId = null }) => {
                 ))}
               </select>
               {errors.admission && <p className="text-red-500 text-xs mt-1">{errors.admission}</p>}
-              
+
               {selectedAdmission && (
                 <div className="mt-2 p-2 bg-blue-50 rounded text-xs">
                   <div><strong>Student:</strong> {selectedAdmission.student?.name}</div>
@@ -594,6 +594,7 @@ const EnrollmentForm = ({ enrollment, onClose, counsellorId = null }) => {
                   name="leadDate"
                   value={formData.leadDate}
                   onChange={handleChange}
+                  max={new Date().toISOString().split('T')[0]}  // ✅ Today max date
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                 />
               </div>
