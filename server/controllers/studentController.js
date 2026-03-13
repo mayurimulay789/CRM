@@ -13,6 +13,8 @@ const getAllStudents = async (req, res) => {
       sortOrder = 'desc'
     } = req.query;
 
+    console.log('Received params:', { page, limit, search, isActive, sortBy, sortOrder });
+
     // Build filter object
     const filter = {};
     
@@ -26,33 +28,38 @@ const getAllStudents = async (req, res) => {
       ];
     }
 
-    // Active status filter
-    if (isActive !== undefined) {
-      filter.isActive = isActive === 'true';
+    // Active status filter - handle both boolean and string values
+    if (isActive !== undefined && isActive !== '') {
+      filter.isActive = isActive === 'true' || isActive === true;
     }
 
     // Sort options
     const sortOptions = {};
     sortOptions[sortBy] = sortOrder === 'asc' ? 1 : -1;
 
+    // Convert limit and page to integers
+    const pageNum = parseInt(page, 10);
+    const limitNum = parseInt(limit, 10);
+
     // Execute query with pagination
     const students = await Student.find(filter)
       .sort(sortOptions)
-      .limit(limit * 1)
-      .skip((page - 1) * limit)
+      .limit(limitNum)
+      .skip((pageNum - 1) * limitNum)
       .select('-__v');
 
     // Get total count for pagination
     const total = await Student.countDocuments(filter);
 
-    console.log('response',students);
+    console.log('Response:', { pageNum, limitNum, total, count: students.length, pages: Math.ceil(total / limitNum) });
 
     res.status(200).json({
       success: true,
       count: students.length,
       total,
-      page: parseInt(page),
-      pages: Math.ceil(total / limit),
+      page: pageNum,
+      limit: limitNum,
+      pages: Math.ceil(total / limitNum),
       data: students
     });
   } catch (error) {
