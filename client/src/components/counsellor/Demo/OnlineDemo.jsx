@@ -3,13 +3,11 @@ import {
   fetchOnlineDemos,
   addOnlineDemo,
   updateOnlineDemo,
-  deleteOnlineDemo,
   setSearchQuery,
-} from "../../../store/slices/onlineDemoSlice";
+} from "../../../store/slices/onlineDemoSlice"; // removed deleteOnlineDemo
 import { 
   fetchOfflineDemos,
   addOfflineDemo,
-  deleteOfflineDemo as deleteFromOffline
 } from "../../../store/slices/offlineDemoSlice";
 import { getTrainers } from "../../../store/slices/trainerSlice";
 import { fetchCourses } from "../../../store/slices/courseSlice";
@@ -20,7 +18,6 @@ import {
   FiRefreshCw,
   FiDownload,
   FiEdit,
-  FiTrash2,
   FiPlus,
   FiArrowLeft,
   FiX,
@@ -28,7 +25,8 @@ import {
   FiColumns,
   FiEye,
   FiMenu,
-} from "react-icons/fi";
+  FiFileText,
+} from "react-icons/fi"; // removed FiTrash2
 import { jsPDF } from "jspdf";
 import { autoTable } from "jspdf-autotable";
 import { useNavigate } from "react-router-dom";
@@ -301,14 +299,6 @@ const OnlineDemo = () => {
     }
   };
 
-  // Handle delete
-  const handleDelete = async (id) => {
-    if (window.confirm("Are you sure you want to delete this demo?")) {
-      await dispatch(deleteOnlineDemo(id));
-      dispatch(fetchOnlineDemos());
-    }
-  };
-
   // PDF Export with formatted dates
   const handleExport = () => {
     const doc = new jsPDF();
@@ -330,6 +320,47 @@ const OnlineDemo = () => {
       headStyles: { fillColor: [41, 128, 185] },
     });
     doc.save("OnlineDemoData.pdf");
+  };
+
+  // CSV Export
+  const handleExportCSV = () => {
+    const headers = ['S.No', ...visibleColumns];
+    const rowsData = filteredRows.map((row, index) => {
+      const rowValues = [index + 1];
+      visibleColumns.forEach(col => {
+        let value = '';
+        switch (col) {
+          case 'Name': value = row.name || ''; break;
+          case 'Mobile': value = row.mobile || ''; break;
+          case 'Email': value = row.email || ''; break;
+          case 'Address': value = row.address || ''; break;
+          case 'Course': value = row.course || ''; break;
+          case 'Date': value = formatDisplayDate(row.date); break;
+          case 'Timing': value = row.time || ''; break;
+          case 'Mode': value = row.mode || ''; break;
+          case 'Medium': value = row.medium || ''; break;
+          case 'Trainer': value = row.trainer || ''; break;
+          default: value = '';
+        }
+        // Escape commas and quotes for CSV
+        if (typeof value === 'string' && (value.includes(',') || value.includes('"'))) {
+          value = `"${value.replace(/"/g, '""')}"`;
+        }
+        rowValues.push(value);
+      });
+      return rowValues;
+    });
+
+    const csvContent = [headers.join(','), ...rowsData.map(row => row.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'OnlineDemoData.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   const toggleColumn = (column) => {
@@ -470,14 +501,14 @@ const OnlineDemo = () => {
                 <FiFilter className="text-sm" />
                 <span>Filter</span>
               </button>
-
+              {/* CSV Export Button */}
               <button
-                onClick={handleExport}
+                onClick={handleExportCSV}
                 className="flex items-center gap-1 bg-gray-200 text-gray-700 px-3 py-2 rounded-md hover:bg-gray-300 transition text-sm"
-                title="Export PDF"
+                title="Export CSV"
               >
-                <FiDownload className="text-sm" />
-                <span>Export</span>
+                <FiFileText className="text-sm" />
+                <span>CSV</span>
               </button>
 
               {isCounsellor && (
@@ -522,13 +553,13 @@ const OnlineDemo = () => {
             <FiFilter />
           </button>
 
-          {/* Export PDF Button */}
+          {/* CSV Export Button */}
           <button
-            onClick={handleExport}
+            onClick={handleExportCSV}
             className="flex items-center gap-2 bg-gray-200 text-gray-700 px-3 py-2 rounded-md hover:bg-gray-300 transition"
-            title="Export PDF"
+            title="Export CSV"
           >
-            <FiDownload />
+            <FiFileText /> CSV
           </button>
         </div>
       </div>
@@ -740,13 +771,7 @@ const OnlineDemo = () => {
                             >
                               <FiEdit size={16} />
                             </button>
-                            <button
-                              onClick={() => handleDelete(row._id)}
-                              className="text-red-500 hover:text-red-700 p-2 rounded-lg transition hover:bg-red-50"
-                              title="Delete"
-                            >
-                              <FiTrash2 size={16} />
-                            </button>
+                            {/* Delete button removed */}
                           </div>
                         </td>
                       )}
@@ -873,13 +898,7 @@ const OnlineDemo = () => {
                             <FiEdit size={14} />
                             Edit
                           </button>
-                          <button
-                            onClick={() => handleDelete(row._id)}
-                            className="text-red-500 hover:text-red-700 transition flex items-center gap-1 text-sm"
-                          >
-                            <FiTrash2 size={14} />
-                            Delete
-                          </button>
+                          {/* Delete button removed */}
                         </>
                       )}
                       {isAdmin && (

@@ -9,6 +9,7 @@ import {
   clearSuccess
 } from '../../../store/slices/admissionSlice';
 import AdmissionForm from './AdmissionForm';
+import { fetchStudents } from '../../../store/slices/studentSlice';
 
 const AdmissionManagement = () => {
   const dispatch = useDispatch();
@@ -20,6 +21,7 @@ const AdmissionManagement = () => {
     currentAdmission,
     stats
   } = useSelector(state => state.admissions);
+   const studentState = useSelector((state) => state.students || { students: [] });
 
   const [showForm, setShowForm] = useState(false);
   const [editingAdmission, setEditingAdmission] = useState(null);
@@ -33,6 +35,10 @@ const AdmissionManagement = () => {
   const [selectedImage, setSelectedImage] = useState('');
   const [imageTitle, setImageTitle] = useState('');
 
+  // NEW: Email verification modal state
+  const [showVerifyModal, setShowVerifyModal] = useState(false);
+  const [admissionToVerify, setAdmissionToVerify] = useState(null);
+
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [recordsPerPage] = useState(7);
@@ -42,6 +48,7 @@ const AdmissionManagement = () => {
   const columnsMenuRef = useRef(null);
   const filterButtonRef = useRef(null);
   const columnsButtonRef = useRef(null);
+  const { students } = studentState;
 
   // Define all available columns
   const allColumns = [
@@ -66,7 +73,10 @@ const AdmissionManagement = () => {
   useEffect(() => {
     console.log("Admin: Dispatching fetchAdmissions...");
     dispatch(fetchAdmissions());
+    dispatch(fetchStudents());
   }, [dispatch]);
+
+
 
   useEffect(() => {
     if (operationSuccess && !showForm) {
@@ -184,6 +194,12 @@ const AdmissionManagement = () => {
     setShowImageModal(false);
     setSelectedImage('');
     setImageTitle('');
+  };
+
+  // NEW: Function to open the email verification modal
+  const openVerifyModal = (admission) => {
+    setAdmissionToVerify(admission);
+    setShowVerifyModal(true);
   };
 
   const toggleColumnVisibility = (columnKey) => {
@@ -376,7 +392,7 @@ const AdmissionManagement = () => {
       return (
         <div className="flex flex-col lg:flex-row space-y-1 lg:space-y-0 lg:space-x-1">
           <button
-            onClick={() => handleStatusUpdate(admission._id, 'approved')}
+            onClick={() => openVerifyModal(admission)}  // MODIFIED: now opens verification modal
             className="text-green-600 hover:text-green-900 px-1 lg:px-2 py-1 rounded hover:bg-green-50 transition-colors border border-green-200 text-xs w-full lg:w-auto"
           >
             ✅ Approve
@@ -1217,6 +1233,72 @@ const AdmissionManagement = () => {
                   </a>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* NEW: Email Verification Modal */}
+      {showVerifyModal && admissionToVerify && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+            <div className="p-6">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                Verify Student Email
+              </h3>
+
+              <div className="space-y-3">
+                <p className="text-sm text-gray-600">
+                  Please confirm the student's email address before approving this admission.
+                </p>
+
+                <div className="bg-blue-50 p-3 rounded-lg">
+                  <p className="text-xs text-gray-500">Student Name</p>
+                  <p className="text-sm font-medium">
+                    {admissionToVerify.student && typeof admissionToVerify.student === 'object'
+                      ? admissionToVerify.student.name || 'N/A'
+                      : 'N/A'}
+                  </p>
+                </div>
+
+                <div className="bg-green-50 p-3 rounded-lg">
+                  <p className="text-xs text-gray-500">Email Address</p>
+                  <p className="text-sm font-mono break-all">
+                    {admissionToVerify.student && typeof admissionToVerify.student === 'object'
+                      ? admissionToVerify.student.email || 'No email provided'
+                      : 'No email provided'}
+                  </p>
+                </div>
+
+                {(!admissionToVerify.student?.email) && (
+                  <p className="text-xs text-yellow-600 bg-yellow-50 p-2 rounded">
+                    ⚠️ No email address found for this student. Consider updating the student record first.
+                  </p>
+                )}
+              </div>
+
+              <div className="flex justify-end space-x-2 mt-6">
+                <button
+                  onClick={() => {
+                    setShowVerifyModal(false);
+                    setAdmissionToVerify(null);
+                  }}
+                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition text-sm"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    handleStatusUpdate(admissionToVerify._id, 'approved');
+                    setShowVerifyModal(false);
+                    setAdmissionToVerify(null);
+                  }}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm"
+                  disabled={!admissionToVerify.student?.email}
+                >
+                  Confirm & Approve
+                </button>
+              </div>
             </div>
           </div>
         </div>

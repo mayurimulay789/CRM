@@ -14,6 +14,7 @@ import {
   FiSearch,
   FiRefreshCw,
   FiEdit,
+  FiTrash2,
   FiPlus,
   FiArrowLeft,
   FiX,
@@ -165,15 +166,6 @@ const LiveClassDemo = () => {
     } catch (error) {
       return dateString;
     }
-  };
-
-  // --- NEW: Helper to check if a date is in the past (before today's start) ---
-  const isPastDate = (dateString) => {
-    if (!dateString) return false;
-    const inputDate = new Date(dateString);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0); // start of today
-    return inputDate < today;
   };
 
   // Enhanced validation rules
@@ -416,7 +408,20 @@ const LiveClassDemo = () => {
     setIsTimePickerOpen(false);
   };
 
-  // NEW: CSV Export
+  // Handle delete
+  const handleDelete = async (id) => {
+    if (window.confirm("Are you sure you want to delete this live class?")) {
+      try {
+        await dispatch(deleteLiveClass(id)).unwrap();
+        dispatch(fetchLiveClasses());
+      } catch (error) {
+        console.error("Delete failed:", error);
+        alert("Delete failed: " + (error.message || "Unknown error"));
+      }
+    }
+  };
+
+  // CSV Export
   const handleExportCSV = () => {
     const headers = ['S.No', ...visibleColumns];
     const rowsData = filteredRows.map((row, index) => {
@@ -460,10 +465,21 @@ const LiveClassDemo = () => {
     URL.revokeObjectURL(url);
   };
 
-  // --- MODIFIED: First exclude past dates, then apply search/filters ---
-  const nonPastRows = rows.filter(r => !isPastDate(r.date));
+  // Filter rows to exclude past dates
+  const filteredRows = rows.filter((r) => {
+    // Skip records without a valid date
+    if (!r.date) return false;
 
-  const filteredRows = nonPastRows.filter((r) => {
+    // Get today's date at midnight for comparison
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Convert the record's date to a comparable Date object
+    const recordDate = new Date(r.date);
+    // Only include records with date >= today
+    if (recordDate < today) return false;
+
+    // Apply existing search and filter conditions
     const matchesSearch =
       r.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       r.trainer?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -629,7 +645,7 @@ const LiveClassDemo = () => {
                 <span>Filter</span>
               </button>
 
-              {/* NEW: CSV Export Button */}
+              {/* CSV Export Button */}
               <button
                 onClick={handleExportCSV}
                 className="flex items-center gap-1 bg-gray-200 text-gray-700 px-3 py-2 rounded-md hover:bg-gray-300 transition text-sm"
@@ -639,7 +655,8 @@ const LiveClassDemo = () => {
                 <span>CSV</span>
               </button>
 
-              {isCounsellor && (
+              {/* Add button for both admin and counsellor */}
+              {true&& (
                 <button
                   onClick={openCreateForm}
                   className="flex items-center gap-1 bg-[#890c25] text-white px-3 py-2 rounded-md hover:bg-[#890c25] transition text-sm"
@@ -680,7 +697,7 @@ const LiveClassDemo = () => {
           >
             <FiFilter />
           </button>
-          {/* NEW: Export CSV Button */}
+          {/* CSV Export Button */}
           <button
             onClick={handleExportCSV}
             className="flex items-center gap-2 bg-gray-200 text-gray-700 px-3 py-2 rounded-md hover:bg-gray-300 transition"
@@ -695,11 +712,11 @@ const LiveClassDemo = () => {
       <div className="bg-gray-100 mt-4 mx-4 lg:mx-6 p-4 rounded-lg shadow-sm">
         <div className="flex flex-wrap justify-between items-center mb-3">
           <h2 className="text-lg lg:text-xl font-semibold text-gray-800">
-            Live Classes {isAdmin && <span className="text-xs lg:text-sm text-gray-600 ml-2">(View Only)</span>}
+            Live Classes {isAdmin && <span className="text-xs lg:text-sm text-gray-600 ml-2">(Admin)</span>}
           </h2>
           
-          {/* Add Button - Only for Counsellors - Hidden on mobile, shown in mobile menu */}
-          {isCounsellor && (
+          {/* Add Button for both admin and counsellor */}
+          {true&& (
             <button
               onClick={openCreateForm}
               className="hidden lg:flex items-center gap-2 bg-[#890c25] text-white px-4 py-2 rounded-md hover:bg-[#890c25] transition shadow"
@@ -788,8 +805,8 @@ const LiveClassDemo = () => {
           </div>
 
           <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
-            {/* Search and Reload - Only for Counsellors */}
-            {isCounsellor && (
+            {/* Search and Reload for both admin and counsellor */}
+            {true&& (
               <>
                 <div className="relative w-full sm:w-64">
                   <FiSearch className="absolute left-3 top-3 text-gray-400" />
@@ -838,11 +855,9 @@ const LiveClassDemo = () => {
                         </th>
                       )
                   )}
-                  {isCounsellor && (
+                  {/* Actions column for both admin and counsellor */}
+                  {true&& (
                     <th className="px-4 py-3 font-medium whitespace-nowrap">Actions</th>
-                  )}
-                  {isAdmin && (
-                    <th className="px-4 py-3 font-medium whitespace-nowrap">View</th>
                   )}
                 </tr>
               </thead>
@@ -925,7 +940,7 @@ const LiveClassDemo = () => {
                         </td>
                       )}
                       
-                      {isCounsellor && (
+                      {true&& (
                         <td className="px-4 py-3">
                           <div className="flex gap-3">
                             <button
@@ -944,16 +959,14 @@ const LiveClassDemo = () => {
                             >
                               <FiEdit size={16} />
                             </button>
-                            {/* Delete button removed */}
+                            <button
+                              onClick={() => handleDelete(row._id)}
+                              className="text-red-500 hover:text-red-700 p-2 rounded-lg transition hover:bg-red-50"
+                              title="Delete"
+                            >
+                              <FiTrash2 size={16} />
+                            </button>
                           </div>
-                        </td>
-                      )}
-                      
-                      {isAdmin && (
-                        <td className="px-4 py-3">
-                          <span className="text-gray-400 flex justify-center p-2 rounded-lg hover:bg-gray-100 transition" title="View Only">
-                            <FiEye size={16} />
-                          </span>
                         </td>
                       )}
                     </tr>
@@ -961,7 +974,7 @@ const LiveClassDemo = () => {
                 ) : (
                   <tr>
                     <td
-                      colSpan={visibleColumns.length + (isCounsellor ? 2 : isAdmin ? 2 : 1)}
+                      colSpan={visibleColumns.length + (true? 1 : 0) + 1}
                       className="text-center py-12 text-gray-500 text-sm"
                     >
                       <div className="flex flex-col items-center justify-center">
@@ -1091,35 +1104,34 @@ const LiveClassDemo = () => {
                       </>
                     )}
 
-                    {/* Actions for Mobile */}
-                    <div className="col-span-2 flex justify-end gap-4 pt-2 mt-2 border-t">
-                      {isCounsellor && (
-                        <>
-                          <button
-                            onClick={() => {
-                              setEditingRow(row);
-                              setFormData({
-                                ...row,
-                                date: row.date ? new Date(row.date).toISOString().split('T')[0] : "",
-                                timing: row.timing || ""
-                              });
-                              setFormSubmitted(false);
-                              setIsFormOpen(true);
-                            }}
-                            className="text-blue-600 hover:text-blue-800 transition flex items-center gap-1 text-sm"
-                          >
-                            <FiEdit size={14} />
-                            Edit
-                          </button>
-                        </>
-                      )}
-                      {isAdmin && (
-                        <span className="text-gray-400 flex items-center gap-1 text-sm" title="View Only">
-                          <FiEye size={14} />
-                          View Only
-                        </span>
-                      )}
-                    </div>
+                    {/* Actions for Mobile - for both admin and counsellor */}
+                    {true&& (
+                      <div className="col-span-2 flex justify-end gap-4 pt-2 mt-2 border-t">
+                        <button
+                          onClick={() => {
+                            setEditingRow(row);
+                            setFormData({
+                              ...row,
+                              date: row.date ? new Date(row.date).toISOString().split('T')[0] : "",
+                              timing: row.timing || ""
+                            });
+                            setFormSubmitted(false);
+                            setIsFormOpen(true);
+                          }}
+                          className="text-blue-600 hover:text-blue-800 transition flex items-center gap-1 text-sm"
+                        >
+                          <FiEdit size={14} />
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDelete(row._id)}
+                          className="text-red-500 hover:text-red-700 transition flex items-center gap-1 text-sm"
+                        >
+                          <FiTrash2 size={14} />
+                          Delete
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))
@@ -1140,10 +1152,10 @@ const LiveClassDemo = () => {
             )}
           </div>
           
-          {/* Table Footer with Row Count - Updated to show nonPastRows total */}
+          {/* Table Footer with Row Count */}
           {filteredRows.length > 0 && (
             <div className="bg-gray-50 px-4 lg:px-6 py-3 border-t text-xs lg:text-sm text-gray-600 font-medium">
-              Showing {filteredRows.length} of {nonPastRows.length} records
+              Showing {filteredRows.length} of {rows.length} records
               {(searchQuery || filterData.status || filterData.trainer || filterData.dateFrom || filterData.dateTo) && 
                 " (filtered)"}
             </div>
@@ -1151,8 +1163,8 @@ const LiveClassDemo = () => {
         </div>
       </div>
 
-      {/* ✅ Responsive Modal Form - ONLY FOR COUNSELLORS */}
-      {isFormOpen && isCounsellor && (
+      {/* ✅ Responsive Modal Form - for both admin and counsellor */}
+      {isFormOpen && true&& (
         <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50 p-4">
           <div 
             ref={formRef}

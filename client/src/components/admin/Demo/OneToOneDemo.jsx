@@ -5,14 +5,16 @@ import {
   fetchOneToOneDemos,
   addOneToOneDemo,
   updateOneToOneDemo,
+  deleteOneToOneDemo,
   setSearchQuery,
-} from "../../../store/slices/oneToOneSlice"; // removed deleteOneToOneDemo
+} from "../../../store/slices/oneToOneSlice";
 import { getTrainers } from "../../../store/slices/trainerSlice";
 import {
   FiSearch,
   FiRefreshCw,
   FiDownload,
   FiEdit,
+  FiTrash2,
   FiPlus,
   FiArrowLeft,
   FiX,
@@ -22,8 +24,8 @@ import {
   FiClock,
   FiChevronDown,
   FiMenu,
-  FiFileText,
-} from "react-icons/fi"; // removed FiTrash2
+  FiFileText,   // <-- added for CSV icon
+} from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import { jsPDF } from "jspdf";
 import { autoTable } from "jspdf-autotable";
@@ -45,7 +47,6 @@ const OneToOneDemo = () => {
 
   // Role checks
   const isAdmin = user?.role === 'Admin';
-  const isCounsellor = user?.role === 'Counsellor';
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isColumnsOpen, setIsColumnsOpen] = useState(false);
@@ -420,7 +421,15 @@ const OneToOneDemo = () => {
     setIsTimePickerOpen(false);
   };
 
-  // CSV Export
+  // Handle delete
+  const handleDelete = async (id) => {
+    if (window.confirm("Are you sure you want to delete this demo?")) {
+      await dispatch(deleteOneToOneDemo(id));
+      dispatch(fetchOneToOneDemos());
+    }
+  };
+
+  // NEW: CSV Export
   const handleExportCSV = () => {
     const headers = ['S.No', ...visibleColumns];
     const rowsData = filteredRows.map((row, index) => {
@@ -622,7 +631,7 @@ const OneToOneDemo = () => {
             <span className="hidden sm:inline"></span>
           </button>
 
-          {/* CSV Export Button */}
+          {/* NEW: CSV Export Button */}
           <button
             onClick={handleExportCSV}
             className="flex items-center gap-1 md:gap-1 bg-gray-200 text-gray-700 px-2 md:px-2 py-1.5 md:py-2 rounded-md hover:bg-gray-300 transition text-sm"
@@ -641,7 +650,7 @@ const OneToOneDemo = () => {
             1-1 Demo {isAdmin && <span className="text-xs md:text-sm text-gray-600 ml-2">(View Only)</span>}
           </h2>
           
-          {isCounsellor && (
+          {true && (
             <button
               onClick={openCreateForm}
               className="flex items-center justify-center gap-2 bg-[#890c25] text-white px-3 md:px-4 py-2 rounded-md hover:bg-[#890c25] transition text-sm md:text-base w-full sm:w-auto"
@@ -731,7 +740,7 @@ const OneToOneDemo = () => {
             </div>
           </div>
 
-          {isCounsellor && (
+          {true && (
             <div className="flex items-center gap-2 flex-wrap">
               <div className="relative flex-1 min-w-[200px]">
                 <FiSearch className="absolute left-3 top-3 text-gray-400" />
@@ -773,7 +782,7 @@ const OneToOneDemo = () => {
                         </th>
                       )
                   )}
-                  {isCounsellor && (
+                  {true && (
                     <th className="px-2 md:px-4 py-2 md:py-3 font-medium whitespace-nowrap">Actions</th>
                   )}
                   {isAdmin && (
@@ -853,7 +862,7 @@ const OneToOneDemo = () => {
                         </td>
                       )}
                       
-                      {isCounsellor && (
+                      {true && (
                         <td className="px-2 md:px-4 py-1.5 md:py-2 flex gap-1 md:gap-2 justify-center">
                           <button
                             onClick={() => {
@@ -871,7 +880,13 @@ const OneToOneDemo = () => {
                           >
                             <FiEdit size={isMobile ? 14 : 16} />
                           </button>
-                          {/* Delete button removed */}
+                          <button
+                            onClick={() => handleDelete(row._id)}
+                            className="text-red-500 hover:text-red-700 p-1 transition"
+                            title="Delete"
+                          >
+                            <FiTrash2 size={isMobile ? 14 : 16} />
+                          </button>
                         </td>
                       )}
                       
@@ -887,7 +902,7 @@ const OneToOneDemo = () => {
                 ) : (
                   <tr>
                     <td
-                      colSpan={visibleColumns.length + (isCounsellor ? 2 : isAdmin ? 2 : 1)}
+                      colSpan={visibleColumns.length + (true ? 2 : isAdmin ? 2 : 1)}
                       className="text-center py-6 text-gray-500 text-sm"
                     >
                       No records found
@@ -910,7 +925,7 @@ const OneToOneDemo = () => {
       </div>
 
       {/* Form Modal - ONLY FOR COUNSELLORS */}
-      {isFormOpen && isCounsellor && (
+      {isFormOpen && true && (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50 p-2 md:p-4">
           <div 
             ref={formRef}
@@ -1335,4 +1350,4 @@ const OneToOneDemo = () => {
   );
 };
 
-export default OneToOneDemo;
+export default OneToOneDemo; 
