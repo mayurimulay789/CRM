@@ -1,16 +1,15 @@
 import React, { useEffect, useState, useRef } from "react";
 import {
-  fetchOfflineDemos,
-  addOfflineDemo,
-  updateOfflineDemo,
-  deleteOfflineDemo,
-  setSearchQuery,
-} from "../../../store/slices/offlineDemoSlice";
-import { 
   fetchOnlineDemos,
   addOnlineDemo,
-  deleteOnlineDemo as deleteFromOnline
+  updateOnlineDemo,
+  deleteOnlineDemo,
+  setSearchQuery,
 } from "../../../store/slices/onlineDemoSlice";
+import { 
+  fetchOfflineDemos,
+  addOfflineDemo,
+} from "../../../store/slices/offlineDemoSlice";
 import { getTrainers } from "../../../store/slices/trainerSlice";
 import { fetchCourses } from "../../../store/slices/courseSlice";
 import { useDispatch, useSelector } from "react-redux";
@@ -20,6 +19,7 @@ import {
   FiRefreshCw,
   FiDownload,
   FiEdit,
+  FiTrash2,
   FiPlus,
   FiArrowLeft,
   FiX,
@@ -28,15 +28,15 @@ import {
   FiEye,
   FiMenu,
   FiFileText,
-} from "react-icons/fi";  // removed FiTrash2
-import { useNavigate } from "react-router-dom";
+} from "react-icons/fi";
 import { jsPDF } from "jspdf";
 import { autoTable } from "jspdf-autotable";
+import { useNavigate } from "react-router-dom";
 
-const OfflineDemo = () => {
+const OnlineDemo = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const { rows, searchQuery } = useSelector((state) => state.offlineDemo);
+  const { rows, searchQuery } = useSelector((state) => state.onlineDemo);
   const { user } = useSelector((state) => state.auth);
   const { trainers } = useSelector((state) => state.trainer);
   const { courses } = useSelector((state) => state.courses);
@@ -53,35 +53,17 @@ const OfflineDemo = () => {
   const [formSubmitted, setFormSubmitted] = useState(false);
   const dropdownRef = useRef(null);
 
-  const defaultColumns = [
-    "Name",
-    "Mobile",
-    "Address",
-    "Email",
-    "Course",
-    "Branch",
-    "Date",
-    "Timing",
-    "Mode",
-    "Medium",
-    "Trainer",
-  ];
-
-  const [visibleColumns, setVisibleColumns] = useState(defaultColumns);
-  const [columnSearch, setColumnSearch] = useState("");
-
   const [formData, setFormData] = useState({
     name: "",
     mobile: "",
-    address: "",
     email: "",
+    address: "",
     course: "",
-    branch: "",
     date: "",
     time: "",
+    mode: "",
     medium: "",
     trainer: "",
-    mode: "",
   });
 
   const [errors, setErrors] = useState({});
@@ -109,9 +91,13 @@ const OfflineDemo = () => {
     "5:00 PM - 7:00 PM"
   ];
 
+  const defaultColumns = ["Name", "Mobile", "Email", "Address", "Course", "Date", "Timing", "Mode", "Medium", "Trainer"];
+  const [visibleColumns, setVisibleColumns] = useState(defaultColumns);
+  const [columnSearch, setColumnSearch] = useState("");
+
   useEffect(() => {
-    dispatch(fetchOfflineDemos());
-    dispatch(fetchOnlineDemos()); // Fetch both to ensure sync
+    dispatch(fetchOnlineDemos());
+    dispatch(fetchOfflineDemos()); // Fetch both to ensure sync
     dispatch(getTrainers());
     dispatch(fetchCourses());
   }, [dispatch]);
@@ -119,13 +105,14 @@ const OfflineDemo = () => {
   // Cleanup effect: Move misplaced demos to correct collection
   useEffect(() => {
     const cleanupMisplacedDemos = async () => {
-      const onlineDemosInOfflineCollection = rows.filter(r => r.mode?.toLowerCase() === "online");
+      const offlineDemosInOnlineCollection = rows.filter(r => r.mode?.toLowerCase() === "offline");
       
-      for (const demo of onlineDemosInOfflineCollection) {
+      for (const demo of offlineDemosInOnlineCollection) {
         try {
-          // Create in online collection
-          await axiosInstance.post("/onlineDemos", {
+          // Create in offline collection
+          await axiosInstance.post("/offlineDemos", {
             course: demo.course,
+            branch: demo.branch || "N/A",
             date: demo.date,
             time: demo.time,
             mode: demo.mode,
@@ -133,17 +120,17 @@ const OfflineDemo = () => {
             trainer: demo.trainer,
           });
           
-          // Delete from offline collection
-          await axiosInstance.delete(`/offlineDemos/${demo._id}`);
+          // Delete from online collection
+          await axiosInstance.delete(`/onlineDemos/${demo._id}`);
         } catch (error) {
           console.error("Error moving demo:", error);
         }
       }
       
       // Refresh both collections after cleanup
-      if (onlineDemosInOfflineCollection.length > 0) {
-        dispatch(fetchOfflineDemos());
+      if (offlineDemosInOnlineCollection.length > 0) {
         dispatch(fetchOnlineDemos());
+        dispatch(fetchOfflineDemos());
       }
     };
     
@@ -192,14 +179,13 @@ const OfflineDemo = () => {
   };
 
   const filteredRows = rows.filter((r) => {
-    // CRITICAL: Only show demos with "offline" mode on this page
-    const isOfflineMode = r.mode?.toLowerCase() === "offline";
-    if (!isOfflineMode) return false;
+    // CRITICAL: Only show demos with "online" mode on this page
+    const isOnlineMode = r.mode?.toLowerCase() === "online";
+    if (!isOnlineMode) return false;
 
     const matchesSearch =
       r.course?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      r.trainer?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      r.branch?.toLowerCase().includes(searchQuery.toLowerCase());
+      r.trainer?.toLowerCase().includes(searchQuery.toLowerCase());
 
     const matchesBranch = !filterData.branch || r.branch === filterData.branch;
     const matchesTrainer = !filterData.trainer || r.trainer === filterData.trainer;
@@ -216,29 +202,17 @@ const OfflineDemo = () => {
     // Required fields
     if (!formData.name.trim()) {
       newErrors.name = "Name is required";
-    } else if (formData.name.length > 50) {
-      newErrors.name = "Name cannot exceed 50 characters";
     }
     if (!formData.mobile.trim()) {
       newErrors.mobile = "Mobile is required";
-    } else if (!/^[0-9]{10}$/.test(formData.mobile.replace(/\s/g, ''))) {
-      newErrors.mobile = "Mobile number must be 10 digits";
+    } else if (!/^\d{10}$/.test(formData.mobile.trim())) {
+      newErrors.mobile = "Mobile must be 10 digits";
     }
     if (!formData.address.trim()) {
       newErrors.address = "Address is required";
-    } else if (formData.address.length > 200) {
-      newErrors.address = "Address cannot exceed 200 characters";
-    }
-    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = "Invalid email format";
     }
     if (!formData.course.trim()) {
       newErrors.course = "Course name is required";
-    }
-    if (!formData.branch.trim()) {
-      newErrors.branch = "Branch is required";
-    } else if (formData.branch.trim().length < 2) {
-      newErrors.branch = "Branch must be at least 2 characters";
     }
     if (!formData.date) {
       newErrors.date = "Date is required";
@@ -270,6 +244,10 @@ const OfflineDemo = () => {
     if (!formData.trainer.trim()) {
       newErrors.trainer = "Please select a trainer";
     }
+    // Email is optional, but if present, validate format
+    if (formData.email && !/^\S+@\S+\.\S+$/.test(formData.email.trim())) {
+      newErrors.email = "Invalid email format";
+    }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -291,15 +269,15 @@ const OfflineDemo = () => {
       };
 
       if (editingRow) {
-        await dispatch(updateOfflineDemo({ id: editingRow._id, data: submissionData })).unwrap();
-        // After updating, fetch both offline and online demos to reflect mode changes
+        await dispatch(updateOnlineDemo({ id: editingRow._id, data: submissionData })).unwrap();
+        // After updating, fetch both online and offline demos to reflect mode changes
         await Promise.all([
-          dispatch(fetchOfflineDemos()).unwrap(),
-          dispatch(fetchOnlineDemos()).unwrap()
+          dispatch(fetchOnlineDemos()).unwrap(),
+          dispatch(fetchOfflineDemos()).unwrap()
         ]);
       } else {
-        await dispatch(addOfflineDemo(submissionData)).unwrap();
-        await dispatch(fetchOfflineDemos()).unwrap();
+        await dispatch(addOnlineDemo(submissionData)).unwrap();
+        await dispatch(fetchOnlineDemos()).unwrap();
       }
 
       setIsFormOpen(false);
@@ -308,15 +286,14 @@ const OfflineDemo = () => {
       setFormData({
         name: "",
         mobile: "",
-        address: "",
         email: "",
+        address: "",
         course: "",
-        branch: "",
         date: "",
         time: "",
+        mode: "",
         medium: "",
         trainer: "",
-        mode: "",
       });
       setErrors({});
     } catch (error) {
@@ -324,60 +301,43 @@ const OfflineDemo = () => {
     }
   };
 
-  const handleFilterApply = () => {
-    if (filterData.dateFrom && filterData.dateTo && new Date(filterData.dateFrom) > new Date(filterData.dateTo)) {
-      setFilterErrors({ dateRange: "From date cannot be after To date" });
-      return;
+  // Handle delete
+  const handleDelete = async (id) => {
+    if (window.confirm("Are you sure you want to delete this demo?")) {
+      try {
+        await dispatch(deleteOnlineDemo(id)).unwrap();
+        dispatch(fetchOnlineDemos());
+      } catch (error) {
+        console.error("Delete failed:", error);
+        alert("Delete failed: " + (error.message || "Unknown error"));
+      }
     }
-    setFilterErrors({});
-    setIsFilterOpen(false);
   };
 
-  const handleFilterReset = () => {
-    setFilterData({
-      branch: "",
-      trainer: "",
-      mode: "",
-      dateFrom: "",
-      dateTo: "",
-    });
-    setFilterErrors({});
-    setIsFilterOpen(false);
-  };
-
-  // Export to PDF with formatted dates
+  // PDF Export with formatted dates
   const handleExport = () => {
     const doc = new jsPDF();
-    doc.text("Offline Demo Data", 14, 15);
-
-    const tableColumn = ["S.No", ...defaultColumns];
-    const tableRows = filteredRows.map((r, i) => [
+    doc.text("Online Demo Data", 14, 12);
+    const tableData = filteredRows.map((r, i) => [
       i + 1,
-      r.name,
-      r.mobile,
-      r.address,
-      r.email,
       r.course,
-      r.branch,
-      formatDisplayDate(r.date),
+      r.date ? formatDisplayDate(r.date) : "",
       r.time,
       r.mode,
       r.medium,
       r.trainer,
     ]);
-
     autoTable(doc, {
-      head: [tableColumn],
-      body: tableRows,
-      startY: 25,
-      styles: { fontSize: 9 },
+      head: [["S.No", ...defaultColumns]],
+      body: tableData,
+      startY: 20,
+      styles: { fontSize: 10 },
       headStyles: { fillColor: [41, 128, 185] },
     });
-
-    doc.save("OfflineDemoData.pdf");
+    doc.save("OnlineDemoData.pdf");
   };
 
-  // NEW: CSV Export
+  // CSV Export
   const handleExportCSV = () => {
     const headers = ['S.No', ...visibleColumns];
     const rowsData = filteredRows.map((row, index) => {
@@ -387,10 +347,9 @@ const OfflineDemo = () => {
         switch (col) {
           case 'Name': value = row.name || ''; break;
           case 'Mobile': value = row.mobile || ''; break;
-          case 'Address': value = row.address || ''; break;
           case 'Email': value = row.email || ''; break;
+          case 'Address': value = row.address || ''; break;
           case 'Course': value = row.course || ''; break;
-          case 'Branch': value = row.branch || ''; break;
           case 'Date': value = formatDisplayDate(row.date); break;
           case 'Timing': value = row.time || ''; break;
           case 'Mode': value = row.mode || ''; break;
@@ -412,7 +371,7 @@ const OfflineDemo = () => {
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
     link.setAttribute('href', url);
-    link.setAttribute('download', 'OfflineDemoData.csv');
+    link.setAttribute('download', 'OnlineDemoData.csv');
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -462,6 +421,28 @@ const OfflineDemo = () => {
     }
   };
 
+  // Filter functions
+  const handleFilterApply = () => {
+    if (filterData.dateFrom && filterData.dateTo && new Date(filterData.dateFrom) > new Date(filterData.dateTo)) {
+      setFilterErrors({ dateRange: "From date cannot be after To date" });
+      return;
+    }
+    setFilterErrors({});
+    setIsFilterOpen(false);
+  };
+
+  const handleFilterReset = () => {
+    setFilterData({
+      branch: "",
+      trainer: "",
+      mode: "",
+      dateFrom: "",
+      dateTo: "",
+    });
+    setFilterErrors({});
+    setIsFilterOpen(false);
+  };
+
   // Check if field should show error
   const shouldShowError = (fieldName) => {
     return formSubmitted && errors[fieldName];
@@ -474,15 +455,14 @@ const OfflineDemo = () => {
     setFormData({
       name: "",
       mobile: "",
-      address: "",
       email: "",
+      address: "",
       course: "",
-      branch: "",
       date: "",
       time: "",
+      mode: "",
       medium: "",
       trainer: "",
-      mode: "",
     });
     setErrors({});
     setIsFormOpen(true);
@@ -500,7 +480,7 @@ const OfflineDemo = () => {
         </button>
         
         <h1 className="text-lg font-semibold text-gray-800 truncate mx-2">
-          Offline Demo
+          Online Demo
         </h1>
 
         <button
@@ -527,7 +507,7 @@ const OfflineDemo = () => {
             </div>
 
             {/* Action Buttons */}
-            <div className="flex justify-center gap-3 flex-wrap">
+            <div className="flex justify-center gap-3">
               <button
                 onClick={() => setIsFilterOpen(true)}
                 className="flex items-center gap-1 bg-gray-200 text-gray-700 px-3 py-2 rounded-md hover:bg-gray-300 transition text-sm"
@@ -536,7 +516,6 @@ const OfflineDemo = () => {
                 <FiFilter className="text-sm" />
                 <span>Filter</span>
               </button>
-
               {/* CSV Export Button */}
               <button
                 onClick={handleExportCSV}
@@ -547,15 +526,7 @@ const OfflineDemo = () => {
                 <span>CSV</span>
               </button>
 
-              {isCounsellor && (
-                <button
-                  onClick={openCreateForm}
-                  className="flex items-center gap-1 bg-[#890c25] text-white px-3 py-2 rounded-md hover:bg-[#890c25] transition text-sm"
-                >
-                  <FiPlus className="text-sm" />
-                  <span>Add</span>
-                </button>
-              )}
+              {/* Add button for both admin and counsellor */}
             </div>
           </div>
         </div>
@@ -600,25 +571,15 @@ const OfflineDemo = () => {
         </div>
       </div>
 
-      {/* ✅ Title and Actions */}
+      {/* ✅ Title and Actions Section */}
       <div className="bg-gray-100 mt-4 mx-4 lg:mx-6 p-4 rounded-lg shadow-sm">
         <div className="flex flex-wrap justify-between items-center mb-3">
           <h2 className="text-lg lg:text-xl font-semibold text-gray-800">
-            Offline Demo {isAdmin && <span className="text-xs lg:text-sm text-gray-600 ml-2">(View Only)</span>}
+            Online Demo {isAdmin && <span className="text-xs lg:text-sm text-gray-600 ml-2">(Admin)</span>}
           </h2>
-          
-          {/* Add Button - Only for Counsellors */}
-          {isCounsellor && (
-            <button
-              onClick={openCreateForm}
-              className="hidden lg:flex items-center gap-2 bg-[#890c25] text-white px-4 py-2 rounded-md hover:bg-[#890c25] transition shadow"
-            >
-              <FiPlus /> Add Offline Demo
-            </button>
-          )}
         </div>
 
-        {/* Columns + Search/Reload */}
+        {/* Columns + Search/Reload/Export */}
         <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-3">
           <div className="relative">
             <button
@@ -647,7 +608,6 @@ const OfflineDemo = () => {
                     <FiX />
                   </button>
                 </div>
-
                 <input
                   type="text"
                   placeholder="Search columns"
@@ -655,7 +615,6 @@ const OfflineDemo = () => {
                   onChange={(e) => setColumnSearch(e.target.value)}
                   className="w-full border rounded px-2 py-1 mb-2 text-sm focus:ring-2 focus:ring-blue-500"
                 />
-
                 <div className="max-h-40 overflow-y-auto space-y-1">
                   {filteredColumns.map((col) => (
                     <label
@@ -671,7 +630,6 @@ const OfflineDemo = () => {
                     </label>
                   ))}
                 </div>
-
                 <div className="flex gap-2 mt-2 flex-wrap">
                   <button
                     onClick={() => setVisibleColumns(defaultColumns)}
@@ -697,13 +655,14 @@ const OfflineDemo = () => {
           </div>
 
           <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
-            {isCounsellor && (
+            {/* Search and Reload for both admin and counsellor */}
+            {true&& (
               <>
                 <div className="relative w-full sm:w-64">
                   <FiSearch className="absolute left-3 top-3 text-gray-400" />
                   <input
                     type="text"
-                    placeholder="Search courses, trainers, or branches..."
+                    placeholder="Search courses or trainers..."
                     value={searchQuery}
                     onChange={(e) => dispatch(setSearchQuery(e.target.value))}
                     className="pl-10 pr-3 py-2 border border-gray-300 rounded-md w-full focus:ring-2 focus:ring-blue-500 transition text-sm"
@@ -711,7 +670,7 @@ const OfflineDemo = () => {
                 </div>
                 <button
                   onClick={() => {
-                    dispatch(fetchOfflineDemos());
+                    dispatch(fetchOnlineDemos());
                     dispatch(getTrainers());
                     dispatch(fetchCourses());
                   }}
@@ -747,39 +706,31 @@ const OfflineDemo = () => {
                         </th>
                       )
                   )}
-                  {isCounsellor && (
+                  {/* Actions column for both admin and counsellor */}
+                  {true&& (
                     <th className="px-4 py-3 font-medium whitespace-nowrap">Actions</th>
-                  )}
-                  {isAdmin && (
-                    <th className="px-4 py-3 font-medium whitespace-nowrap">View</th>
                   )}
                 </tr>
               </thead>
               <tbody>
                 {filteredRows.length > 0 ? (
                   filteredRows.map((row, index) => (
-                    <tr
-                      key={row._id}
-                      className="border-b hover:bg-gray-50 transition"
-                    >
-                      <td className="px-4 py-3 border-r">{index + 1}</td>
+                    <tr key={row._id} className="border-b hover:bg-gray-50 transition">
+                      <td className="px-4 py-3 border-r font-medium">{index + 1}</td>
                       {visibleColumns.includes("Name") && (
                         <td className="px-4 py-3 border-r">{row.name}</td>
                       )}
                       {visibleColumns.includes("Mobile") && (
                         <td className="px-4 py-3 border-r">{row.mobile}</td>
                       )}
-                      {visibleColumns.includes("Address") && (
-                        <td className="px-4 py-3 border-r">{row.address}</td>
-                      )}
                       {visibleColumns.includes("Email") && (
                         <td className="px-4 py-3 border-r">{row.email}</td>
                       )}
+                      {visibleColumns.includes("Address") && (
+                        <td className="px-4 py-3 border-r">{row.address}</td>
+                      )}
                       {visibleColumns.includes("Course") && (
                         <td className="px-4 py-3 border-r">{row.course}</td>
-                      )}
-                      {visibleColumns.includes("Branch") && (
-                        <td className="px-4 py-3 border-r">{row.branch}</td>
                       )}
                       {visibleColumns.includes("Date") && (
                         <td className="px-4 py-3 border-r whitespace-nowrap">{formatDisplayDate(row.date)}</td>
@@ -797,7 +748,7 @@ const OfflineDemo = () => {
                         <td className="px-4 py-3 border-r">{row.trainer}</td>
                       )}
                       
-                      {isCounsellor && (
+                      {true&& (
                         <td className="px-4 py-3">
                           <div className="flex gap-3">
                             <button
@@ -816,16 +767,14 @@ const OfflineDemo = () => {
                             >
                               <FiEdit size={16} />
                             </button>
-                            {/* Delete button removed */}
+                            <button
+                              onClick={() => handleDelete(row._id)}
+                              className="text-red-500 hover:text-red-700 p-2 rounded-lg transition hover:bg-red-50"
+                              title="Delete"
+                            >
+                              <FiTrash2 size={16} />
+                            </button>
                           </div>
-                        </td>
-                      )}
-                      
-                      {isAdmin && (
-                        <td className="px-4 py-3">
-                          <span className="text-gray-400 flex justify-center p-2 rounded-lg hover:bg-gray-100 transition" title="View Only">
-                            <FiEye size={16} />
-                          </span>
                         </td>
                       )}
                     </tr>
@@ -833,7 +782,7 @@ const OfflineDemo = () => {
                 ) : (
                   <tr>
                     <td
-                      colSpan={visibleColumns.length + (isCounsellor ? 2 : isAdmin ? 2 : 1)}
+                      colSpan={visibleColumns.length + (true? 1 : 0) + 1} // +1 for S.No
                       className="text-center py-12 text-gray-500 text-sm"
                     >
                       <div className="flex flex-col items-center justify-center">
@@ -869,70 +818,54 @@ const OfflineDemo = () => {
                         <div>{row.name}</div>
                       </>
                     )}
-
                     {visibleColumns.includes("Mobile") && (
                       <>
                         <div className="font-medium text-gray-500">Mobile:</div>
                         <div>{row.mobile}</div>
                       </>
                     )}
-
-                    {visibleColumns.includes("Address") && (
-                      <>
-                        <div className="font-medium text-gray-500">Address:</div>
-                        <div>{row.address}</div>
-                      </>
-                    )}
-
                     {visibleColumns.includes("Email") && (
                       <>
                         <div className="font-medium text-gray-500">Email:</div>
                         <div>{row.email}</div>
                       </>
                     )}
-
+                    {visibleColumns.includes("Address") && (
+                      <>
+                        <div className="font-medium text-gray-500">Address:</div>
+                        <div>{row.address}</div>
+                      </>
+                    )}
                     {visibleColumns.includes("Course") && (
                       <>
                         <div className="font-medium text-gray-500">Course:</div>
                         <div className="truncate">{row.course}</div>
                       </>
                     )}
-
-                    {visibleColumns.includes("Branch") && (
-                      <>
-                        <div className="font-medium text-gray-500">Branch:</div>
-                        <div>{row.branch}</div>
-                      </>
-                    )}
-
                     {visibleColumns.includes("Date") && (
                       <>
                         <div className="font-medium text-gray-500">Date:</div>
                         <div>{formatDisplayDate(row.date)}</div>
                       </>
                     )}
-
                     {visibleColumns.includes("Timing") && (
                       <>
                         <div className="font-medium text-gray-500">Timing:</div>
                         <div>{row.time}</div>
                       </>
                     )}
-
                     {visibleColumns.includes("Mode") && (
                       <>
                         <div className="font-medium text-gray-500">Mode:</div>
                         <div>{row.mode}</div>
                       </>
                     )}
-
                     {visibleColumns.includes("Medium") && (
                       <>
                         <div className="font-medium text-gray-500">Medium:</div>
                         <div>{row.medium}</div>
                       </>
                     )}
-
                     {visibleColumns.includes("Trainer") && (
                       <>
                         <div className="font-medium text-gray-500">Trainer:</div>
@@ -940,36 +873,34 @@ const OfflineDemo = () => {
                       </>
                     )}
 
-                    {/* Actions for Mobile */}
-                    <div className="col-span-2 flex justify-end gap-4 pt-2 mt-2 border-t">
-                      {isCounsellor && (
-                        <>
-                          <button
-                            onClick={() => {
-                              setEditingRow(row);
-                              setFormData({ 
-                                ...row, 
-                                date: row.date ? new Date(row.date).toISOString().split('T')[0] : "",
-                                time: row.time || ""
-                              });
-                              setFormSubmitted(false);
-                              setIsFormOpen(true);
-                            }}
-                            className="text-blue-600 hover:text-blue-800 transition flex items-center gap-1 text-sm"
-                          >
-                            <FiEdit size={14} />
-                            Edit
-                          </button>
-                          {/* Delete button removed */}
-                        </>
-                      )}
-                      {isAdmin && (
-                        <span className="text-gray-400 flex items-center gap-1 text-sm" title="View Only">
-                          <FiEye size={14} />
-                          View Only
-                        </span>
-                      )}
-                    </div>
+                    {/* Actions for Mobile - for both admin and counsellor */}
+                    {true&& (
+                      <div className="col-span-2 flex justify-end gap-4 pt-2 mt-2 border-t">
+                        <button
+                          onClick={() => {
+                            setEditingRow(row);
+                            setFormData({ 
+                              ...row, 
+                              date: row.date ? new Date(row.date).toISOString().split('T')[0] : "",
+                              time: row.time || ""
+                            });
+                            setFormSubmitted(false);
+                            setIsFormOpen(true);
+                          }}
+                          className="text-blue-600 hover:text-blue-800 transition flex items-center gap-1 text-sm"
+                        >
+                          <FiEdit size={14} />
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDelete(row._id)}
+                          className="text-red-500 hover:text-red-700 transition flex items-center gap-1 text-sm"
+                        >
+                          <FiTrash2 size={14} />
+                          Delete
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))
@@ -1001,8 +932,8 @@ const OfflineDemo = () => {
         </div>
       </div>
 
-      {/* ✅ Responsive Modal Form - ONLY FOR COUNSELLORS */}
-      {isFormOpen && isCounsellor && (
+      {/* ✅ Responsive Modal Form - for both admin and counsellor */}
+      {isFormOpen && true&& (
         <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50 p-4">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto relative border border-gray-200">
             <button
@@ -1017,8 +948,8 @@ const OfflineDemo = () => {
             </button>
 
             <div className="p-4 lg:p-6">
-              <h3 className="text-lg font-semibold mb-4 text-center text-gray-800">
-                {editingRow ? "Edit Offline Demo" : "Add Offline Demo"}
+              <h3 className="text-lg font-semibold mb-3 text-center text-gray-800">
+                {editingRow ? "Edit Online Demo" : "Add Online Demo"}
               </h3>
 
               {/* Date Preview Display */}
@@ -1088,12 +1019,12 @@ const OfflineDemo = () => {
                   )}
                 </div>
                 {/* Course */}
-                <div>
+                <div className="lg:col-span-2">
                   <label className="text-sm font-medium text-gray-700">Course *</label>
                   <select
                     value={formData.course}
                     onChange={(e) => handleInputChange('course', e.target.value)}
-                    className={`border rounded-lg px-3 py-2 text-sm w-full focus:ring-2 focus:ring-blue-500 ${
+                    className={`border rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-blue-500 text-sm ${
                       shouldShowError("course") ? 'border-red-500' : 'border-gray-300'
                     }`}
                   >
@@ -1115,25 +1046,6 @@ const OfflineDemo = () => {
                   )}
                 </div>
 
-                {/* Branch */}
-                <div>
-                  <label className="text-sm font-medium text-gray-700">Branch *</label>
-                  <input
-                    type="text"
-                    placeholder="Enter branch"
-                    value={formData.branch}
-                    onChange={(e) => handleInputChange('branch', e.target.value)}
-                    className={`border rounded-lg px-3 py-2 text-sm w-full focus:ring-2 focus:ring-blue-500 ${
-                      shouldShowError("branch") ? 'border-red-500' : 'border-gray-300'
-                    }`}
-                  />
-                  {shouldShowError("branch") && (
-                    <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
-                      <span>⚠</span> {errors.branch}
-                    </p>
-                  )}
-                </div>
-
                 {/* Date */}
                 <div>
                   <label className="text-sm font-medium text-gray-700">Date *</label>
@@ -1141,7 +1053,7 @@ const OfflineDemo = () => {
                     type="date"
                     value={formData.date}
                     onChange={(e) => handleDateChange(e.target.value)}
-                    className={`border rounded-lg px-3 py-2 text-sm w-full focus:ring-2 focus:ring-blue-500 ${
+                    className={`border rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-blue-500 text-sm ${
                       shouldShowError("date") ? 'border-red-500' : 'border-gray-300'
                     }`}
                   />
@@ -1158,7 +1070,7 @@ const OfflineDemo = () => {
                   <select
                     value={formData.time}
                     onChange={(e) => handleInputChange('time', e.target.value)}
-                    className={`border rounded-lg px-3 py-2 text-sm w-full focus:ring-2 focus:ring-blue-500 ${
+                    className={`border rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-blue-500 text-sm ${
                       shouldShowError("time") ? 'border-red-500' : 'border-gray-300'
                     }`}
                   >
@@ -1181,10 +1093,10 @@ const OfflineDemo = () => {
                   <label className="text-sm font-medium text-gray-700">Medium *</label>
                   <input
                     type="text"
-                    placeholder="Enter medium"
                     value={formData.medium}
                     onChange={(e) => handleInputChange('medium', e.target.value)}
-                    className={`border rounded-lg px-3 py-2 text-sm w-full focus:ring-2 focus:ring-blue-500 ${
+                    placeholder="e.g., Zoom, Google Meet"
+                    className={`border rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-blue-500 text-sm ${
                       shouldShowError("medium") ? 'border-red-500' : 'border-gray-300'
                     }`}
                   />
@@ -1194,14 +1106,14 @@ const OfflineDemo = () => {
                     </p>
                   )}
                 </div>
-                
+
                 {/* Trainer */}
                 <div>
                   <label className="text-sm font-medium text-gray-700">Trainer *</label>
                   <select
                     value={formData.trainer}
                     onChange={(e) => handleInputChange('trainer', e.target.value)}
-                    className={`border rounded-lg px-3 py-2 text-sm w-full focus:ring-2 focus:ring-blue-500 ${
+                    className={`border rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-blue-500 text-sm ${
                       shouldShowError("trainer") ? 'border-red-500' : 'border-gray-300'
                     }`}
                   >
@@ -1224,18 +1136,18 @@ const OfflineDemo = () => {
                 </div>
 
                 {/* Mode */}
-                <div className="lg:col-span-2">
+                <div>
                   <label className="text-sm font-medium text-gray-700">Mode *</label>
                   <select
                     value={formData.mode}
                     onChange={(e) => handleInputChange('mode', e.target.value)}
-                    className={`border rounded-lg px-3 py-2 text-sm w-full focus:ring-2 focus:ring-blue-500 ${
+                    className={`border rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-blue-500 text-sm ${
                       shouldShowError("mode") ? 'border-red-500' : 'border-gray-300'
                     }`}
                   >
                     <option value="">Select Mode</option>
-                    <option value="Offline">Offline</option>
                     <option value="Online">Online</option>
+                    <option value="Offline">Offline</option>
                   </select>
                   {shouldShowError("mode") && (
                     <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
@@ -1244,7 +1156,7 @@ const OfflineDemo = () => {
                   )}
                 </div>
 
-                {/* Submit + Cancel */}
+                {/* Buttons */}
                 <div className="lg:col-span-2 flex justify-end gap-2 mt-4">
                   <button
                     type="button"
@@ -1261,7 +1173,7 @@ const OfflineDemo = () => {
                     type="submit"
                     className="px-4 py-2 bg-[#890c25] text-white rounded-md hover:bg-[#890c25] text-sm transition-colors flex-1 lg:flex-none"
                   > 
-                    {editingRow ? "Update" : "Create Offline Demo"}
+                    {editingRow ? "Update" : "Create Online Demo"}
                   </button>
                 </div>
               </form>
@@ -1283,7 +1195,7 @@ const OfflineDemo = () => {
 
             <div className="p-4 lg:p-6">
               <h3 className="text-lg font-semibold mb-4 text-center text-gray-800">
-                Filter Offline Demos
+                Filter Online Demos
               </h3>
 
               <div className="space-y-4">
@@ -1338,42 +1250,41 @@ const OfflineDemo = () => {
                   </select>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium text-gray-700">Date From</label>
-                    <input
-                      type="date"
-                      value={filterData.dateFrom}
-                      onChange={(e) => setFilterData({ ...filterData, dateFrom: e.target.value })}
-                      className="border rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-blue-500 text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-700">Date To</label>
-                    <input
-                      type="date"
-                      value={filterData.dateTo}
-                      onChange={(e) => setFilterData({ ...filterData, dateTo: e.target.value })}
-                      className="border rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-blue-500 text-sm"
-                    />
-                  </div>
+                {/* Date From */}
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Date From</label>
+                  <input
+                    type="date"
+                    value={filterData.dateFrom}
+                    onChange={(e) => setFilterData({ ...filterData, dateFrom: e.target.value })}
+                    className="border rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-blue-500 text-sm"
+                  />
+                  {filterErrors.dateFrom && <p className="text-red-500 text-xs mt-1">{filterErrors.dateFrom}</p>}
                 </div>
 
-                {filterErrors.dateRange && (
-                  <p className="text-red-500 text-sm text-center">{filterErrors.dateRange}</p>
-                )}
+                {/* Date To */}
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Date To</label>
+                  <input
+                    type="date"
+                    value={filterData.dateTo}
+                    onChange={(e) => setFilterData({ ...filterData, dateTo: e.target.value })}
+                    className="border rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-blue-500 text-sm"
+                  />
+                  {filterErrors.dateTo && <p className="text-red-500 text-xs mt-1">{filterErrors.dateTo}</p>}
+                </div>
 
-                {/* Apply + Clear */}
+                {/* Buttons */}
                 <div className="flex justify-end gap-2 mt-6">
                   <button
                     onClick={handleFilterReset}
-                    className="px-4 py-2 border rounded-md text-gray-600 hover:bg-gray-100 text-sm transition-colors flex-1 lg:flex-none"
+                    className="px-4 py-2 border rounded-md text-gray-600 hover:bg-gray-100 text-sm flex-1 lg:flex-none"
                   >
                     Reset
                   </button>
                   <button
                     onClick={handleFilterApply}
-                    className="px-4 py-2 bg-[#890c25] text-white rounded-md hover:bg-[#890c25] text-sm transition-colors flex-1 lg:flex-none"
+                    className="px-4 py-2 bg-[#890c25] text-white rounded-md hover:bg-[#890c25] text-sm flex-1 lg:flex-none"
                   >
                     Apply Filters
                   </button>
@@ -1387,4 +1298,4 @@ const OfflineDemo = () => {
   );
 };
 
-export default OfflineDemo;
+export default OnlineDemo;

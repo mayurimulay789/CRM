@@ -5,14 +5,16 @@ import {
   fetchOneToOneDemos,
   addOneToOneDemo,
   updateOneToOneDemo,
+  deleteOneToOneDemo,
   setSearchQuery,
-} from "../../../store/slices/oneToOneSlice"; // removed deleteOneToOneDemo
+} from "../../../store/slices/oneToOneSlice";
 import { getTrainers } from "../../../store/slices/trainerSlice";
 import {
   FiSearch,
   FiRefreshCw,
   FiDownload,
   FiEdit,
+  FiTrash2,
   FiPlus,
   FiArrowLeft,
   FiX,
@@ -22,8 +24,8 @@ import {
   FiClock,
   FiChevronDown,
   FiMenu,
-  FiFileText,
-} from "react-icons/fi"; // removed FiTrash2
+  FiFileText,   // <-- added for CSV icon
+} from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import { jsPDF } from "jspdf";
 import { autoTable } from "jspdf-autotable";
@@ -33,19 +35,18 @@ const OneToOneDemo = () => {
   const dispatch = useDispatch();
   const { rows, searchQuery } = useSelector((state) => state.oneToOne);
   const { user, counsellors: counsellorState } = useSelector((state) => state.auth);
-  // Fetch counsellors using Redux (same as LiveClassDemo)
-  useEffect(() => {
-    dispatch(getAllCounsellors());
-  }, [dispatch]);
+    // Fetch counsellors using Redux (same as LiveClassDemo)
+    useEffect(() => {
+      dispatch(getAllCounsellors());
+    }, [dispatch]);
 
-  const counsellors = counsellorState.list || [];
-  const counsellorLoading = counsellorState.loading;
-  const counsellorError = counsellorState.error;
+    const counsellors = counsellorState.list || [];
+    const counsellorLoading = counsellorState.loading;
+    const counsellorError = counsellorState.error;
   const { trainers } = useSelector((state) => state.trainer);
 
   // Role checks
   const isAdmin = user?.role === 'Admin';
-  const isCounsellor = user?.role === 'Counsellor';
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isColumnsOpen, setIsColumnsOpen] = useState(false);
@@ -165,15 +166,15 @@ const OneToOneDemo = () => {
   // Format date to dd MMM yyyy (e.g., "9 Oct 2025")
   const formatDisplayDate = (dateString) => {
     if (!dateString) return "";
-
+    
     try {
       const date = new Date(dateString);
       if (isNaN(date.getTime())) return dateString;
-
+      
       const day = date.getDate();
       const month = monthNames[date.getMonth()];
       const year = date.getFullYear();
-
+      
       return `${day} ${month} ${year}`;
     } catch (error) {
       return dateString;
@@ -205,7 +206,7 @@ const OneToOneDemo = () => {
             const selectedDate = new Date(value);
             const today = new Date();
             today.setHours(0, 0, 0, 0);
-
+            
             if (isNaN(selectedDate.getTime())) {
               newErrors.date = "Invalid date format";
             } else if (selectedDate < today) {
@@ -420,7 +421,15 @@ const OneToOneDemo = () => {
     setIsTimePickerOpen(false);
   };
 
-  // CSV Export
+  // Handle delete
+  const handleDelete = async (id) => {
+    if (window.confirm("Are you sure you want to delete this demo?")) {
+      await dispatch(deleteOneToOneDemo(id));
+      dispatch(fetchOneToOneDemos());
+    }
+  };
+
+  // NEW: CSV Export
   const handleExportCSV = () => {
     const headers = ['S.No', ...visibleColumns];
     const rowsData = filteredRows.map((row, index) => {
@@ -588,10 +597,10 @@ const OneToOneDemo = () => {
             onClick={() => navigate(-1)}
             className="flex items-center gap-1 md:gap-2 bg-[#890c25] text-white px-3 md:px-4 py-1.5 rounded-md hover:bg-[#890c25] transition text-sm md:text-base"
           >
-            <FiArrowLeft className="text-sm md:text-base" />
+            <FiArrowLeft className="text-sm md:text-base" /> 
             <span className="hidden sm:inline">Go Back</span>
           </button>
-
+          
           <button
             onClick={toggleMobileMenu}
             className="md:hidden p-2 rounded-md border border-gray-300 hover:bg-gray-200 transition"
@@ -599,13 +608,14 @@ const OneToOneDemo = () => {
             <FiMenu size={18} />
           </button>
         </div>
-
+        
         <div className={`flex items-center gap-2 md:gap-4 ${isMobileMenuOpen ? 'max-md:fixed max-md:top-16 max-md:right-4 max-md:bg-white max-md:border max-md:rounded-lg max-md:shadow-lg max-md:p-4 max-md:z-40 max-md:flex-col max-md:items-end' : 'max-md:hidden'}`}
-          ref={mobileMenuRef}>
-          <span className={`px-2 md:px-3 py-1 rounded-full text-xs md:text-sm font-medium ${isAdmin
+             ref={mobileMenuRef}>
+          <span className={`px-2 md:px-3 py-1 rounded-full text-xs md:text-sm font-medium ${
+            isAdmin
               ? 'bg-purple-100 text-purple-800 border border-purple-300'
               : 'bg-gray-100 text-green-800 border border-gray-100'
-            }`}>
+          }`}>
             {isAdmin ? '' : ''}
           </span>
 
@@ -621,7 +631,7 @@ const OneToOneDemo = () => {
             <span className="hidden sm:inline"></span>
           </button>
 
-          {/* CSV Export Button */}
+          {/* NEW: CSV Export Button */}
           <button
             onClick={handleExportCSV}
             className="flex items-center gap-1 md:gap-1 bg-gray-200 text-gray-700 px-2 md:px-2 py-1.5 md:py-2 rounded-md hover:bg-gray-300 transition text-sm"
@@ -639,15 +649,6 @@ const OneToOneDemo = () => {
           <h2 className="text-lg md:text-xl font-semibold text-gray-800">
             1-1 Demo {isAdmin && <span className="text-xs md:text-sm text-gray-600 ml-2">(View Only)</span>}
           </h2>
-
-          {isCounsellor && (
-            <button
-              onClick={openCreateForm}
-              className="flex items-center justify-center gap-2 bg-[#890c25] text-white px-3 md:px-4 py-2 rounded-md hover:bg-[#890c25] transition text-sm md:text-base w-full sm:w-auto"
-            >
-              <FiPlus /> Add 1-1 Demo
-            </button>
-          )}
         </div>
 
         {/* Columns and Action Buttons */}
@@ -730,7 +731,7 @@ const OneToOneDemo = () => {
             </div>
           </div>
 
-          {isCounsellor && (
+          {true && (
             <div className="flex items-center gap-2 flex-wrap">
               <div className="relative flex-1 min-w-[200px]">
                 <FiSearch className="absolute left-3 top-3 text-gray-400" />
@@ -772,7 +773,7 @@ const OneToOneDemo = () => {
                         </th>
                       )
                   )}
-                  {isCounsellor && (
+                  {true && (
                     <th className="px-2 md:px-4 py-2 md:py-3 font-medium whitespace-nowrap">Actions</th>
                   )}
                   {isAdmin && (
@@ -837,10 +838,11 @@ const OneToOneDemo = () => {
                       )}
                       {visibleColumns.includes("Status") && (
                         <td className="px-2 md:px-4 py-1.5 md:py-2 border-r">
-                          <span className={`px-2 py-1 rounded-full text-xs ${row.status === 'Completed' ? 'bg-green-100 text-green-800' :
-                              row.status === 'Cancelled' ? 'bg-red-100 text-red-800' :
-                                'bg-yellow-100 text-yellow-800'
-                            }`}>
+                          <span className={`px-2 py-1 rounded-full text-xs ${
+                            row.status === 'Completed' ? 'bg-green-100 text-green-800' :
+                            row.status === 'Cancelled' ? 'bg-red-100 text-red-800' :
+                            'bg-yellow-100 text-yellow-800'
+                          }`}>
                             {row.status}
                           </span>
                         </td>
@@ -850,8 +852,8 @@ const OneToOneDemo = () => {
                           {row.reason}
                         </td>
                       )}
-
-                      {isCounsellor && (
+                      
+                      {true && (
                         <td className="px-2 md:px-4 py-1.5 md:py-2 flex gap-1 md:gap-2 justify-center">
                           <button
                             onClick={() => {
@@ -869,10 +871,16 @@ const OneToOneDemo = () => {
                           >
                             <FiEdit size={isMobile ? 14 : 16} />
                           </button>
-                          {/* Delete button removed */}
+                          <button
+                            onClick={() => handleDelete(row._id)}
+                            className="text-red-500 hover:text-red-700 p-1 transition"
+                            title="Delete"
+                          >
+                            <FiTrash2 size={isMobile ? 14 : 16} />
+                          </button>
                         </td>
                       )}
-
+                      
                       {isAdmin && (
                         <td className="px-2 md:px-4 py-1.5 md:py-2">
                           <span className="text-gray-400 flex justify-center" title="View Only">
@@ -885,7 +893,7 @@ const OneToOneDemo = () => {
                 ) : (
                   <tr>
                     <td
-                      colSpan={visibleColumns.length + (isCounsellor ? 2 : isAdmin ? 2 : 1)}
+                      colSpan={visibleColumns.length + (true ? 2 : isAdmin ? 2 : 1)}
                       className="text-center py-6 text-gray-500 text-sm"
                     >
                       No records found
@@ -908,9 +916,9 @@ const OneToOneDemo = () => {
       </div>
 
       {/* Form Modal - ONLY FOR COUNSELLORS */}
-      {isFormOpen && isCounsellor && (
+      {isFormOpen && true && (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50 p-2 md:p-4">
-          <div
+          <div 
             ref={formRef}
             className="bg-white rounded-lg shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto p-4 md:p-6 relative"
           >
@@ -936,8 +944,9 @@ const OneToOneDemo = () => {
                   name="name"
                   value={formData.name}
                   onChange={(e) => handleInputChange("name", e.target.value)}
-                  className={`w-full border rounded px-3 py-2 text-sm ${getFieldError("name") ? "border-red-500 bg-red-50" : "border-gray-300"
-                    } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                  className={`w-full border rounded px-3 py-2 text-sm ${
+                    getFieldError("name") ? "border-red-500 bg-red-50" : "border-gray-300"
+                  } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                   placeholder="Enter full name"
                   maxLength="50"
                 />
@@ -958,10 +967,10 @@ const OneToOneDemo = () => {
                   type="date"
                   name="date"
                   value={formData.date}
-                  min={new Date().toISOString().split("T")[0]}
                   onChange={(e) => handleDateChange(e.target.value)}
-                  className={`w-full border rounded px-3 py-2 text-sm ${getFieldError("date") ? "border-red-500 bg-red-50" : "border-gray-300"
-                    } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                  className={`w-full border rounded px-3 py-2 text-sm ${
+                    getFieldError("date") ? "border-red-500 bg-red-50" : "border-gray-300"
+                  } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                 />
                 {getFieldError("date") && (
                   <p className="text-red-500 text-xs mt-1">{getFieldError("date")}</p>
@@ -982,15 +991,16 @@ const OneToOneDemo = () => {
                   <button
                     type="button"
                     onClick={() => setIsTimePickerOpen(!isTimePickerOpen)}
-                    className={`w-full border rounded px-3 py-2 text-left flex justify-between items-center text-sm ${getFieldError("timing") ? "border-red-500 bg-red-50" : "border-gray-300"
-                      } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                    className={`w-full border rounded px-3 py-2 text-left flex justify-between items-center text-sm ${
+                      getFieldError("timing") ? "border-red-500 bg-red-50" : "border-gray-300"
+                    } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                   >
                     <span className={formData.timing ? "text-gray-800" : "text-gray-500"}>
                       {formData.timing || "Select time slot"}
                     </span>
                     <FiChevronDown className={`text-gray-400 transition-transform ${isTimePickerOpen ? 'rotate-180' : ''}`} />
                   </button>
-
+                  
                   {getFieldError("timing") && (
                     <p className="text-red-500 text-xs mt-1">{getFieldError("timing")}</p>
                   )}
@@ -1004,10 +1014,11 @@ const OneToOneDemo = () => {
                             key={index}
                             type="button"
                             onClick={() => handleTimeSelect(slot)}
-                            className={`w-full text-left p-2 md:p-3 border rounded-lg hover:bg-blue-50 hover:border-blue-300 transition mb-2 last:mb-0 text-sm ${formData.timing === slot.value
-                                ? 'bg-blue-100 border-blue-400 text-blue-700'
+                            className={`w-full text-left p-2 md:p-3 border rounded-lg hover:bg-blue-50 hover:border-blue-300 transition mb-2 last:mb-0 text-sm ${
+                              formData.timing === slot.value 
+                                ? 'bg-blue-100 border-blue-400 text-blue-700' 
                                 : 'border-gray-200'
-                              }`}
+                            }`}
                           >
                             <div className="font-medium">{slot.label}</div>
                           </button>
@@ -1027,8 +1038,9 @@ const OneToOneDemo = () => {
                   name="trainer"
                   value={formData.trainer}
                   onChange={(e) => handleInputChange("trainer", e.target.value)}
-                  className={`w-full border rounded px-3 py-2 text-sm ${getFieldError("trainer") ? "border-red-500 bg-red-50" : "border-gray-300"
-                    } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                  className={`w-full border rounded px-3 py-2 text-sm ${
+                    getFieldError("trainer") ? "border-red-500 bg-red-50" : "border-gray-300"
+                  } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                 >
                   <option value="">Select Trainer</option>
                   {activeTrainers.length > 0 ? (
@@ -1054,8 +1066,9 @@ const OneToOneDemo = () => {
                   name="email"
                   value={formData.email}
                   onChange={(e) => handleInputChange("email", e.target.value)}
-                  className={`w-full border rounded px-3 py-2 text-sm ${getFieldError("email") ? "border-red-500 bg-red-50" : "border-gray-300"
-                    } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                  className={`w-full border rounded px-3 py-2 text-sm ${
+                    getFieldError("email") ? "border-red-500 bg-red-50" : "border-gray-300"
+                  } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                   placeholder="example@email.com"
                   maxLength="100"
                 />
@@ -1075,8 +1088,9 @@ const OneToOneDemo = () => {
                   name="mobile"
                   value={formData.mobile}
                   onChange={(e) => handleInputChange("mobile", e.target.value)}
-                  className={`w-full border rounded px-3 py-2 text-sm ${getFieldError("mobile") ? "border-red-500 bg-red-50" : "border-gray-300"
-                    } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                  className={`w-full border rounded px-3 py-2 text-sm ${
+                    getFieldError("mobile") ? "border-red-500 bg-red-50" : "border-gray-300"
+                  } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                   placeholder="10-digit mobile number"
                   maxLength="15"
                 />
@@ -1092,8 +1106,9 @@ const OneToOneDemo = () => {
                   name="counselor"
                   value={formData.counselor}
                   onChange={(e) => handleInputChange("counselor", e.target.value)}
-                  className={`w-full border rounded px-3 py-2 text-sm ${getFieldError("counselor") ? "border-red-500 bg-red-50" : "border-gray-300"
-                    } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                  className={`w-full border rounded px-3 py-2 text-sm ${
+                    getFieldError("counselor") ? "border-red-500 bg-red-50" : "border-gray-300"
+                  } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                 >
                   <option value="">Select Counselor</option>
                   {counsellorLoading && <option disabled>Loading...</option>}
@@ -1131,8 +1146,9 @@ const OneToOneDemo = () => {
                   name="counselorRemark"
                   value={formData.counselorRemark}
                   onChange={(e) => handleInputChange("counselorRemark", e.target.value)}
-                  className={`w-full border rounded px-3 py-2 text-sm ${getFieldError("counselorRemark") ? "border-red-500 bg-red-50" : "border-gray-300"
-                    } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                  className={`w-full border rounded px-3 py-2 text-sm ${
+                    getFieldError("counselorRemark") ? "border-red-500 bg-red-50" : "border-gray-300"
+                  } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                   placeholder="Enter counselor remarks (max 200 characters)"
                   rows="2"
                   maxLength="200"
@@ -1153,8 +1169,9 @@ const OneToOneDemo = () => {
                   name="trainerReply"
                   value={formData.trainerReply}
                   onChange={(e) => handleInputChange("trainerReply", e.target.value)}
-                  className={`w-full border rounded px-3 py-2 text-sm ${getFieldError("trainerReply") ? "border-red-500 bg-red-50" : "border-gray-300"
-                    } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                  className={`w-full border rounded px-3 py-2 text-sm ${
+                    getFieldError("trainerReply") ? "border-red-500 bg-red-50" : "border-gray-300"
+                  } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                   placeholder="Trainer response"
                   maxLength="200"
                 />
@@ -1174,8 +1191,9 @@ const OneToOneDemo = () => {
                   name="addRemark"
                   value={formData.addRemark}
                   onChange={(e) => handleInputChange("addRemark", e.target.value)}
-                  className={`w-full border rounded px-3 py-2 text-sm ${getFieldError("addRemark") ? "border-red-500 bg-red-50" : "border-gray-300"
-                    } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                  className={`w-full border rounded px-3 py-2 text-sm ${
+                    getFieldError("addRemark") ? "border-red-500 bg-red-50" : "border-gray-300"
+                  } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                   placeholder="Additional remarks"
                   maxLength="200"
                 />
@@ -1194,8 +1212,9 @@ const OneToOneDemo = () => {
                   name="reason"
                   value={formData.reason}
                   onChange={(e) => handleInputChange("reason", e.target.value)}
-                  className={`w-full border rounded px-3 py-2 text-sm ${getFieldError("reason") ? "border-red-500 bg-red-50" : "border-gray-300"
-                    } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                  className={`w-full border rounded px-3 py-2 text-sm ${
+                    getFieldError("reason") ? "border-red-500 bg-red-50" : "border-gray-300"
+                  } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                   placeholder="Enter reason (max 200 characters)"
                   rows="2"
                   maxLength="200"
@@ -1220,7 +1239,7 @@ const OneToOneDemo = () => {
                 <button
                   type="submit"
                   className="px-4 md:px-6 py-2 bg-[#890c25] text-white rounded-md hover:bg-[#890c25] transition font-medium text-sm md:text-base"
-                >
+                >  
                   {editingRow ? "Update" : "Create 1-1 Demo"}
                 </button>
               </div>
@@ -1322,4 +1341,4 @@ const OneToOneDemo = () => {
   );
 };
 
-export default OneToOneDemo;
+export default OneToOneDemo; 
