@@ -527,15 +527,6 @@ const OnlineDemo = () => {
               </button>
 
               {/* Add button for both admin and counsellor */}
-              {true&& (
-                <button
-                  onClick={openCreateForm}
-                  className="flex items-center gap-1 bg-[#890c25] text-white px-3 py-2 rounded-md hover:bg-[#890c25] transition text-sm"
-                >
-                  <FiPlus className="text-sm" />
-                  <span>Add</span>
-                </button>
-              )}
             </div>
           </div>
         </div>
@@ -586,16 +577,6 @@ const OnlineDemo = () => {
           <h2 className="text-lg lg:text-xl font-semibold text-gray-800">
             Online Demo {isAdmin && <span className="text-xs lg:text-sm text-gray-600 ml-2">(Admin)</span>}
           </h2>
-          
-          {/* Add Button for both admin and counsellor */}
-          {true&& (
-            <button
-              onClick={openCreateForm}
-              className="hidden lg:flex items-center gap-2 bg-[#890c25] text-white px-4 py-2 rounded-md hover:bg-[#890c25] transition shadow"
-            >
-              <FiPlus /> Add Online Demo
-            </button>
-          )}
         </div>
 
         {/* Columns + Search/Reload/Export */}

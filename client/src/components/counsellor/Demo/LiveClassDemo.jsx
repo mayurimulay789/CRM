@@ -115,7 +115,7 @@ const LiveClassDemo = () => {
   // Time slots - only 10-12, 12-2, 3-5, and 5-7
   const timeSlots = [
     "10:00 AM - 12:00 PM",
-    "12:00 PM - 2:00 PM", 
+    "12:00 PM - 2:00 PM",
     "3:00 PM - 5:00 PM",
     "5:00 PM - 7:00 PM"
   ];
@@ -152,15 +152,15 @@ const LiveClassDemo = () => {
   // Format date to dd MMM yyyy (e.g., "9 Oct 2025")
   const formatDisplayDate = (dateString) => {
     if (!dateString) return "";
-    
+
     try {
       const date = new Date(dateString);
       if (isNaN(date.getTime())) return dateString;
-      
+
       const day = date.getDate();
       const month = monthNames[date.getMonth()];
       const year = date.getFullYear();
-      
+
       return `${day} ${month} ${year}`;
     } catch (error) {
       return dateString;
@@ -201,7 +201,7 @@ const LiveClassDemo = () => {
             const selectedDate = new Date(value);
             const today = new Date();
             today.setHours(0, 0, 0, 0);
-            
+
             if (isNaN(selectedDate.getTime())) {
               newErrors.date = "Invalid date format";
             } else if (selectedDate < today) {
@@ -479,12 +479,12 @@ const LiveClassDemo = () => {
 
   // Helper functions
   const formatDate = (d) => formatDisplayDate(d);
-  
+
   const toggleColumn = (col) =>
     setVisibleColumns((prev) =>
       prev.includes(col) ? prev.filter((c) => c !== col) : [...prev, col]
     );
-  
+
   const filteredColumns = defaultColumns.filter((c) =>
     c.toLowerCase().includes(columnSearch.toLowerCase())
   );
@@ -590,7 +590,7 @@ const LiveClassDemo = () => {
         >
           <FiArrowLeft className="text-sm" />
         </button>
-        
+
         <h1 className="text-lg font-semibold text-gray-800 truncate mx-2">
           Live Classes
         </h1>
@@ -609,11 +609,10 @@ const LiveClassDemo = () => {
           <div className="px-4 py-3 space-y-3">
             {/* Role Badge */}
             <div className="flex justify-center">
-              <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                isAdmin
+              <span className={`px-3 py-1 rounded-full text-sm font-medium ${isAdmin
                   ? 'bg-purple-100 text-purple-800 border border-purple-300'
                   : 'bg-green-100 text-green-800 border border-green-300'
-              }`}>
+                }`}>
                 {isAdmin ? '👨‍💻 Admin' : '💼 Counsellor'}
               </span>
             </div>
@@ -661,14 +660,13 @@ const LiveClassDemo = () => {
         >
           <FiArrowLeft /> Go Back
         </button>
-        
+
         <div className="flex items-center gap-4">
           {/* Role Badge */}
-          <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-            isAdmin
+          <span className={`px-3 py-1 rounded-full text-sm font-medium ${isAdmin
               ? 'bg-purple-100 text-purple-800 border border-purple-300'
               : 'bg-gray-100 text-green-800 border border-gray-100'
-          }`}>
+            }`}>
             {isAdmin ? '' : ''}
           </span>
 
@@ -697,7 +695,7 @@ const LiveClassDemo = () => {
           <h2 className="text-lg lg:text-xl font-semibold text-gray-800">
             Live Classes {isAdmin && <span className="text-xs lg:text-sm text-gray-600 ml-2">(View Only)</span>}
           </h2>
-          
+
           {/* Add Button - Only for Counsellors - Hidden on mobile, shown in mobile menu */}
           {isCounsellor && (
             <button
@@ -723,7 +721,7 @@ const LiveClassDemo = () => {
             </button>
 
             {isColumnsOpen && (
-              <div 
+              <div
                 ref={dropdownRef}
                 className="absolute top-11 left-0 right-0 lg:left-auto lg:right-auto bg-white border shadow-lg rounded-md w-full lg:w-72 p-3 z-50"
               >
@@ -908,13 +906,12 @@ const LiveClassDemo = () => {
                       )}
                       {visibleColumns.includes("Status") && (
                         <td className="px-4 py-3 border-r">
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            row.status === 'Completed' 
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${row.status === 'Completed'
                               ? 'bg-green-100 text-green-800'
                               : row.status === 'Cancelled'
-                              ? 'bg-red-100 text-red-800'
-                              : 'bg-blue-100 text-blue-800'
-                          }`}>
+                                ? 'bg-red-100 text-red-800'
+                                : 'bg-blue-100 text-blue-800'
+                            }`}>
                             {row.status}
                           </span>
                         </td>
@@ -924,7 +921,7 @@ const LiveClassDemo = () => {
                           {row.reason}
                         </td>
                       )}
-                      
+
                       {isCounsellor && (
                         <td className="px-4 py-3">
                           <div className="flex gap-3">
@@ -948,7 +945,7 @@ const LiveClassDemo = () => {
                           </div>
                         </td>
                       )}
-                      
+
                       {isAdmin && (
                         <td className="px-4 py-3">
                           <span className="text-gray-400 flex justify-center p-2 rounded-lg hover:bg-gray-100 transition" title="View Only">
@@ -1050,13 +1047,12 @@ const LiveClassDemo = () => {
                       <>
                         <div className="font-medium text-gray-500">Status:</div>
                         <div>
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                            row.status === 'Completed' 
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${row.status === 'Completed'
                               ? 'bg-green-100 text-green-800'
                               : row.status === 'Cancelled'
-                              ? 'bg-red-100 text-red-800'
-                              : 'bg-blue-100 text-blue-800'
-                          }`}>
+                                ? 'bg-red-100 text-red-800'
+                                : 'bg-blue-100 text-blue-800'
+                            }`}>
                             {row.status}
                           </span>
                         </div>
@@ -1139,12 +1135,12 @@ const LiveClassDemo = () => {
               </div>
             )}
           </div>
-          
+
           {/* Table Footer with Row Count - Updated to show nonPastRows total */}
           {filteredRows.length > 0 && (
             <div className="bg-gray-50 px-4 lg:px-6 py-3 border-t text-xs lg:text-sm text-gray-600 font-medium">
               Showing {filteredRows.length} of {nonPastRows.length} records
-              {(searchQuery || filterData.status || filterData.trainer || filterData.dateFrom || filterData.dateTo) && 
+              {(searchQuery || filterData.status || filterData.trainer || filterData.dateFrom || filterData.dateTo) &&
                 " (filtered)"}
             </div>
           )}
@@ -1154,7 +1150,7 @@ const LiveClassDemo = () => {
       {/* ✅ Responsive Modal Form - ONLY FOR COUNSELLORS */}
       {isFormOpen && isCounsellor && (
         <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50 p-4">
-          <div 
+          <div
             ref={formRef}
             className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto relative border border-gray-200"
           >
@@ -1200,9 +1196,8 @@ const LiveClassDemo = () => {
                     name="name"
                     value={formData.name}
                     onChange={(e) => handleInputChange("name", e.target.value)}
-                    className={`w-full border rounded-lg px-3 py-2 text-sm ${
-                      getFieldError("name") ? "border-red-500 bg-red-50" : "border-gray-300"
-                    } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                    className={`w-full border rounded-lg px-3 py-2 text-sm ${getFieldError("name") ? "border-red-500 bg-red-50" : "border-gray-300"
+                      } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                     placeholder="Enter full name"
                     maxLength="50"
                   />
@@ -1223,10 +1218,10 @@ const LiveClassDemo = () => {
                     type="date"
                     name="date"
                     value={formData.date}
+                    min={new Date().toISOString().split("T")[0]}
                     onChange={(e) => handleDateChange(e.target.value)}
-                    className={`w-full border rounded-lg px-3 py-2 text-sm ${
-                      getFieldError("date") ? "border-red-500 bg-red-50" : "border-gray-300"
-                    } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                    className={`w-full border rounded-lg px-3 py-2 text-sm ${getFieldError("date") ? "border-red-500 bg-red-50" : "border-gray-300"
+                      } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                   />
                   {getFieldError("date") && (
                     <p className="text-red-500 text-xs mt-1">{getFieldError("date")}</p>
@@ -1247,16 +1242,15 @@ const LiveClassDemo = () => {
                     <button
                       type="button"
                       onClick={() => setIsTimePickerOpen(!isTimePickerOpen)}
-                      className={`w-full border rounded-lg px-3 py-2 text-left flex justify-between items-center text-sm ${
-                        getFieldError("timing") ? "border-red-500 bg-red-50" : "border-gray-300"
-                      } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                      className={`w-full border rounded-lg px-3 py-2 text-left flex justify-between items-center text-sm ${getFieldError("timing") ? "border-red-500 bg-red-50" : "border-gray-300"
+                        } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                     >
                       <span className={formData.timing ? "text-gray-800" : "text-gray-500"}>
                         {formData.timing || "Select time slot"}
                       </span>
                       <FiChevronDown className={`text-gray-400 transition-transform ${isTimePickerOpen ? 'rotate-180' : ''}`} />
                     </button>
-                    
+
                     {getFieldError("timing") && (
                       <p className="text-red-500 text-xs mt-1">{getFieldError("timing")}</p>
                     )}
@@ -1268,11 +1262,10 @@ const LiveClassDemo = () => {
                           {timeSlots.map((slot, index) => (
                             <div
                               key={index}
-                              className={`p-3 cursor-pointer rounded-lg border transition mb-2 last:mb-0 ${
-                                formData.timing === slot
-                                  ? 'bg-blue-100 border-blue-400 text-blue-700' 
+                              className={`p-3 cursor-pointer rounded-lg border transition mb-2 last:mb-0 ${formData.timing === slot
+                                  ? 'bg-blue-100 border-blue-400 text-blue-700'
                                   : 'border-gray-200 hover:bg-blue-50 hover:border-blue-300'
-                              }`}
+                                }`}
                               onClick={() => handleTimeSelect(slot)}
                             >
                               <div className="font-medium flex items-center gap-2 text-sm">
@@ -1296,9 +1289,8 @@ const LiveClassDemo = () => {
                     name="trainer"
                     value={formData.trainer}
                     onChange={(e) => handleInputChange("trainer", e.target.value)}
-                    className={`w-full border rounded-lg px-3 py-2 text-sm ${
-                      getFieldError("trainer") ? "border-red-500 bg-red-50" : "border-gray-300"
-                    } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                    className={`w-full border rounded-lg px-3 py-2 text-sm ${getFieldError("trainer") ? "border-red-500 bg-red-50" : "border-gray-300"
+                      } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                   >
                     <option value="">Select Trainer</option>
                     {activeTrainers.length > 0 ? (
@@ -1324,9 +1316,8 @@ const LiveClassDemo = () => {
                     name="email"
                     value={formData.email}
                     onChange={(e) => handleInputChange("email", e.target.value)}
-                    className={`w-full border rounded-lg px-3 py-2 text-sm ${
-                      getFieldError("email") ? "border-red-500 bg-red-50" : "border-gray-300"
-                    } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                    className={`w-full border rounded-lg px-3 py-2 text-sm ${getFieldError("email") ? "border-red-500 bg-red-50" : "border-gray-300"
+                      } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                     placeholder="example@email.com"
                     maxLength="100"
                   />
@@ -1346,9 +1337,8 @@ const LiveClassDemo = () => {
                     name="mobile"
                     value={formData.mobile}
                     onChange={(e) => handleInputChange("mobile", e.target.value)}
-                    className={`w-full border rounded-lg px-3 py-2 text-sm ${
-                      getFieldError("mobile") ? "border-red-500 bg-red-50" : "border-gray-300"
-                    } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                    className={`w-full border rounded-lg px-3 py-2 text-sm ${getFieldError("mobile") ? "border-red-500 bg-red-50" : "border-gray-300"
+                      } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                     placeholder="10-digit mobile number"
                     maxLength="15"
                   />
@@ -1364,9 +1354,8 @@ const LiveClassDemo = () => {
                     name="counselor"
                     value={formData.counselor}
                     onChange={(e) => handleInputChange("counselor", e.target.value)}
-                    className={`w-full border rounded-lg px-3 py-2 text-sm ${
-                      getFieldError("counselor") ? "border-red-500 bg-red-50" : "border-gray-300"
-                    } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                    className={`w-full border rounded-lg px-3 py-2 text-sm ${getFieldError("counselor") ? "border-red-500 bg-red-50" : "border-gray-300"
+                      } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                   >
                     <option value="">Select Counselor</option>
                     {counsellorLoading && <option disabled>Loading...</option>}
@@ -1404,9 +1393,8 @@ const LiveClassDemo = () => {
                     name="counselorRemark"
                     value={formData.counselorRemark}
                     onChange={(e) => handleInputChange("counselorRemark", e.target.value)}
-                    className={`w-full border rounded-lg px-3 py-2 text-sm ${
-                      getFieldError("counselorRemark") ? "border-red-500 bg-red-50" : "border-gray-300"
-                    } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                    className={`w-full border rounded-lg px-3 py-2 text-sm ${getFieldError("counselorRemark") ? "border-red-500 bg-red-50" : "border-gray-300"
+                      } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                     placeholder="Enter counselor remarks (max 200 characters)"
                     rows="2"
                     maxLength="200"
@@ -1427,9 +1415,8 @@ const LiveClassDemo = () => {
                     name="trainerReply"
                     value={formData.trainerReply}
                     onChange={(e) => handleInputChange("trainerReply", e.target.value)}
-                    className={`w-full border rounded-lg px-3 py-2 text-sm ${
-                      getFieldError("trainerReply") ? "border-red-500 bg-red-50" : "border-gray-300"
-                    } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                    className={`w-full border rounded-lg px-3 py-2 text-sm ${getFieldError("trainerReply") ? "border-red-500 bg-red-50" : "border-gray-300"
+                      } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                     placeholder="Trainer response"
                     maxLength="200"
                   />
@@ -1449,9 +1436,8 @@ const LiveClassDemo = () => {
                     name="addRemark"
                     value={formData.addRemark}
                     onChange={(e) => handleInputChange("addRemark", e.target.value)}
-                    className={`w-full border rounded-lg px-3 py-2 text-sm ${
-                      getFieldError("addRemark") ? "border-red-500 bg-red-50" : "border-gray-300"
-                    } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                    className={`w-full border rounded-lg px-3 py-2 text-sm ${getFieldError("addRemark") ? "border-red-500 bg-red-50" : "border-gray-300"
+                      } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                     placeholder="Additional remarks"
                     maxLength="200"
                   />
@@ -1470,9 +1456,8 @@ const LiveClassDemo = () => {
                     name="reason"
                     value={formData.reason}
                     onChange={(e) => handleInputChange("reason", e.target.value)}
-                    className={`w-full border rounded-lg px-3 py-2 text-sm ${
-                      getFieldError("reason") ? "border-red-500 bg-red-50" : "border-gray-300"
-                    } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                    className={`w-full border rounded-lg px-3 py-2 text-sm ${getFieldError("reason") ? "border-red-500 bg-red-50" : "border-gray-300"
+                      } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                     placeholder="Enter reason (max 200 characters)"
                     rows="2"
                     maxLength="200"

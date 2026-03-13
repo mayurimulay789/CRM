@@ -649,15 +649,6 @@ const OneToOneDemo = () => {
           <h2 className="text-lg md:text-xl font-semibold text-gray-800">
             1-1 Demo {isAdmin && <span className="text-xs md:text-sm text-gray-600 ml-2">(View Only)</span>}
           </h2>
-          
-          {true && (
-            <button
-              onClick={openCreateForm}
-              className="flex items-center justify-center gap-2 bg-[#890c25] text-white px-3 md:px-4 py-2 rounded-md hover:bg-[#890c25] transition text-sm md:text-base w-full sm:w-auto"
-            >
-              <FiPlus /> Add 1-1 Demo
-            </button>
-          )}
         </div>
 
         {/* Columns and Action Buttons */}

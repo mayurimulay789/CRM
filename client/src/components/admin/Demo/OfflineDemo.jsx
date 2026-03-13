@@ -554,16 +554,6 @@ const OfflineDemo = () => {
                 <FiFileText className="text-sm" />
                 <span>CSV</span>
               </button>
-
-              {true && (
-                <button
-                  onClick={openCreateForm}
-                  className="flex items-center gap-1 bg-[#890c25] text-white px-3 py-2 rounded-md hover:bg-[#890c25] transition text-sm"
-                >
-                  <FiPlus className="text-sm" />
-                  <span>Add</span>
-                </button>
-              )}
             </div>
           </div>
         </div>
@@ -615,14 +605,6 @@ const OfflineDemo = () => {
           </h2>
           
           {/* Add Button - Only for Counsellors - Hidden on mobile, shown in mobile menu */}
-          {true && (
-            <button
-              onClick={openCreateForm}
-              className="hidden lg:flex items-center gap-2 bg-[#890c25] text-white px-4 py-2 rounded-md hover:bg-[#890c25] transition shadow"
-            >
-              <FiPlus /> Add Offline Demo
-            </button>
-          )}
         </div>
 
         {/* Columns + Search/Reload/Export */}
