@@ -340,14 +340,14 @@ export default function OtpValidationPage() {
               ? 'bg-[#890c25] cursor-not-allowed' 
               : 'bg-[#890c25] hover:bg-[#890c25] active:bg-[#890c25]'
             }
-            text-black font-medium
+            text-white font-medium
             flex items-center justify-center
           `}
         >
           {loading ? (
             <>
               <svg 
-                className="animate-spin -ml-1 mr-3 h-5 w-5 text-black" 
+                className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" 
                 xmlns="http://www.w3.org/2000/svg" 
                 fill="none" 
                 viewBox="0 0 24 24"
@@ -580,7 +580,7 @@ export default function OtpValidationPage() {
                 href="mailto:support@rymaacademy.com" 
                 className="text-blue-600 hover:text-blue-800 font-medium"
               >
-                support@rymaacademy.com
+                servies@rymaacademy.com
               </a>
             </p>
           </div>

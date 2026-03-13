@@ -403,7 +403,7 @@ const StudentForm = ({ student, onClose }) => {
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Personal Information Section */}
-        <div className="bg-[#890c25] p-4 rounded-lg">
+        <div className="bg-white p-4 rounded-lg">
           <h3 className="text-lg font-semibold text-blue-800 mb-4">Personal Information</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Name */}

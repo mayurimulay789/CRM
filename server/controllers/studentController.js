@@ -44,6 +44,75 @@ const getAllStudents = async (req, res) => {
     // Execute query with pagination
     const students = await Student.find(filter)
       .sort(sortOptions)
+      .skip((pageNum - 1) * limitNum)
+      .select('-__v');
+
+    // Get total count for pagination
+    const total = await Student.countDocuments(filter);
+
+    console.log('Response:', { pageNum, limitNum, total, count: students.length, pages: Math.ceil(total / limitNum) });
+
+    res.status(200).json({
+      success: true,
+      count: students.length,
+      total,
+      page: pageNum,
+      limit: limitNum,
+      pages: Math.ceil(total / limitNum),
+      data: students
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching students',
+      error: error.message
+    });
+  }
+};
+
+
+const getAllStudentswithlimit = async (req, res) => {
+  try {
+    const { 
+      page = 1, 
+      limit = 10, 
+      search = '',
+      isActive,
+      sortBy = 'createdAt',
+      sortOrder = 'desc'
+    } = req.query;
+
+    console.log('Received params:', { page, limit, search, isActive, sortBy, sortOrder });
+
+    // Build filter object
+    const filter = {};
+    
+    // Search filter
+    if (search) {
+      filter.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } },
+        { phone: { $regex: search, $options: 'i' } },
+        { studentId: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    // Active status filter - handle both boolean and string values
+    if (isActive !== undefined && isActive !== '') {
+      filter.isActive = isActive === 'true' || isActive === true;
+    }
+
+    // Sort options
+    const sortOptions = {};
+    sortOptions[sortBy] = sortOrder === 'asc' ? 1 : -1;
+
+    // Convert limit and page to integers
+    const pageNum = parseInt(page, 10);
+    const limitNum = parseInt(limit, 10);
+
+    // Execute query with pagination
+    const students = await Student.find(filter)
+      .sort(sortOptions)
       .limit(limitNum)
       .skip((pageNum - 1) * limitNum)
       .select('-__v');
@@ -649,5 +718,6 @@ module.exports = {
   updateStudent,
   deleteStudent,
   toggleStudentStatus,
-  getStudentStats
+  getStudentStats,
+  getAllStudentswithlimit
 };
