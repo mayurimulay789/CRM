@@ -4,7 +4,7 @@ import {
   fetchEnrollments,
   createEnrollment, 
   updateEnrollment,
-  deleteEnrollmentByCounsellor,
+  deleteEnrollment,
   clearError,
   clearSuccess 
 } from '../../../store/slices/enrollmentSlice';
@@ -23,13 +23,15 @@ const EnrollmentManagement = () => {
   const [showForm, setShowForm] = useState(false);
   const [editingEnrollment, setEditingEnrollment] = useState(null);
   const [filterStatus, setFilterStatus] = useState('all');
+  const [filterApprovalStatus, setFilterApprovalStatus] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [showFilterMenu, setShowFilterMenu] = useState(false);
   const [showColumnsMenu, setShowColumnsMenu] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
-  const [recordsPerPage] = useState(7);
+  const [recordsPerPage] = useState(10);
 
   // Refs for dropdown menus
   const filterMenuRef = useRef(null);
@@ -37,236 +39,142 @@ const EnrollmentManagement = () => {
   const filterButtonRef = useRef(null);
   const columnsButtonRef = useRef(null);
 
-  // Define all available columns
+  // Define all available columns for counsellor view
   const allColumns = [
     { key: 'enrollmentNo', label: 'Enrollment No', visible: true },
     { key: 'student', label: 'Student', visible: true },
-    { key: 'email', label: 'Email', visible: true },
     { key: 'phone', label: 'Phone', visible: true },
     { key: 'course', label: 'Course', visible: true },
     { key: 'batch', label: 'Batch', visible: true },
     { key: 'timing', label: 'Timing', visible: true },
     { key: 'mode', label: 'Mode', visible: true },
-    { key: 'counsellor', label: 'Counsellor', visible: true},
-    { key: 'status', label: 'Status', visible: true },
+    { key: 'approvalStatus', label: 'Approval', visible: true },
+    { key: 'studentStatus', label: 'Student Status', visible: true },
     { key: 'feeStatus', label: 'Fee Status', visible: true },
-    { key: 'totalAmount', label: 'Total Amount', visible: true },
-    { key: 'amountReceived', label: 'Amount Received', visible: true },
-    { key: 'pendingAmount', label: 'Pending Amount', visible: true },
-    { key: 'admissionRegistrationPayment', label: 'Registration Payment', visible: true },
-    { key: 'enrollmentDate', label: 'Enrollment Date', visible: true },
-    { key: 'dueDate', label: 'Due Date', visible: true },
-    { key: 'paymentMode', label: 'Payment Mode', visible: false },
-    { key: 'notes', label: 'Notes', visible: false },
+    { key: 'totalAmount', label: 'Total', visible: true },
+    { key: 'pendingAmount', label: 'Pending', visible: true },
+    { key: 'enrollmentDate', label: 'Enrolled On', visible: true },
     { key: 'actions', label: 'Actions', visible: true },
   ];
 
   const [columns, setColumns] = useState(allColumns);
 
+  // Fetch only counsellor's own enrollments
   useEffect(() => {
-    console.log('🔄 Fetching enrollments for user:', user);
-    dispatch(fetchEnrollments());
+    dispatch(fetchEnrollments({ counsellor: user?._id }));
   }, [dispatch, user?._id]);
 
+  // Handle success message timeout
   useEffect(() => {
     if (success && !showForm) {
-      const timer = setTimeout(() => {
-        dispatch(clearSuccess());
-      }, 3000);
+      const timer = setTimeout(() => dispatch(clearSuccess()), 3000);
       return () => clearTimeout(timer);
     }
   }, [success, dispatch, showForm]);
 
+  // Handle error message timeout
   useEffect(() => {
     if (error) {
-      const timer = setTimeout(() => {
-        dispatch(clearError());
-      }, 5000);
+      const timer = setTimeout(() => dispatch(clearError()), 5000);
       return () => clearTimeout(timer);
     }
   }, [error, dispatch]);
 
-  // Reset to first page when filters change
+  // Reset pagination on filter change
   useEffect(() => {
     setCurrentPage(1);
-  }, [filterStatus, searchTerm]);
+  }, [filterStatus, filterApprovalStatus, searchTerm]);
 
-  // Fixed click outside detection
+  // Click outside detection for dropdowns
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (showFilterMenu && 
-          filterMenuRef.current && 
-          !filterMenuRef.current.contains(event.target) &&
-          filterButtonRef.current &&
-          !filterButtonRef.current.contains(event.target)) {
+      if (showFilterMenu && filterMenuRef.current && !filterMenuRef.current.contains(event.target) &&
+          filterButtonRef.current && !filterButtonRef.current.contains(event.target)) {
         setShowFilterMenu(false);
       }
-
-      if (showColumnsMenu && 
-          columnsMenuRef.current && 
-          !columnsMenuRef.current.contains(event.target) &&
-          columnsButtonRef.current &&
-          !columnsButtonRef.current.contains(event.target)) {
+      if (showColumnsMenu && columnsMenuRef.current && !columnsMenuRef.current.contains(event.target) &&
+          columnsButtonRef.current && !columnsButtonRef.current.contains(event.target)) {
         setShowColumnsMenu(false);
       }
     };
-
     document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showFilterMenu, showColumnsMenu]);
-
-  const handleEdit = (enrollment) => {
-    // Verify ownership before editing (for counsellors)
-    if (user?.role === 'counsellor' && 
-        enrollment.counsellor?._id !== user?._id && 
-        enrollment.counsellor !== user?._id) {
-      alert('You are not authorized to edit this enrollment');
-      return;
-    }
-    setEditingEnrollment(enrollment);
-    setShowForm(true);
-  };
-
-  const handleDelete = async (enrollmentId) => {
-    if (window.confirm('Are you sure you want to delete this enrollment? This action cannot be undone.')) {
-      try {
-        await dispatch(deleteEnrollmentByCounsellor(enrollmentId)).unwrap();
-        dispatch(fetchEnrollments());
-        // Reset to first page if current page becomes empty
-        if (filteredEnrollments.length === 1 && currentPage > 1) {
-          setCurrentPage(currentPage - 1);
-        }
-      } catch (error) {
-        console.error('Delete failed:', error);
-      }
-    }
-  };
-
-  const handleCloseForm = () => {
-    setShowForm(false);
-    setEditingEnrollment(null);
-    dispatch(fetchEnrollments());
-  };
-
-  const toggleColumnVisibility = (columnKey) => {
-    setColumns(prevColumns => 
-      prevColumns.map(col => 
-        col.key === columnKey ? { ...col, visible: !col.visible } : col
-      )
-    );
-  };
-
-  const selectAllColumns = () => {
-    setColumns(prevColumns => 
-      prevColumns.map(col => ({ ...col, visible: true }))
-    );
-  };
-
-  const deselectAllColumns = () => {
-    setColumns(prevColumns => 
-      prevColumns.map(col => ({ ...col, visible: false }))
-    );
-  };
 
   // Helper functions
   const getStudentName = (enrollment) => {
     try {
       if (!enrollment?.student) return 'N/A';
-      if (typeof enrollment.student === 'string') return enrollment.student;
       return enrollment.student.name || enrollment.student.studentId || 'N/A';
-    } catch (error) {
-      console.error('Error getting student name:', error);
+    } catch {
       return 'N/A';
-    }
-  };
-
-  const getStudentEmail = (enrollment) => {
-    try {
-      if (!enrollment?.student) return '';
-      if (typeof enrollment.student === 'string') return '';
-      return enrollment.student.email || '';
-    } catch (error) {
-      console.error('Error getting student email:', error);
-      return '';
     }
   };
 
   const getStudentPhone = (enrollment) => {
     try {
-      if (!enrollment?.student) return '';
-      if (typeof enrollment.student === 'string') return '';
-      return enrollment.student.phone || '';
-    } catch (error) {
-      console.error('Error getting student phone:', error);
-      return '';
+      return enrollment?.student?.phone || '-';
+    } catch {
+      return '-';
     }
   };
 
   const getCourseName = (enrollment) => {
     try {
-      if (!enrollment?.course) return 'N/A';
-      if (typeof enrollment.course === 'string') return enrollment.course;
-      return enrollment.course.name || 'N/A';
-    } catch (error) {
-      console.error('Error getting course name:', error);
+      return enrollment?.course?.name || 'N/A';
+    } catch {
       return 'N/A';
     }
   };
 
   const getBatchName = (enrollment) => {
     try {
-      if (!enrollment?.batch) return '-';
-      if (typeof enrollment.batch === 'string') return enrollment.batch;
-      return enrollment.batch.name || '-';
-    } catch (error) {
-      console.error('Error getting batch name:', error);
+      return enrollment?.batch?.name || '-';
+    } catch {
       return '-';
     }
   };
 
   const getBatchTiming = (enrollment) => {
     try {
-      if (!enrollment?.batch) return '';
-      if (typeof enrollment.batch === 'string') return '';
-      return enrollment.batch.timing || '';
-    } catch (error) {
-      console.error('Error getting batch timing:', error);
-      return '';
+      return enrollment?.batch?.timing || '-';
+    } catch {
+      return '-';
     }
   };
 
-  const getCounsellorName = (enrollment) => {
-    try {
-      if (!enrollment?.counsellor) return 'N/A';
-      if (typeof enrollment.counsellor === 'string') return enrollment.counsellor;
-      return enrollment.counsellor.FullName || 'N/A';
-    } catch (error) {
-      console.error('Error getting counsellor name:', error);
-      return 'N/A';
-    }
+  const getApprovalStatusBadge = (status) => {
+    const config = {
+      pending: { color: 'bg-yellow-100 text-yellow-800', label: 'Pending' },
+      approved: { color: 'bg-green-100 text-green-800', label: 'Approved' },
+      rejected: { color: 'bg-red-100 text-red-800', label: 'Rejected' }
+    };
+    const badge = config[status] || config.pending;
+    return (
+      <span className={`px-2 py-1 text-xs font-semibold rounded-full ${badge.color}`}>
+        {badge.label}
+      </span>
+    );
   };
 
-  const getStatusBadge = (status) => {
-    const statusConfig = {
+  const getStudentStatusBadge = (status) => {
+    const config = {
       active: { color: 'bg-green-100 text-green-800', label: 'Active' },
       inactive: { color: 'bg-gray-100 text-gray-800', label: 'Inactive' },
       dropout: { color: 'bg-red-100 text-red-800', label: 'Dropout' },
       completed: { color: 'bg-blue-100 text-blue-800', label: 'Completed' },
       on_hold: { color: 'bg-yellow-100 text-yellow-800', label: 'On Hold' }
     };
-
-    const config = statusConfig[status] || statusConfig.active;
+    const badge = config[status] || config.active;
     return (
-      <span className={`px-2 py-1 text-xs font-semibold rounded-full ${config.color}`}>
-        {config.label}
+      <span className={`px-2 py-1 text-xs font-semibold rounded-full ${badge.color}`}>
+        {badge.label}
       </span>
     );
   };
 
   const getFeeStatus = (enrollment) => {
-    const pending = (enrollment.pendingAmount || 0);
+    const pending = enrollment.pendingAmount || 0;
     if (pending <= 0) {
       return { color: 'bg-green-100 text-green-800', label: 'Paid' };
     } else if (enrollment.dueDate && new Date(enrollment.dueDate) < new Date()) {
@@ -279,689 +187,532 @@ const EnrollmentManagement = () => {
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
-      currency: 'INR'
+      currency: 'INR',
+      minimumFractionDigits: 0
     }).format(amount || 0);
-  };
-
-  // Returns the total amount entered in the form
-  const calculateActualTotal = (enrollment) => {
-    return enrollment.totalAmount || 0;
   };
 
   const formatDate = (dateString) => {
     if (!dateString) return '-';
     try {
-      return new Date(dateString).toLocaleDateString('en-IN');
-    } catch (error) {
-      console.error('Error formatting date:', error);
+      return new Date(dateString).toLocaleDateString('en-IN', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      });
+    } catch {
       return '-';
     }
   };
 
-  const truncateText = (text, maxLength = 25) => {
-    if (!text) return '-';
-    if (text.length <= maxLength) return text;
-    return `${text.substring(0, maxLength)}...`;
+  // Handle edit
+  const handleEdit = (enrollment) => {
+    if (enrollment.enrollmentStatus !== 'pending') {
+      alert('Cannot edit enrollment that is already approved or rejected');
+      return;
+    }
+    setEditingEnrollment(enrollment);
+    setShowForm(true);
   };
 
-  // Filter enrollments based on role, status and search term
-  const filteredEnrollments = enrollments.filter(enrollment => {
-    // For counsellors, only show their enrollments
-    if (user?.role === 'counsellor') {
-      const isOwnEnrollment = 
-        enrollment.counsellor?._id === user?._id || 
-        enrollment.counsellor === user?._id;
-      
-      if (!isOwnEnrollment) return false;
+  // Handle delete
+  const handleDelete = async (enrollmentId) => {
+    if (!window.confirm('Are you sure you want to delete this enrollment?')) return;
+    
+    setActionLoading(true);
+    try {
+      await dispatch(deleteEnrollment(enrollmentId)).unwrap();
+      await dispatch(fetchEnrollments({ counsellor: user?._id })).unwrap();
+      if (filteredEnrollments.length === 1 && currentPage > 1) {
+        setCurrentPage(currentPage - 1);
+      }
+    } catch (error) {
+      alert(error || 'Failed to delete enrollment');
+    } finally {
+      setActionLoading(false);
     }
+  };
+
+  const handleCloseForm = () => {
+    setShowForm(false);
+    setEditingEnrollment(null);
+    dispatch(fetchEnrollments({ counsellor: user?._id }));
+  };
+
+  const toggleColumnVisibility = (columnKey) => {
+    setColumns(prev => prev.map(col => 
+      col.key === columnKey ? { ...col, visible: !col.visible } : col
+    ));
+  };
+
+  const selectAllColumns = () => {
+    setColumns(prev => prev.map(col => ({ ...col, visible: true })));
+  };
+
+  const deselectAllColumns = () => {
+    setColumns(prev => prev.map(col => ({ ...col, visible: false })));
+  };
+
+  const resetFilters = () => {
+    setFilterStatus('all');
+    setFilterApprovalStatus('all');
+    setSearchTerm('');
+  };
+
+  // Filter enrollments (only counsellor's own)
+  const filteredEnrollments = enrollments.filter(enrollment => {
+    // Ensure only this counsellor's enrollments
+    const isOwnEnrollment = enrollment.counsellor?._id === user?._id || enrollment.counsellor === user?._id;
+    if (!isOwnEnrollment) return false;
     
-    const matchesStatus = filterStatus === 'all' || enrollment.status === filterStatus;
-    
-    const matchesSearch = 
+    const matchesStudentStatus = filterStatus === 'all' || enrollment.status === filterStatus;
+    const matchesApprovalStatus = filterApprovalStatus === 'all' || enrollment.enrollmentStatus === filterApprovalStatus;
+    const matchesSearch = !searchTerm || 
       enrollment.enrollmentNo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       getStudentName(enrollment).toLowerCase().includes(searchTerm.toLowerCase()) ||
-      getCourseName(enrollment).toLowerCase().includes(searchTerm.toLowerCase()) ||
-      getBatchName(enrollment).toLowerCase().includes(searchTerm.toLowerCase()) ||
-      getCounsellorName(enrollment).toLowerCase().includes(searchTerm.toLowerCase());
+      getCourseName(enrollment).toLowerCase().includes(searchTerm.toLowerCase());
 
-    return matchesStatus && matchesSearch;
+    return matchesStudentStatus && matchesApprovalStatus && matchesSearch;
   });
 
-  // Pagination logic
+  // Pagination
   const indexOfLastRecord = currentPage * recordsPerPage;
   const indexOfFirstRecord = indexOfLastRecord - recordsPerPage;
   const currentRecords = filteredEnrollments.slice(indexOfFirstRecord, indexOfLastRecord);
   const totalPages = Math.ceil(filteredEnrollments.length / recordsPerPage);
 
-  // Change page
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
+  const nextPage = () => currentPage < totalPages && setCurrentPage(currentPage + 1);
+  const prevPage = () => currentPage > 1 && setCurrentPage(currentPage - 1);
 
-  // Go to next page
-  const nextPage = () => {
-    if (currentPage < totalPages) {
-      setCurrentPage(currentPage + 1);
-    }
-  };
-
-  // Go to previous page
-  const prevPage = () => {
-    if (currentPage > 1) {
-      setCurrentPage(currentPage - 1);
-    }
-  };
-
-  // Generate page numbers for pagination
   const getPageNumbers = () => {
-    const pageNumbers = [];
-    const maxVisiblePages = 5;
-    
-    if (totalPages <= maxVisiblePages) {
-      for (let i = 1; i <= totalPages; i++) {
-        pageNumbers.push(i);
-      }
+    const pages = [];
+    const maxVisible = 5;
+    if (totalPages <= maxVisible) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
     } else {
-      const startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
-      const endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
-      
-      for (let i = startPage; i <= endPage; i++) {
-        pageNumbers.push(i);
-      }
+      let start = Math.max(1, currentPage - 2);
+      let end = Math.min(totalPages, start + maxVisible - 1);
+      if (end - start < maxVisible - 1) start = end - maxVisible + 1;
+      for (let i = start; i <= end; i++) pages.push(i);
     }
-    
-    return pageNumbers;
+    return pages;
   };
 
-  // Get user-specific enrollments for statistics
-  const userEnrollments = user?.role === 'counsellor' 
-    ? enrollments.filter(enrollment => 
-        enrollment.counsellor?._id === user?._id || enrollment.counsellor === user?._id
-      )
-    : enrollments;
-
-  // Statistics based on user's enrollments
-  const enrollmentStats = {
-    total: userEnrollments.length,
-    active: userEnrollments.filter(e => e.status === 'active').length,
-    completed: userEnrollments.filter(e => e.status === 'completed').length,
-    pendingPayments: userEnrollments.filter(e => (e.totalAmount || 0) - (e.admissionRegistrationPayment || 0) > 0).length,
-    totalRevenue: userEnrollments.reduce((sum, e) => sum + (e.admissionRegistrationPayment || 0), 0)
+  // Statistics
+  const stats = {
+    total: filteredEnrollments.length,
+    pending: filteredEnrollments.filter(e => e.enrollmentStatus === 'pending').length,
+    approved: filteredEnrollments.filter(e => e.enrollmentStatus === 'approved').length,
+    rejected: filteredEnrollments.filter(e => e.enrollmentStatus === 'rejected').length,
+    active: filteredEnrollments.filter(e => e.status === 'active').length,
+    totalRevenue: filteredEnrollments.reduce((sum, e) => sum + (e.amountReceived || 0), 0)
   };
 
-  // Check if enrollment can be deleted by counsellor
-  const canDeleteEnrollment = (enrollment) => {
-    if (user?.role !== 'counsellor') return false;
-    
-    const isOwnEnrollment = 
-      enrollment.counsellor?._id === user?._id || 
-      enrollment.counsellor === user?._id;
-    
-    return isOwnEnrollment && (enrollment.admissionRegistrationPayment || 0) === 0;
-  };
-
-  const resetFilters = () => {
-    setFilterStatus('all');
-    setSearchTerm('');
+  // Check if delete allowed (only pending with no payments)
+  const canDelete = (enrollment) => {
+    return enrollment.enrollmentStatus === 'pending' && (enrollment.amountReceived || 0) === 0;
   };
 
   if (loading && enrollments.length === 0) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#890c25] border-t-transparent"></div>
       </div>
     );
   }
 
   return (
-    <div className="h-full flex flex-col">
-      {/* Header Section */}
-      <div className="flex-shrink-0 bg-white p-4 lg:p-6 border-b border-gray-200">
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center space-y-4 lg:space-y-0">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center w-full lg:w-auto space-y-4 sm:space-y-0 sm:space-x-4">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      {/* Header - Responsive */}
+      <div className="bg-white shadow-sm border-b sticky top-0 z-40">
+        <div className="px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            {/* Title and Stats */}
             <div className="flex-1">
-              <h1 className="text-xl lg:text-2xl font-bold text-gray-800">
-                {user?.role === 'counsellor' ? 'Enrollment Management' : 'Enrollment Management'}
-              </h1>
-              <p className="text-gray-600 text-sm lg:text-base">
-                {user?.role === 'counsellor' 
-                  ? 'Manage your student enrollments' 
-                  : 'Manage all system enrollments'
-                }
-              </p>
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">My Enrollments</h1>
+              <p className="text-sm text-gray-600 mt-1">Manage your student enrollments</p>
               
-              {/* User Stats */}
-              <div className="flex flex-wrap gap-2 mt-2">
-                <div className="text-xs bg-blue-50 px-2 py-1 rounded-full">
-                  <span className="font-semibold text-blue-700">Total: {enrollmentStats.total}</span>
-                </div>
-                <div className="text-xs bg-green-50 px-2 py-1 rounded-full">
-                  <span className="font-semibold text-green-700">Active: {enrollmentStats.active}</span>
-                </div>
-                <div className="text-xs bg-purple-50 px-2 py-1 rounded-full">
-                  <span className="font-semibold text-purple-700">Completed: {enrollmentStats.completed}</span>
-                </div>
-                <div className="text-xs bg-yellow-50 px-2 py-1 rounded-full">
-                  <span className="font-semibold text-yellow-700">Pending: {enrollmentStats.pendingPayments}</span>
-                </div>
-                <div className="text-xs bg-green-50 px-2 py-1 rounded-full">
-                  <span className="font-semibold text-green-700">Revenue: {formatCurrency(enrollmentStats.totalRevenue)}</span>
-                </div>
+              {/* Stats - Responsive Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 mt-3">
+                <span className="text-xs bg-blue-50 px-2 py-1.5 rounded-full text-blue-700 text-center font-medium">
+                  Total: {stats.total}
+                </span>
+                <span className="text-xs bg-yellow-50 px-2 py-1.5 rounded-full text-yellow-700 text-center font-medium">
+                  Pending: {stats.pending}
+                </span>
+                <span className="text-xs bg-green-50 px-2 py-1.5 rounded-full text-green-700 text-center font-medium">
+                  Approved: {stats.approved}
+                </span>
+                <span className="text-xs bg-red-50 px-2 py-1.5 rounded-full text-red-700 text-center font-medium">
+                  Rejected: {stats.rejected}
+                </span>
+                <span className="text-xs bg-purple-50 px-2 py-1.5 rounded-full text-purple-700 text-center font-medium col-span-2 sm:col-span-1">
+                  Revenue: {formatCurrency(stats.totalRevenue)}
+                </span>
               </div>
             </div>
-            
-            {/* Add New Enrollment Button */}
-            <button
-              onClick={() => setShowForm(true)}
-              className="bg-[#890c25] text-white px-4 lg:px-6 py-2 lg:py-3 rounded-lg font-semibold hover:from-green-600 hover:to-green-700 transition-all duration-300 shadow-lg hover:shadow-xl flex items-center space-x-2 w-full sm:w-auto justify-center"
-            >
-              <span>+</span>
-              <span>New Enrollment</span>
-            </button>
-          </div>
-          
-          <div className="flex items-center space-x-2 lg:space-x-3 w-full lg:w-auto justify-between lg:justify-end">
-            {/* Search Input - Mobile Only */}
-            <div className="lg:hidden flex-1">
-              <input
-                type="text"
-                placeholder="Search enrollments..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-              />
-            </div>
 
-            {/* Filter Button */}
-            <div className="relative">
+            {/* Action Buttons - Responsive */}
+            <div className="flex items-center gap-2 sm:gap-3">
+              {/* New Enrollment Button */}
               <button
-                ref={filterButtonRef}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowFilterMenu(!showFilterMenu);
-                  setShowColumnsMenu(false);
-                }}
-                className="flex items-center space-x-1 lg:space-x-2 bg-white border border-gray-300 text-gray-700 px-3 lg:px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors duration-200 text-sm"
+                onClick={() => setShowForm(true)}
+                disabled={actionLoading}
+                className="inline-flex items-center gap-1.5 px-3 py-2 bg-[#890c25] text-white rounded-lg text-sm font-medium hover:bg-[#6a091d] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#890c25] transition-colors whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <span>🔍</span>
-                <span className="hidden sm:inline">Filter</span>
-                <span>▼</span>
+                <span className="text-base">+</span>
+                <span className="hidden sm:inline">New Enrollment</span>
               </button>
 
-              {/* Filter Dropdown Menu */}
-              {showFilterMenu && (
-                <div 
-                  ref={filterMenuRef}
-                  className="absolute right-0 mt-2 w-64 lg:w-72 bg-white border border-gray-200 rounded-lg shadow-xl z-50"
+              {/* Filter Button */}
+              <div className="relative">
+                <button
+                  ref={filterButtonRef}
+                  onClick={() => setShowFilterMenu(!showFilterMenu)}
+                  disabled={actionLoading}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#890c25] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <div className="p-4">
-                    <h3 className="font-semibold text-gray-800 mb-3 text-sm lg:text-base">Filter by Status</h3>
-                    <div className="space-y-2">
-                      {['all', 'active', 'completed', 'on_hold', 'inactive', 'dropout'].map(status => (
-                        <label key={status} className="flex items-center space-x-2 cursor-pointer">
-                          <input
-                            type="radio"
-                            name="status"
-                            value={status}
-                            checked={filterStatus === status}
-                            onChange={(e) => setFilterStatus(e.target.value)}
-                            className="text-blue-500 focus:ring-blue-500"
-                          />
-                          <span className="capitalize text-sm">
-                            {status === 'all' ? 'All Status' : status.replace('_', ' ')}
-                          </span>
-                        </label>
-                      ))}
-                    </div>
-                    
-                    <div className="mt-4 pt-3 border-t border-gray-200">
-                      <h3 className="font-semibold text-gray-800 mb-3 text-sm lg:text-base">Search</h3>
-                      <input
-                        type="text"
-                        placeholder="Search enrollments..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                      />
-                    </div>
-                    
-                    <div className="mt-4 flex justify-between">
-                      <button
-                        onClick={resetFilters}
-                        className="px-3 py-1 text-sm text-gray-600 hover:text-gray-800"
-                      >
-                        Reset
-                      </button>
-                      <button
-                        onClick={() => setShowFilterMenu(false)}
-                        className="px-4 py-2 bg-[#890c25] text-white text-sm rounded-lg hover:bg-[#890c25]"
-                      >
-                        Apply
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
+                  <span className="text-base">🔍</span>
+                  <span className="hidden sm:inline">Filter</span>
+                  <svg className={`w-4 h-4 transition-transform ${showFilterMenu ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
 
-            {/* Columns Button */}
-            <div className="relative">
-              <button
-                ref={columnsButtonRef}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowColumnsMenu(!showColumnsMenu);
-                  setShowFilterMenu(false);
-                }}
-                className="flex items-center space-x-1 lg:space-x-2 bg-white border border-gray-300 text-gray-700 px-3 lg:px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors duration-200 text-sm"
-              >
-                <span>📊</span>
-                <span className="hidden sm:inline">Columns</span>
-                <span>▼</span>
-              </button>
+                {/* Filter Dropdown - Responsive */}
+                {showFilterMenu && (
+                  <div ref={filterMenuRef} className="absolute right-0 mt-2 w-80 sm:w-96 bg-white border rounded-lg shadow-xl z-50 p-4 max-h-[32rem] overflow-y-auto">
+                    <h3 className="font-semibold text-gray-900 mb-3 text-sm">Filter Options</h3>
+                    
+                    <div className="space-y-4">
+                      <div>
+                        <h4 className="font-medium text-sm text-gray-700 mb-2">Student Status</h4>
+                        <div className="grid grid-cols-2 gap-2">
+                          {['all', 'active', 'completed', 'on_hold', 'inactive', 'dropout'].map(s => (
+                            <label key={s} className="flex items-center gap-2 text-sm">
+                              <input
+                                type="radio"
+                                name="status"
+                                value={s}
+                                checked={filterStatus === s}
+                                onChange={(e) => setFilterStatus(e.target.value)}
+                                className="w-4 h-4 text-[#890c25] focus:ring-[#890c25]"
+                              />
+                              <span className="capitalize">{s === 'all' ? 'All' : s.replace('_', ' ')}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
 
-              {/* Columns Dropdown Menu */}
-              {showColumnsMenu && (
-                <div 
-                  ref={columnsMenuRef}
-                  className="absolute right-0 mt-2 w-72 lg:w-80 bg-white border border-gray-200 rounded-lg shadow-xl z-50 max-h-96 overflow-y-auto"
-                >
-                  <div className="p-4">
-                    <div className="flex justify-between items-center mb-3">
-                      <h3 className="font-semibold text-gray-800 text-sm lg:text-base">Show/Hide Columns</h3>
-                      <div className="flex space-x-2">
+                      <div>
+                        <h4 className="font-medium text-sm text-gray-700 mb-2">Approval Status</h4>
+                        <div className="grid grid-cols-2 gap-2">
+                          {['all', 'pending', 'approved', 'rejected'].map(s => (
+                            <label key={s} className="flex items-center gap-2 text-sm">
+                              <input
+                                type="radio"
+                                name="approvalStatus"
+                                value={s}
+                                checked={filterApprovalStatus === s}
+                                onChange={(e) => setFilterApprovalStatus(e.target.value)}
+                                className="w-4 h-4 text-[#890c25] focus:ring-[#890c25]"
+                              />
+                              <span className="capitalize">{s}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div>
+                        <h4 className="font-medium text-sm text-gray-700 mb-2">Search</h4>
+                        <input
+                          type="text"
+                          placeholder="Name, course, enrollment no..."
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#890c25] focus:border-transparent"
+                        />
+                      </div>
+
+                      <div className="flex justify-between pt-2 border-t">
                         <button
-                          onClick={selectAllColumns}
-                          className="text-xs text-blue-500 hover:text-blue-700"
+                          onClick={resetFilters}
+                          className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900 font-medium"
                         >
-                          Select All
+                          Reset
                         </button>
                         <button
-                          onClick={deselectAllColumns}
-                          className="text-xs text-gray-500 hover:text-gray-700"
+                          onClick={() => setShowFilterMenu(false)}
+                          className="px-4 py-2 bg-[#890c25] text-white text-sm rounded-lg hover:bg-[#6a091d] font-medium"
                         >
-                          Deselect All
+                          Apply Filters
                         </button>
                       </div>
                     </div>
-                    
-                    <div className="space-y-2 max-h-64 overflow-y-auto">
-                      {columns.map(column => (
-                        <label key={column.key} className="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded cursor-pointer">
+                  </div>
+                )}
+              </div>
+
+              {/* Columns Button */}
+              <div className="relative">
+                <button
+                  ref={columnsButtonRef}
+                  onClick={() => setShowColumnsMenu(!showColumnsMenu)}
+                  disabled={actionLoading}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#890c25] disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <span className="text-base">📊</span>
+                  <span className="hidden sm:inline">Columns</span>
+                  <svg className={`w-4 h-4 transition-transform ${showColumnsMenu ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+
+                {/* Columns Dropdown */}
+                {showColumnsMenu && (
+                  <div ref={columnsMenuRef} className="absolute right-0 mt-2 w-72 bg-white border rounded-lg shadow-xl z-50 p-4">
+                    <div className="flex justify-between items-center mb-3">
+                      <h3 className="font-semibold text-gray-900 text-sm">Show/Hide Columns</h3>
+                      <div className="space-x-2">
+                        <button onClick={selectAllColumns} className="text-xs text-blue-600 hover:text-blue-800 font-medium">All</button>
+                        <button onClick={deselectAllColumns} className="text-xs text-gray-600 hover:text-gray-800 font-medium">None</button>
+                      </div>
+                    </div>
+                    <div className="space-y-2 max-h-80 overflow-y-auto">
+                      {columns.map(col => (
+                        <label key={col.key} className="flex items-center gap-2 text-sm p-1 hover:bg-gray-50 rounded">
                           <input
                             type="checkbox"
-                            checked={column.visible}
-                            onChange={() => toggleColumnVisibility(column.key)}
-                            className="text-blue-500 focus:ring-blue-500 rounded"
+                            checked={col.visible}
+                            onChange={() => toggleColumnVisibility(col.key)}
+                            className="w-4 h-4 text-[#890c25] focus:ring-[#890c25] rounded"
                           />
-                          <span className="text-sm text-gray-700">{column.label}</span>
+                          <span>{col.label}</span>
                         </label>
                       ))}
                     </div>
-                    
-                    <div className="mt-4 pt-3 border-t border-gray-200 flex justify-end">
-                      <button
-                        onClick={() => setShowColumnsMenu(false)}
-                        className="px-4 py-2 bg-[#890c25] text-white text-sm rounded-lg hover:bg-[#890c25]"
-                      >
-                        Apply
-                      </button>
-                    </div>
                   </div>
-                </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Messages */}
+          {success && (
+            <div className="mt-4 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg text-sm flex justify-between items-center">
+              <span className="flex items-center gap-2">
+                <span>✅</span>
+                <span>{success}</span>
+              </span>
+              <button onClick={() => dispatch(clearSuccess())} className="text-green-700 hover:text-green-900 text-lg">×</button>
+            </div>
+          )}
+          {error && (
+            <div className="mt-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm flex justify-between items-center">
+              <span className="flex items-center gap-2">
+                <span>❌</span>
+                <span>{error}</span>
+              </span>
+              <button onClick={() => dispatch(clearError())} className="text-red-700 hover:text-red-900 text-lg">×</button>
+            </div>
+          )}
+
+          {/* Active Filters */}
+          {(filterStatus !== 'all' || filterApprovalStatus !== 'all' || searchTerm) && (
+            <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+              <span className="text-gray-600 font-medium">Active filters:</span>
+              {filterStatus !== 'all' && (
+                <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full flex items-center gap-1">
+                  Status: {filterStatus}
+                  <button onClick={() => setFilterStatus('all')} className="hover:text-blue-900">×</button>
+                </span>
               )}
+              {filterApprovalStatus !== 'all' && (
+                <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded-full flex items-center gap-1">
+                  Approval: {filterApprovalStatus}
+                  <button onClick={() => setFilterApprovalStatus('all')} className="hover:text-purple-900">×</button>
+                </span>
+              )}
+              {searchTerm && (
+                <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full flex items-center gap-1">
+                  Search: "{searchTerm}"
+                  <button onClick={() => setSearchTerm('')} className="hover:text-yellow-900">×</button>
+                </span>
+              )}
+              <button onClick={resetFilters} className="text-gray-500 underline hover:text-gray-700 text-xs">
+                Clear all
+              </button>
             </div>
-          </div>
+          )}
         </div>
-
-        {/* Success Message */}
-        {success && (
-          <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg mt-4 flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <span>✅</span>
-              <span className="text-sm">{success}</span>
-            </div>
-            <button onClick={() => dispatch(clearSuccess())} className="text-green-700 hover:text-green-900">
-              ×
-            </button>
-          </div>
-        )}
-
-        {/* Error Message */}
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mt-4 flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <span>❌</span>
-              <span className="text-sm">{error}</span>
-            </div>
-            <button onClick={() => dispatch(clearError())} className="text-red-700 hover:text-red-900">
-              ×
-            </button>
-          </div>
-        )}
-
-        {/* Active Filters Display */}
-        {(filterStatus !== 'all' || searchTerm) && (
-          <div className="mt-3 flex flex-wrap gap-2">
-            <span className="text-xs text-gray-600">Active filters:</span>
-            {filterStatus !== 'all' && (
-              <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
-                Status: {filterStatus}
-              </span>
-            )}
-            {searchTerm && (
-              <span className="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full">
-                Search: "{searchTerm}"
-              </span>
-            )}
-            <button
-              onClick={resetFilters}
-              className="text-xs text-gray-500 hover:text-gray-700 underline"
-            >
-              Clear all
-            </button>
-          </div>
-        )}
       </div>
 
-      {/* Table Container */}
-      <div className="flex-1 min-h-0 bg-gray-50 p-2 lg:p-4">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 h-full flex flex-col">
-          {/* Table with horizontal scroll only */}
-          <div className="flex-1 min-h-0 overflow-auto">
-            <div className="overflow-x-auto h-full">
-              <table className="min-w-full divide-y divide-gray-200 border-collapse">
-                <thead className="bg-gray-50 sticky top-0 z-10">
-                  <tr>
-                    {columns.map(column => 
-                      column.visible && (
-                        <th 
-                          key={column.key} 
-                          className="px-2 lg:px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap border-b border-gray-200 bg-gray-50"
-                        >
-                          {column.label}
-                        </th>
-                      )
-                    )}
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {currentRecords.length === 0 ? (
+      {/* Table Container - Responsive */}
+      <div className="flex-1 p-4 sm:p-6 lg:p-8 overflow-auto">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 h-full flex flex-col">
+          {/* Table - Horizontal scroll on mobile */}
+          <div className="flex-1 overflow-auto">
+            <div className="min-w-full inline-block align-middle">
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50 sticky top-0">
                     <tr>
-                      <td 
-                        colSpan={columns.filter(col => col.visible).length} 
-                        className="px-4 lg:px-6 py-8 lg:py-12 text-center"
-                      >
-                        <div className="text-gray-500">
-                          <span className="text-3xl lg:text-4xl mb-2 block">📝</span>
-                          <p className="text-base lg:text-lg font-medium">
-                            {enrollments.length === 0 ? 'No enrollments found' : 'No matching enrollments'}
-                          </p>
-                          <p className="text-xs lg:text-sm">
-                            {enrollments.length === 0 ? 'Get started by creating your first enrollment' : 'Try adjusting your filters or search terms.'}
-                          </p>
-                        </div>
-                      </td>
+                      {columns.filter(c => c.visible).map(col => (
+                        <th key={col.key} className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">
+                          {col.label}
+                        </th>
+                      ))}
                     </tr>
-                  ) : (
-                    currentRecords.map((enrollment, index) => (
-                      <tr 
-                        key={enrollment._id} 
-                        className={`transition-colors duration-150 ${
-                          index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
-                        } hover:bg-blue-50`}
-                      >
-                        {columns.map(column => {
-                          if (!column.visible) return null;
-                          
-                          // Common cell styling
-                          const baseCellClasses = "px-2 lg:px-4 py-2 lg:py-3 text-xs lg:text-sm border-b border-gray-200";
-                          const canDelete = canDeleteEnrollment(enrollment);
-                          
-                          switch (column.key) {
-                            case 'enrollmentNo':
-                              return (
-                                <td key={column.key} className={`${baseCellClasses} font-semibold text-gray-900 whitespace-nowrap`}>
-                                  <span className="bg-blue-100 text-blue-800 text-xs px-1 lg:px-2 py-0.5 lg:py-1 rounded">
-                                    {enrollment.enrollmentNo || 'N/A'}
-                                  </span>
-                                </td>
-                              );
-                            case 'student':
-                              return (
-                                <td key={column.key} className={`${baseCellClasses} text-gray-700 whitespace-nowrap`}>
-                                  <div className="font-medium">{getStudentName(enrollment)}</div>
-                                </td>
-                              );
-                            case 'email':
-                              return (
-                                <td key={column.key} className={`${baseCellClasses} text-gray-700 whitespace-nowrap`}>
-                                  {getStudentEmail(enrollment) || '-'}
-                                </td>
-                              );
-                            case 'phone':
-                              return (
-                                <td key={column.key} className={`${baseCellClasses} text-gray-700 whitespace-nowrap`}>
-                                  {getStudentPhone(enrollment) || '-'}
-                                </td>
-                              );
-                            case 'course':
-                              return (
-                                <td key={column.key} className={`${baseCellClasses} text-gray-700 whitespace-nowrap`}>
-                                  <span className="bg-purple-100 text-purple-800 text-xs px-1 lg:px-2 py-0.5 lg:py-1 rounded">
-                                    {getCourseName(enrollment)}
-                                  </span>
-                                </td>
-                              );
-                            case 'batch':
-                              return (
-                                <td key={column.key} className={`${baseCellClasses} text-gray-700 whitespace-nowrap`}>
-                                  {getBatchName(enrollment)}
-                                </td>
-                              );
-                            case 'timing':
-                              return (
-                                <td key={column.key} className={`${baseCellClasses} text-gray-500 whitespace-nowrap`}>
-                                  {getBatchTiming(enrollment) || '-'}
-                                </td>
-                              );
-                            case 'trainingBranch':
-                              return (
-                                <td key={column.key} className={`${baseCellClasses} text-gray-700 whitespace-nowrap`}>
-                                  {enrollment.trainingBranch || '-'}
-                                </td>
-                              );
-                            case 'mode':
-                              return (
-                                <td key={column.key} className={`${baseCellClasses} text-gray-700 whitespace-nowrap`}>  
-                                  {enrollment.mode || '-'}
-                                </td>
-                              );
-                            case 'counsellor':
-                              return (
-                                <td key={column.key} className={`${baseCellClasses} text-gray-700 whitespace-nowrap`}>
-                                  <span className="bg-green-100 text-green-800 text-xs px-1 lg:px-2 py-0.5 lg:py-1 rounded">
-                                    {getCounsellorName(enrollment)}
-                                  </span>
-                                </td>
-                              );
-                            case 'status':
-                              return (
-                                <td key={column.key} className={`${baseCellClasses} text-center`}>
-                                  {getStatusBadge(enrollment.status)}
-                                </td>
-                              );
-                            case 'feeStatus':
-                              return (
-                                <td key={column.key} className={`${baseCellClasses} text-center`}>
-                                  <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getFeeStatus(enrollment).color}`}>
-                                    {getFeeStatus(enrollment).label}
-                                  </span>
-                                  {((enrollment.totalAmount || 0) - (enrollment.pendingAmount || 0)) > 0 && (
-                                    <div className="text-xs text-gray-500 mt-1 hidden lg:block">
-                                      Due: {formatCurrency( (enrollment.pendingAmount|| 0))}
-                                    </div>
-                                  )}
-                                </td>
-                              );
-
-                            case 'totalAmount':
-                              // Show exact value entered in the form
-                              return (
-                                <td key={column.key} className={`${baseCellClasses} text-gray-900 font-semibold whitespace-nowrap`}>
-                                  {formatCurrency(enrollment.totalAmount || 0)}
-                                </td>
-                              );
-                            case 'amountReceived':
-                              // Amount received = admission registration payment
-                              return (
-                                <td key={column.key} className={`${baseCellClasses} text-green-600 font-semibold whitespace-nowrap`}>
-                                  {formatCurrency(enrollment.amountReceived || 0)}
-                                </td>
-                              );
-                            case 'pendingAmount':
-                              // Pending = total amount - admission registration payment
-                              const pendingAmt = (enrollment.pendingAmount || 0);
-                              return (
-                                <td key={column.key} className={`${baseCellClasses} text-red-600 font-semibold whitespace-nowrap`}>
-                                  {formatCurrency(pendingAmt)}
-                                </td>
-                              );
-                            case 'charges':
-                              return (
-                                <td key={column.key} className={`${baseCellClasses} text-green-600 font-semibold whitespace-nowrap`}>
-                                  {formatCurrency(enrollment.charges)}
-                                </td>
-                              );
-                            case 'admissionRegistrationPayment':
-                              return (
-                                <td key={column.key} className={`${baseCellClasses} text-green-600 font-semibold whitespace-nowrap`}>
-                                  {formatCurrency(enrollment.admissionRegistrationPayment || 0)}
-                                </td>
-                              );
-                            case 'enrollmentDate':
-                              return (
-                                <td key={column.key} className={`${baseCellClasses} text-gray-500 whitespace-nowrap`}>
-                                  {formatDate(enrollment.enrollmentDate)}
-                                </td>
-                              );
-                            case 'dueDate':
-                              return (
-                                <td key={column.key} className={`${baseCellClasses} text-gray-500 whitespace-nowrap`}>
-                                  {formatDate(enrollment.dueDate)}
-                                </td>
-                              );
-                            case 'paymentMode':
-                              return (
-                                <td key={column.key} className={`${baseCellClasses} text-gray-500 whitespace-nowrap capitalize`}>
-                                  {enrollment.paymentMode || '-'}
-                                </td>
-                              );
-                            case 'notes':
-                              return (
-                                <td key={column.key} className={`${baseCellClasses} text-gray-600`}>
-                                  {truncateText(enrollment.notes)}
-                                </td>
-                              );
-                            case 'actions':
-                              return (
-                                <td key={column.key} className={`${baseCellClasses} text-center whitespace-nowrap`}>
-                                  <div className="flex flex-col lg:flex-row items-center justify-center space-y-2 lg:space-y-0 lg:space-x-1">
-                                    <button 
-                                      onClick={() => handleEdit(enrollment)} 
-                                      className="text-blue-600 hover:text-blue-900 px-1 lg:px-2 py-1 rounded hover:bg-blue-50 transition-colors border border-blue-200 text-xs w-full lg:w-auto" 
-                                      title="Edit Enrollment"
-                                    >
-                                      Edit
-                                    </button>
-                                    {canDelete && (
-                                      <button 
-                                        onClick={() => handleDelete(enrollment._id)} 
-                                        className="text-red-600 hover:text-red-900 px-1 lg:px-2 py-1 rounded hover:bg-red-50 transition-colors border border-red-200 text-xs w-full lg:w-auto" 
-                                        title="Delete Enrollment"
-                                      >
-                                        Delete
-                                      </button>
-                                    )}
-                                  </div>
-                                </td>
-                              );
-                            default:
-                              return (
-                                <td key={column.key} className={`${baseCellClasses} text-gray-700`}>
-                                  {enrollment[column.key] || '-'}
-                                </td>
-                              );
-                          }
-                        })}
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {currentRecords.length === 0 ? (
+                      <tr>
+                        <td colSpan={columns.filter(c => c.visible).length} className="px-4 py-12 text-center text-gray-500">
+                          <div className="text-5xl mb-3">📝</div>
+                          <p className="text-base font-medium">No enrollments found</p>
+                          <p className="text-sm mt-1">Click "New Enrollment" to create one</p>
+                        </td>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
+                    ) : (
+                      currentRecords.map((enrollment, idx) => (
+                        <tr key={enrollment._id} className={`${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50 transition-colors`}>
+                          {columns.filter(c => c.visible).map(col => {
+                            switch(col.key) {
+                              case 'enrollmentNo':
+                                return (
+                                  <td key={col.key} className="px-4 py-3 text-sm font-medium whitespace-nowrap">
+                                    <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-md text-xs font-semibold">
+                                      {enrollment.enrollmentNo}
+                                    </span>
+                                  </td>
+                                );
+                              case 'student':
+                                return <td key={col.key} className="px-4 py-3 text-sm whitespace-nowrap">{getStudentName(enrollment)}</td>;
+                              case 'phone':
+                                return <td key={col.key} className="px-4 py-3 text-sm whitespace-nowrap">{getStudentPhone(enrollment)}</td>;
+                              case 'course':
+                                return (
+                                  <td key={col.key} className="px-4 py-3 text-sm whitespace-nowrap">
+                                    <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded-md text-xs font-semibold">
+                                      {getCourseName(enrollment)}
+                                    </span>
+                                  </td>
+                                );
+                              case 'batch':
+                                return <td key={col.key} className="px-4 py-3 text-sm whitespace-nowrap">{getBatchName(enrollment)}</td>;
+                              case 'timing':
+                                return <td key={col.key} className="px-4 py-3 text-sm whitespace-nowrap">{getBatchTiming(enrollment)}</td>;
+                              case 'mode':
+                                return <td key={col.key} className="px-4 py-3 text-sm whitespace-nowrap">{enrollment.mode || '-'}</td>;
+                              case 'approvalStatus':
+                                return <td key={col.key} className="px-4 py-3 text-sm whitespace-nowrap">{getApprovalStatusBadge(enrollment.enrollmentStatus)}</td>;
+                              case 'studentStatus':
+                                return <td key={col.key} className="px-4 py-3 text-sm whitespace-nowrap">{getStudentStatusBadge(enrollment.status)}</td>;
+                              case 'feeStatus':
+                                return (
+                                  <td key={col.key} className="px-4 py-3 text-sm whitespace-nowrap">
+                                    <span className={`px-2 py-1 rounded-md text-xs font-semibold ${getFeeStatus(enrollment).color}`}>
+                                      {getFeeStatus(enrollment).label}
+                                    </span>
+                                  </td>
+                                );
+                              case 'totalAmount':
+                                return <td key={col.key} className="px-4 py-3 text-sm font-medium whitespace-nowrap">{formatCurrency(enrollment.totalAmount)}</td>;
+                              case 'pendingAmount':
+                                return <td key={col.key} className="px-4 py-3 text-sm font-medium text-red-600 whitespace-nowrap">{formatCurrency(enrollment.pendingAmount)}</td>;
+                              case 'enrollmentDate':
+                                return <td key={col.key} className="px-4 py-3 text-sm text-gray-500 whitespace-nowrap">{formatDate(enrollment.enrollmentDate)}</td>;
+                              case 'actions':
+                                return (
+                                  <td key={col.key} className="px-4 py-3 text-sm whitespace-nowrap">
+                                    <div className="flex flex-wrap gap-1.5">
+                                      <button
+                                        onClick={() => handleEdit(enrollment)}
+                                        disabled={enrollment.enrollmentStatus !== 'pending' || actionLoading}
+                                        className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium border transition-colors ${
+                                          enrollment.enrollmentStatus === 'pending'
+                                            ? 'text-blue-600 border-blue-300 hover:bg-blue-50'
+                                            : 'text-gray-400 border-gray-200 cursor-not-allowed bg-gray-50'
+                                        }`}
+                                        title={enrollment.enrollmentStatus !== 'pending' ? 'Cannot edit approved/rejected' : ''}
+                                      >
+                                        Edit
+                                      </button>
+                                      {canDelete(enrollment) && (
+                                        <button
+                                          onClick={() => handleDelete(enrollment._id)}
+                                          disabled={actionLoading}
+                                          className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium text-red-600 border border-red-300 hover:bg-red-50 transition-colors"
+                                        >
+                                          Delete
+                                        </button>
+                                      )}
+                                    </div>
+                                  </td>
+                                );
+                              default:
+                                return <td key={col.key} className="px-4 py-3 text-sm">-</td>;
+                            }
+                          })}
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
 
-          {/* Table Footer with Pagination */}
+          {/* Pagination - Responsive */}
           {filteredEnrollments.length > 0 && (
-            <div className="flex-shrink-0 bg-gray-50 px-4 lg:px-6 py-3 lg:py-4 border-t border-gray-200">
-              <div className="flex flex-col lg:flex-row justify-between items-center space-y-3 lg:space-y-0">
-                {/* Records Info */}
-                <div className="text-xs lg:text-sm text-gray-700">
-                  Showing <span className="font-semibold">{currentRecords.length}</span> of{' '}
-                  <span className="font-semibold">{filteredEnrollments.length}</span> enrollments 
-                  (Page <span className="font-semibold">{currentPage}</span> of{' '}
-                  <span className="font-semibold">{totalPages}</span>)
+            <div className="border-t px-4 py-3 sm:px-6">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div className="text-sm text-gray-600">
+                  Showing <span className="font-medium">{indexOfFirstRecord + 1}</span> to{' '}
+                  <span className="font-medium">{Math.min(indexOfLastRecord, filteredEnrollments.length)}</span> of{' '}
+                  <span className="font-medium">{filteredEnrollments.length}</span> results
                 </div>
                 
-                {/* Pagination Controls */}
-                <div className="flex items-center space-x-2">
-                  {/* Previous Button */}
+                <div className="flex items-center justify-center sm:justify-end gap-2">
                   <button
                     onClick={prevPage}
-                    disabled={currentPage === 1}
-                    className={`px-3 py-1 lg:px-4 lg:py-2 rounded-lg border text-xs lg:text-sm font-medium transition-colors duration-200 ${
-                      currentPage === 1
-                        ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
-                        : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50 hover:border-gray-400'
-                    }`}
+                    disabled={currentPage === 1 || actionLoading}
+                    className="relative inline-flex items-center px-3 py-2 rounded-md border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
                   >
                     Previous
                   </button>
-
-                  {/* Page Numbers */}
-                  <div className="flex items-center space-x-1">
-                    {getPageNumbers().map(number => (
+                  
+                  <div className="hidden sm:flex gap-1">
+                    {getPageNumbers().map(num => (
                       <button
-                        key={number}
-                        onClick={() => paginate(number)}
-                        className={`px-2 lg:px-3 py-1 lg:py-2 rounded-lg border text-xs lg:text-sm font-medium transition-colors duration-200 ${
-                          currentPage === number
-                            ? 'bg-[#890c25] text-white border-blue-500'
-                            : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50 hover:border-gray-400'
-                        }`}
+                        key={num}
+                        onClick={() => paginate(num)}
+                        disabled={actionLoading}
+                        className={`relative inline-flex items-center px-4 py-2 rounded-md text-sm font-medium ${
+                          currentPage === num
+                            ? 'bg-[#890c25] text-white'
+                            : 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                        } disabled:opacity-50 disabled:cursor-not-allowed`}
                       >
-                        {number}
+                        {num}
                       </button>
                     ))}
                   </div>
 
-                  {/* Next Button */}
+                  <div className="sm:hidden">
+                    <span className="text-sm text-gray-700">
+                      Page {currentPage} of {totalPages}
+                    </span>
+                  </div>
+                  
                   <button
                     onClick={nextPage}
-                    disabled={currentPage === totalPages}
-                    className={`px-3 py-1 lg:px-4 lg:py-2 rounded-lg border text-xs lg:text-sm font-medium transition-colors duration-200 ${
-                      currentPage === totalPages
-                        ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
-                        : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50 hover:border-gray-400'
-                    }`}
+                    disabled={currentPage === totalPages || actionLoading}
+                    className="relative inline-flex items-center px-3 py-2 rounded-md border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
                   >
                     Next
                   </button>
-                </div>
-
-                {/* Total Records */}
-                <div className="text-xs lg:text-sm text-gray-500">
-                  Total: {userEnrollments.length} {user?.role === 'counsellor' ? 'your' : ''} enrollments • 
-                  Revenue: {formatCurrency(enrollmentStats.totalRevenue)}
                 </div>
               </div>
             </div>
@@ -969,24 +720,38 @@ const EnrollmentManagement = () => {
         </div>
       </div>
 
-      {/* Enrollment Form Modal */}
+      {/* Form Modal - Responsive */}
       {showForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-2 lg:p-4 z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-4 lg:p-6">
-              <div className="flex justify-between items-center mb-4 lg:mb-6">
-                <h2 className="text-lg lg:text-xl font-bold text-gray-800">
-                  {editingEnrollment ? 'Edit Enrollment' : 'Create New Enrollment'}
-                </h2>
-                <button onClick={handleCloseForm} className="text-gray-400 hover:text-gray-600 text-2xl">×</button>
-              </div>
-              <EnrollmentForm 
-                enrollment={editingEnrollment} 
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-auto">
+            <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center">
+              <h2 className="text-xl font-bold text-gray-900">
+                {editingEnrollment ? 'Edit Enrollment' : 'New Enrollment'}
+              </h2>
+              <button 
+                onClick={handleCloseForm} 
+                className="text-gray-400 hover:text-gray-600 text-2xl transition-colors"
+              >
+                ×
+              </button>
+            </div>
+            <div className="p-6">
+              <EnrollmentForm
+                enrollment={editingEnrollment}
                 onClose={handleCloseForm}
-                isCounsellor={user?.role === 'counsellor'}
-                counsellorId={user?.role === 'counsellor' ? user?._id : null}
+                counsellorId={user?._id}
               />
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Global Loading Overlay */}
+      {actionLoading && (
+        <div className="fixed inset-0 bg-black/20 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-4 shadow-xl flex items-center gap-3">
+            <div className="animate-spin rounded-full h-5 w-5 border-2 border-[#890c25] border-t-transparent"></div>
+            <span className="text-sm font-medium">Processing...</span>
           </div>
         </div>
       )}

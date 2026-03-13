@@ -8,11 +8,9 @@ const {
   getEnrollmentStats,
   getFeeDelays,
   deleteEnrollment,
-  deleteEnrollmentByCounsellor,
   addActivity,
-  // applyLateFees, // New
-  // getEnrollmentsWithLateFees, // New
-  // getEnrollmentsWithUpfrontPayment // New
+  approveEnrollment,
+  rejectEnrollment
 } = require('../controllers/enrollmentController');
 
 const { protect, admin } = require('../middleware/auth');
@@ -26,10 +24,9 @@ router.get('/', getEnrollments);
 router.get('/stats/overview', admin, getEnrollmentStats);
 router.get('/fee-delays', getFeeDelays);
 
-// New routes for late fees and upfront payments
-// router.get('/late-fees', getEnrollmentsWithLateFees);
-// router.get('/upfront-payments', getEnrollmentsWithUpfrontPayment);
-// router.post('/:id/late-fees', applyLateFees);
+// Approval routes (Admin only)
+router.put('/:id/approve', admin, approveEnrollment);
+router.put('/:id/reject', admin, rejectEnrollment);
 
 // Individual enrollment routes
 router.get('/:id', getEnrollment);
@@ -37,7 +34,6 @@ router.put('/:id', updateEnrollment);
 router.post('/:id/activities', addActivity);
 
 // Delete routes
-router.delete('/counsellor/:id', deleteEnrollmentByCounsellor);
 router.delete('/:id', admin, deleteEnrollment);
 
 module.exports = router;

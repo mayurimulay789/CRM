@@ -648,7 +648,7 @@ function generateOneTimePaymentEmail(payment, student, enrollment) {
  * Generate email for installment payment
  */
 function generateInstallmentPaymentEmail(payment, student, enrollment) {
-  const subject = `✅ Installment Received | ${payment.paymentNo}`;
+  const subject = `✅ Payment Received | ${payment.paymentNo}`;
   
   const installmentText = payment.installmentNo ? `Installment ${payment.installmentNo}` : 'Installment';
   
@@ -937,17 +937,6 @@ function generateInstallmentPaymentEmail(payment, student, enrollment) {
                 </td>
               </tr>
             </table>
-
-            <!-- Quote -->
-            <div class="quote-block">
-                <span class="quote-mark">“</span>
-                <p>We do not just build careers. We build people who change the world.</p>
-                <div class="director-name">— Mr. Parveen Jain (Director), RYMA ACADEMY</div>
-            </div>
-            <!-- Optional note about header (remove in production) -->
-            <div class="note-placeholder">
-                ⚡ Replace header image source with your actual logo.
-            </div>
         </div>
 
         <!-- Disclaimer -->
@@ -1344,6 +1333,8 @@ const recordPayment = async (req, res) => {
       installmentNo
     } = req.body;
 
+    console.log("req.body",req.body);
+
     // Verify enrollment exists
     const enrollmentDoc = await Enrollment.findById(enrollment);
     if (!enrollmentDoc) {
@@ -1411,6 +1402,8 @@ const recordPayment = async (req, res) => {
       receivedBy: req.user.id,
       counsellor: req.user.id
     });
+
+    console.log("record payment",payment);
 
     await payment.save();
 
@@ -1566,6 +1559,7 @@ const approvePayment = async (req, res) => {
     }
 
     const { verificationNotes } = req.body;
+    console.log("req body for approve :",req.body);
     const payment = await Payment.findById(req.params.id).populate('enrollment');
 
     if (!payment) {
@@ -1575,6 +1569,8 @@ const approvePayment = async (req, res) => {
       });
     }
 
+    console.log("payment found",payment);
+
     if (payment.verificationStatus === 'approved') {
       return res.status(400).json({
         success: false,
@@ -1583,6 +1579,8 @@ const approvePayment = async (req, res) => {
     }
 
     const enrollment = payment.enrollment;
+
+    console.log("enrollment",enrollment);
 
     // 🔥 IMPORTANT: Update enrollment amounts
     enrollment.amountReceived = (enrollment.amountReceived || 0) + payment.amountReceived;
@@ -1599,6 +1597,8 @@ const approvePayment = async (req, res) => {
     enrollment.lastPaidDate = new Date();
     enrollment.lastPaidMode = payment.paymentMode;
     enrollment.lastAmountReceivedBy = payment.receivedBy;
+
+
 
     // Save enrollment first
     await enrollment.save();

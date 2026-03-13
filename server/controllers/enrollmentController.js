@@ -3,130 +3,51 @@ const Enrollment = require('../models/Enrollment');
 const Payment = require('../models/Payment');
 const Student = require('../models/Student');
 const Admission = require('../models/Admission');
-const Course = require('../models/Course');
-const Batch = require('../models/Batch');
 
+// Helper function for date formatting
+function formatDateToDDMMYYYY(isoString) {
+  if (!isoString) return '';
+  const date = new Date(isoString);
+  const day = String(date.getUTCDate()).padStart(2, '0');
+  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+  const year = date.getUTCFullYear();
+  return `${day}/${month}/${year}`;
+}
 
-const createEnrollment = async (req, res) => {
-  console.log("re body", req.body);
+// Helper function to send enrollment approval email
+// Helper function to send enrollment approval email
+async function sendEnrollmentApprovalMail(enrollment) {
   try {
-    const {
-      admission,
-      batch,
+    if (enrollment.student && enrollment.student.email) {
+      console.log(`📧 Sending enrollment approval email to: ${enrollment.student.email}`);
 
-      mode,
-      totalAmount,
-      feeType,
-      dueDate,
-      leadDate,
-      leadSource,
-      call,
-      admissionRegistrationPayment = 0
-    } = req.body;
+      // Generate installment table HTML if fee type is installment
+      const installmentTableHTML = enrollment.feeType === 'installment' && enrollment.installments && enrollment.installments.length > 0 
+        ? `
+          <div class="section-title">INSTALLMENT SCHEDULE</div>
+          <table class="enroll-table" cellpadding="0" cellspacing="0">
+            <thead>
+              <tr>
+                <th class="label-cell" style="text-align: center;">#</th>
+                <th class="label-cell" style="text-align: center;">Amount (₹)</th>
+                <th class="label-cell" style="text-align: center;">Due Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${enrollment.installments.map(inst => `
+                <tr>
+                  <td class="value-cell" style="text-align: center;"><strong>${inst.installmentNumber}</strong></td>
+                  <td class="value-cell" style="text-align: center;"><strong>₹${inst.amount}</strong></td>
+                  <td class="value-cell" style="text-align: center;"><strong>${formatDateToDDMMYYYY(inst.dueDate)}</strong></td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        `
+        : '';
 
-    // Check if enrollment already exists for this admission
-    const existingEnrollment = await Enrollment.findOne({ admission });
-    if (existingEnrollment) {
-      return res.status(400).json({
-        success: false,
-        message: 'Enrollment already exists for this admission'
-      });
-    }
-    // Extract student and course from admission details
-    const admissionDetails = await Admission.findById(admission);
-    if (!admissionDetails) {
-      return res.status(404).json({
-        success: false,
-        message: 'Admission not found'
-      });
-    }
-
-    // Verify admission is approved
-    if (admissionDetails.status !== 'approved') {
-      return res.status(400).json({
-        success: false,
-        message: 'Cannot create enrollment for non-approved admission'
-      });
-    }
-
-    // Calculate actual total including registration payment
-    const actualTotal = (totalAmount || 0) + (admissionRegistrationPayment || 0);
-
-    // EMI and dueDate validation removed
-
-    // Generate enrollment number
-    const currentYear = new Date().getFullYear();
-    const latestEnrollment = await Enrollment.findOne(
-      {
-        enrollmentNo: new RegExp(`^ENR${currentYear}`)
-      },
-      {},
-      { sort: { enrollmentNo: -1 } }
-    );
-
-    let sequenceNumber = 1;
-    if (latestEnrollment && latestEnrollment.enrollmentNo) {
-      const lastSequence = parseInt(latestEnrollment.enrollmentNo.slice(-4));
-      sequenceNumber = lastSequence + 1;
-    }
-
-    const enrollmentNo = `ENR${currentYear}${sequenceNumber.toString().padStart(4, '0')}`;
-
-    // Create enrollment
-    const enrollment = new Enrollment({
-      enrollmentNo,
-      admission,
-      student: admissionDetails.student.toString(),
-      course: admissionDetails.course.toString(),
-      batch,
-      mode,
-      totalAmount,
-      feeType,
-      dueDate: dueDate || null,
-      leadDate,
-      leadSource,
-      call,
-      admissionRegistrationPayment,
-      counsellor: req.user.id
-    });
-
-    console.log("Enrollment to be saved:", enrollment);
-    await enrollment.save();
-    // Populate the saved enrollment
-    await enrollment.populate([
-      { path: 'student', select: 'studentId name email phone dateOfBirth' },
-      { path: 'course', select: 'name fee duration' },
-      { path: 'batch', select: 'name timing code' },
-      { path: 'admission', select: 'admissionNo trainingBranch' }
-    ]);
-
-    // Add activity log
-    await enrollment.addActivity(
-      'status_update',
-      'Enrollment created successfully',
-      req.user.id
-    );
-    function formatDateToDDMMYYYY(isoString) {
-      const date = new Date(isoString);
-      // Use UTC methods to avoid timezone shifts
-      const day = String(date.getUTCDate()).padStart(2, '0');
-      const month = String(date.getUTCMonth() + 1).padStart(2, '0');
-      const year = date.getUTCFullYear();
-      return `${day}/${month}/${year}`;
-    }
-
-    // Send mail to student on enrollment creation (accept)
-    try {
-      if (enrollment.student && enrollment.student.email) {
-        console.log(`📧 Sending enrollment acceptance email to: ${enrollment.student.email}`);
-
-        // Calculate actual total including all fees
-        const actualTotal = (enrollment.totalAmount || 0) + (enrollment.charges || 0) + (enrollment.admissionRegistrationPayment || 0);
-        const pendingAmount = actualTotal - (enrollment.amountReceived || 0);
-
-        // Generate styled enrollment email
-        const enrollmentHtml = `
-         <!DOCTYPE html>
+      const enrollmentHtml = `
+       <!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
@@ -146,39 +67,6 @@ const createEnrollment = async (req, res) => {
             background-color: #ffffff;
             overflow: hidden;
             box-shadow: 0 12px 28px rgba(150, 30, 30, 0.2);
-        }
-
-        /* header image area – placeholder */
-        .header-image {
-            width: 100%;
-            background-color: #b31b1b;
-            /* fallback */
-            text-align: center;
-            line-height: 0;
-        }
-
-        .header-image img {
-            width: 100%;
-            height: auto;
-            display: block;
-            max-height: 180px;
-            object-fit: cover;
-            background-color: #8a1e1e;
-        }
-
-        .img-placeholder {
-            display: inline-block;
-            width: 100%;
-            background: linear-gradient(145deg, #b22222, #8b1a1a);
-            color: white;
-            font-size: 32px;
-            font-weight: 800;
-            text-align: center;
-            padding: 40px 20px;
-            box-sizing: border-box;
-            letter-spacing: 4px;
-            text-transform: uppercase;
-            border-bottom: 4px solid #f3c3c3;
         }
 
         .content {
@@ -242,7 +130,7 @@ const createEnrollment = async (req, res) => {
             margin-bottom: 25px;
         }
 
-        .enroll-table td {
+        .enroll-table td, .enroll-table th {
             padding: 14px 20px;
             border-bottom: 1px solid #f2d6d6;
             font-size: 16px;
@@ -333,9 +221,9 @@ const createEnrollment = async (req, res) => {
             color: #592525;
         }
 
-        .contact-block {
+        .contact-footer {
             background: #fae1e1;
-            padding: 14px 18px;
+            padding: 18px 25px;
             border-radius: 30px;
             color: #6d3131;
             font-size: 15px;
@@ -343,7 +231,7 @@ const createEnrollment = async (req, res) => {
             word-break: break-word;
         }
 
-        .contact-block a {
+        .contact-footer a {
             color: #a13030;
             text-decoration: underline;
         }
@@ -371,91 +259,29 @@ const createEnrollment = async (req, res) => {
             color: #ffd6d6;
         }
 
-        hr {
-            border: none;
-            height: 2px;
-            background: linear-gradient(to right, #efc2c2, #c96666, #efc2c2);
-            margin: 28px 0;
+        .imgformate {
+            width: 1200px;
         }
-
-        .note-placeholder {
-            font-size: 13px;
-            color: #946060;
-            background: #faf0f0;
-            padding: 6px 10px;
-            border-radius: 50px;
-            margin-top: 8px;
-            text-align: center;
+        
+        .fee-summary {
+            background: #f0f7ff;
+            padding: 16px 20px;
+            border-radius: 12px;
+            margin: 20px 0;
+            border-left: 6px solid #3498db;
         }
-          .contact-footer {
-    background: #fae1e1;
-    padding: 18px 25px;
-    border-radius: 30px;
-    color: #6d3131;
-    font-size: 15px;
-    margin: 20px 0;
-    display: flex;
-    flex-direction: row;
-    flex-wrap: wrap;
-    justify-content: center;
-    align-items: center;
-    gap: 12px 8px; /* space between items */
-    word-break: break-word;
-}
-
-.contact-footer {
-    background: #fae1e1;
-    padding: 18px 25px;
-    border-radius: 30px;
-    color: #6d3131;
-    font-size: 15px;
-    margin: 20px 0;
-    display: flex;
-    flex-direction: row;
-    flex-wrap: wrap;
-    justify-content: center;
-    align-items: center;
-    gap: 12px 8px; /* space between items */
-    word-break: break-word;
-}
-
-.contact-footer a {
-    color: #a13030;
-    text-decoration: underline;
-    white-space: nowrap; /* prevent phone numbers from breaking */
-}
-
-/* Responsive stacking on small screens */
-@media only screen and (max-width: 480px) {
-    .contact-footer {
-        flex-direction: column;
-        align-items: center;
-        text-align: center;
-        gap: 8px;
-    }
-    .contact-footer a {
-        white-space: normal;
-    }
-}
-    .imgformate{
-        width:1200px;
-    }
     </style>
 </head>
-
 <body>
     <div class="enrollment-container">
         <img src="https://res.cloudinary.com/dpyry0mh1/image/upload/v1773287825/Screenshot_2026-03-11_141445_ibusnj.png" alt="" class="imgformate">
-        <!-- Header image area: replace src with your actual banner/logo -->
 
         <div class="content">
-            <!-- Dear student -->
-            <div class="greeting">Dear <strong>${enrollment.student.name || 'Student'}</strong>,</div>
+            <div class="greeting">Dear <strong>${enrollment.student?.name || 'Student'}</strong>,</div>
             <div class="office-line">Greetings from the Office of Academic Affairs, RYMA ACADEMY.</div>
 
-            <!-- enrollment intro -->
             <div class="message">
-                You have now been formally enrolled in system as an official student of RYMA ACADEMY. Your unique
+                Congratulations! Your enrollment has been <strong>approved</strong>. You have now been formally enrolled as an official student of RYMA ACADEMY. Your unique
                 Enrollment ID has been issued — <strong>${enrollment.enrollmentNo}</strong>. This is your academic identity and will
                 be required for all academic, administrative, and certification purposes throughout your program.
             </div>
@@ -464,14 +290,12 @@ const createEnrollment = async (req, res) => {
                 ⚡ Kindly save this email permanently. It is your official enrollment record.
             </div>
 
-            <!-- OFFICIAL ENROLLMENT RECORD section -->
             <div class="section-title">OFFICIAL ENROLLMENT RECORD — RYMA ACADEMY</div>
 
-            <!-- Personal details table -->
             <table class="enroll-table" cellpadding="0" cellspacing="0">
                 <tr>
                     <td class="label-cell">Student Name</td>
-                    <td class="value-cell"><strong>${enrollment.student.name || 'Student'}</strong></td>
+                    <td class="value-cell"><strong>${enrollment.student?.name || 'Student'}</strong></td>
                 </tr>
                 <tr>
                     <td class="label-cell">Enrollment ID</td>
@@ -479,19 +303,18 @@ const createEnrollment = async (req, res) => {
                 </tr>
                 <tr>
                     <td class="label-cell">Date of Birth</td>
-                    <td class="value-cell"><strong>${formatDateToDDMMYYYY(enrollment.student.dateOfBirth)}</strong></td>
+                    <td class="value-cell"><strong>${formatDateToDDMMYYYY(enrollment.student?.dateOfBirth)}</strong></td>
                 </tr>
                 <tr>
                     <td class="label-cell">Registered Mobile</td>
-                    <td class="value-cell"><strong>${enrollment.student.phone}</strong></td>
+                    <td class="value-cell"><strong>${enrollment.student?.phone}</strong></td>
                 </tr>
                 <tr>
                     <td class="label-cell">Registered Email</td>
-                    <td class="value-cell"><strong>${enrollment.student.email}</strong></td>
+                    <td class="value-cell"><strong>${enrollment.student?.email}</strong></td>
                 </tr>
             </table>
 
-            <!-- PROGRAM DETAILS section -->
             <div class="section-title">PROGRAM DETAILS</div>
             <table class="enroll-table" cellpadding="0" cellspacing="0">
                 <tr>
@@ -500,15 +323,15 @@ const createEnrollment = async (req, res) => {
                 </tr>
                 <tr>
                     <td class="label-cell">Program Duration</td>
-                    <td class="value-cell"><strong>${enrollment.course.duration}</strong></td>
+                    <td class="value-cell"><strong>${enrollment.course?.duration}</strong></td>
                 </tr>
                 <tr>
                     <td class="label-cell">Batch Code</td>
-                    <td class="value-cell"><strong>${enrollment.batch.code}</strong></td>
+                    <td class="value-cell"><strong>${enrollment.batch?.code}</strong></td>
                 </tr>
                 <tr>
                     <td class="label-cell">Batch Timings</td>
-                    <td class="value-cell"><strong>${enrollment.batch.timing}</strong></td>
+                    <td class="value-cell"><strong>${enrollment.batch?.timing}</strong></td>
                 </tr>
                 <tr>
                     <td class="label-cell">Mode of Learning</td>
@@ -516,29 +339,46 @@ const createEnrollment = async (req, res) => {
                 </tr>
                 <tr>
                     <td class="label-cell">Campus</td>
-                    <td class="value-cell"><strong>${enrollment.admission.trainingBranch || 'N/A'}</strong></td>
+                    <td class="value-cell"><strong>${enrollment.admission?.trainingBranch || 'N/A'}</strong></td>
                 </tr>
                 <tr>
                     <td class="label-cell">Enrollment Date</td>
-                    <td class="value-cell"><strong> ${formatDateToDDMMYYYY(enrollment.enrollmentDate)}</strong></td>
+                    <td class="value-cell"><strong>${formatDateToDDMMYYYY(enrollment.enrollmentDate)}</strong></td>
                 </tr>
             </table>
 
-            <!-- verification warning (exact wording) -->
+            <div class="section-title">FEE DETAILS</div>
+            <table class="enroll-table" cellpadding="0" cellspacing="0">
+                <tr>
+                    <td class="label-cell">Program Fee (Total Amount)</td>
+                    <td class="value-cell"><strong>₹${enrollment.totalAmount || 0}</strong></td>
+                </tr>
+                <tr>
+                    <td class="label-cell">Registration Payment</td>
+                    <td class="value-cell"><strong>₹${enrollment.admissionRegistrationPayment || 0}</strong></td>
+                </tr>
+                <tr>
+                    <td class="label-cell">Amount to Pay</td>
+                    <td class="value-cell"><strong>₹${(enrollment.totalAmount || 0) - (enrollment.admissionRegistrationPayment || 0)}</strong></td>
+                </tr>
+                <tr>
+                    <td class="label-cell">Fee Type</td>
+                    <td class="value-cell"><strong>${enrollment.feeType === 'one-time' ? 'One Time Payment' : 'Installment'}</strong></td>
+                </tr>
+            </table>
+
+            ${installmentTableHTML}
+
             <div class="warning-note">
                 ⚠️ <strong>Please verify all details carefully.</strong> Any discrepancy must be reported to your
-                Education Counsellor within 48 hours. RYMA ACADEMY shall not be held responsible for errors arising from
-                unverified or incorrect information submitted at the time of admission.
+                Education Counsellor within 48 hours.
             </div>
 
-            <!-- need assistance box -->
             <div class="help-box">
-                <strong>⚠️ Need assistance?</strong> We are always here to help — reach out to your Education Counsellor
-                or contact us at <strong>+91-9873336133</strong> | <a
+                <strong>⚠️ Need assistance?</strong> Contact us at <strong>+91-9873336133</strong> | <a
                     href="mailto:services@rymaacademy.com">services@rymaacademy.com</a>
             </div>
 
-            <!-- inspirational quote (from both screenshots) -->
             <div class="quote-block">
                 <span class="quote-mark">“</span>
                 <p>At RYMA ACADEMY, we believe every great journey begins with a single, courageous step forward. You
@@ -546,326 +386,313 @@ const createEnrollment = async (req, res) => {
                 <div class="director-name">~ Mr. Parveen Jain | Director, RYMA ACADEMY</div>
             </div>
 
-            <!-- signature -->
             <div class="signature">
                 With the highest regards & warmest welcome,<br>
                 <strong>Team of Admissions & Student Services</strong><br>
                 RYMA ACADEMY
             </div>
 
-        <!-- CONTACT FOOTER (Email-Safe) -->
-<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#fae1e1; border-radius:30px; margin:20px 0;" bgcolor="#fae1e1">
-  <tr>
-    <td style="padding:18px 25px; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color:#6d3131; font-size:15px;">
-      
-      <!-- Phone -->
-      <table width="100%" cellpadding="0" cellspacing="0" border="0">
-        <tr>
-          <td align="center" style="padding:4px 0;">📞 +91-9873336133</td>
-        </tr>
-      </table>
-      
-      <!-- Email -->
-      <table width="100%" cellpadding="0" cellspacing="0" border="0">
-        <tr>
-          <td align="center" style="padding:4px 0;">
-            <a href="mailto:services@rymaacademy.com" style="color:#a13030; text-decoration:underline;">services@rymaacademy.com</a>
-          </td>
-        </tr>
-      </table>
-      
-      <!-- Website -->
-      <table width="100%" cellpadding="0" cellspacing="0" border="0">
-        <tr>
-          <td align="center" style="padding:4px 0;">
-            <a href="https://www.rymaacademy.com" style="color:#a13030; text-decoration:underline;">www.rymaacademy.com</a>
-          </td>
-        </tr>
-      </table>
-      
-      <!-- Address (with proper wrapping) -->
-      <table width="100%" cellpadding="0" cellspacing="0" border="0">
-        <tr>
-          <td align="center" style="padding:8px 0 4px; word-break:break-word;">
-            📍 D-7/32, 1st Floor, Main Vishram Chowk, Sec-6, Rohini, Delhi – 110085
-          </td>
-        </tr>
-      </table>
-      
-    </td>
-  </tr>
-</table>
-
-            <!-- small note about image placeholder (can be removed in production) -->
-            <div class="note-placeholder">
-                ⚡ Replace the header image source with your actual logo.
+            <div class="contact-footer">
+                📞 +91-9873336133<br>
+                📧 <a href="mailto:services@rymaacademy.com">services@rymaacademy.com</a><br>
+                🌐 <a href="https://www.rymaacademy.com">www.rymaacademy.com</a><br>
+                📍 D-7/32, 1st Floor, Main Vishram Chowk, Sec-6, Rohini, Delhi – 110085
             </div>
         </div>
 
-        <!-- disclaimer footer (red dark) -->
         <div class="disclaimer">
-            <strong>Disclaimer:</strong> This is an electronically generated communication and does not require a
-            physical signature or stamp. Please do not print this email unless it is absolutely necessary. The
-            information contained in this email is confidential to the addressee and may be protected by legal
-            privilege. If you are not the intended recipient, please note that you may not disseminate, retransmit, or
-            make any other use of any material in this message. If you have received this email in error, please delete
-            it and notify us immediately by telephone or email.
+            <strong>Disclaimer:</strong> This is an electronically generated communication.
         </div>
         <div class="footer-red">
             © RYMA ACADEMY – Official Enrollment Record
         </div>
     </div>
 </body>
-
 </html>
-        `;
+      `;
 
-        await sendMail(
-          enrollment.student.email,
-          `🎓 Enrollment Confirmed - Welcome to Ryma Academy | ${enrollment.enrollmentNo}`,
-          enrollmentHtml,
-          true // Include BCC for enrollment notifications
-        );
-        console.log('✅ Enrollment acceptance email sent successfully to:', enrollment.student.email);
-      } else {
-        console.error('❌ No student email found for enrollment:', {
-          enrollmentId: enrollment._id,
-          studentId: enrollment.student?._id,
-          studentEmail: enrollment.student?.email,
-          studentName: enrollment.student?.name
-        });
-      }
-    } catch (err) {
-      console.error('❌ Failed to send enrollment acceptance email:', {
-        error: err.message,
-        studentEmail: enrollment.student?.email,
-        enrollmentId: enrollment._id,
-        stack: err.stack
+      await sendMail(
+        enrollment.student.email,
+        `🎓 Enrollment Approved - Welcome to Ryma Academy | ${enrollment.enrollmentNo}`,
+        enrollmentHtml,
+        true
+      );
+      console.log('✅ Enrollment approval email sent successfully');
+    }
+  } catch (err) {
+    console.error('❌ Failed to send enrollment approval email:', err.message);
+  }
+}
+
+// Helper function to send enrollment rejection email
+async function sendEnrollmentRejectionMail(student, enrollment) {
+  try {
+    if (student && student.email) {
+      console.log(`📧 Sending enrollment rejection email to: ${student.email}`);
+
+      const rejectionHtml = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Enrollment Status Update</title>
+          <style>
+            body {
+              font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+              line-height: 1.6;
+              color: #333;
+              margin: 0;
+              padding: 0;
+              background-color: #f4f4f4;
+            }
+            .container {
+              max-width: 600px;
+              margin: 0 auto;
+              background-color: #ffffff;
+              border-radius: 10px;
+              overflow: hidden;
+              box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            }
+            .header {
+              background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+              color: white;
+              padding: 30px 20px;
+              text-align: center;
+            }
+            .header h1 {
+              margin: 0;
+              font-size: 28px;
+              font-weight: 600;
+            }
+            .content {
+              padding: 30px;
+            }
+            .message {
+              text-align: center;
+              margin-bottom: 30px;
+            }
+            .message h2 {
+              color: #dc3545;
+              font-size: 24px;
+              margin-bottom: 10px;
+            }
+            .status-badge {
+              background-color: #dc3545;
+              color: white;
+              padding: 10px 20px;
+              border-radius: 20px;
+              text-align: center;
+              margin: 20px 0;
+              font-weight: 600;
+            }
+            .support-info {
+              background-color: #fff3cd;
+              border-left: 4px solid #ffc107;
+              padding: 15px 20px;
+              margin: 20px 0;
+              border-radius: 4px;
+            }
+            .footer {
+              text-align: center;
+              padding: 20px;
+              background-color: #f8f9fa;
+              color: #6c757d;
+              font-size: 14px;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>📋 Enrollment Update</h1>
+            </div>
+            
+            <div class="content">
+              <div class="message">
+                <h2>Enrollment Status Update</h2>
+                <p>Dear ${student.name || 'Student'}, we regret to inform you that your enrollment application has been <strong>rejected</strong>.</p>
+              </div>
+
+              <div class="status-badge">
+                ❌ Enrollment Rejected
+              </div>
+
+              <div class="support-info">
+                <h4 style="margin-top: 0; color: #856404;">📞 Need Help?</h4>
+                <p style="margin: 0;">If you have any questions about this decision, please contact our admissions team.</p>
+              </div>
+            </div>
+
+            <div class="footer">
+              <p><strong>Ryma Academy</strong></p>
+              <p>Contact: <a href="mailto:support@rymaacademy.com">support@rymaacademy.com</a></p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `;
+
+      await sendMail(
+        student.email,
+        '📋 Enrollment Status Update - Ryma Academy',
+        rejectionHtml,
+        true
+      );
+      console.log('✅ Enrollment rejection email sent successfully');
+    }
+  } catch (err) {
+    console.error('❌ Failed to send enrollment rejection email:', err.message);
+  }
+}
+
+// Create Enrollment
+const createEnrollment = async (req, res) => {
+  console.log("req body", req.body);
+  try {
+    const {
+      admission,
+      batch,
+      mode,
+      totalAmount,
+      feeType,
+      dueDate,
+      leadDate,
+      leadSource,
+      call,
+      installments,
+      admissionRegistrationPayment = 0
+    } = req.body;
+
+    // Check if enrollment already exists
+    const existingEnrollment = await Enrollment.findOne({ admission });
+    if (existingEnrollment) {
+      return res.status(400).json({
+        success: false,
+        message: 'Enrollment already exists for this admission'
       });
     }
 
-    res.status(201).json({
-      success: true,
-      data: enrollment
-    });
-    // Helper: Send rejection mail
-    async function sendEnrollmentRejectionMail(student, admissionRegistrationPayment, charges = 0, totalAmount = 0) {
-      try {
-        if (student && student.email) {
-          console.log(`📧 Sending enrollment rejection email to: ${student.email}`);
+    // Get admission details
+    const admissionDetails = await Admission.findById(admission);
+    if (!admissionDetails) {
+      return res.status(404).json({
+        success: false,
+        message: 'Admission not found'
+      });
+    }
 
-          // Calculate amounts  
-          const actualTotal = (totalAmount || 0) + (charges || 0) + (admissionRegistrationPayment || 0);
+    // Verify admission is approved
+    if (admissionDetails.status !== 'approved') {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot create enrollment for non-approved admission'
+      });
+    }
 
-          const rejectionHtml = `
-          <!DOCTYPE html>
-          <html>
-          <head>
-            <meta charset="utf-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Enrollment Status Update</title>
-            <style>
-              body {
-                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                line-height: 1.6;
-                color: #333;
-                margin: 0;
-                padding: 0;
-                background-color: #f4f4f4;
-              }
-              .container {
-                max-width: 600px;
-                margin: 0 auto;
-                background-color: #ffffff;
-                border-radius: 10px;
-                overflow: hidden;
-                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-              }
-              .header {
-                background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
-                color: white;
-                padding: 30px 20px;
-                text-align: center;
-              }
-              .header h1 {
-                margin: 0;
-                font-size: 28px;
-                font-weight: 600;
-              }
-              .content {
-                padding: 30px;
-              }
-              .message {
-                text-align: center;
-                margin-bottom: 30px;
-              }
-              .message h2 {
-                color: #dc3545;
-                font-size: 24px;
-                margin-bottom: 10px;
-              }
-              .details {
-                background-color: #f8f9fa;
-                border-radius: 8px;
-                padding: 20px;
-                margin: 20px 0;
-              }
-              .detail-row {
-                display: flex;
-                justify-content: space-between;
-                margin-bottom: 10px;
-                padding-bottom: 10px;
-                border-bottom: 1px solid #e9ecef;
-              }
-              .detail-row:last-child {
-                border-bottom: none;
-                margin-bottom: 0;
-                padding-bottom: 0;
-              }
-              .detail-label {
-                font-weight: 600;
-                color: #495057;
-              }
-              .detail-value {
-                color: #212529;
-                text-align: right;
-              }
-              .status-badge {
-                background-color: #dc3545;
-                color: white;
-                padding: 10px 20px;
-                border-radius: 20px;
-                text-align: center;
-                margin: 20px 0;
-                font-weight: 600;
-              }
-              .support-info {
-                background-color: #fff3cd;
-                border-left: 4px solid #ffc107;
-                padding: 15px 20px;
-                margin: 20px 0;
-                border-radius: 4px;
-              }
-              .footer {
-                text-align: center;
-                padding: 20px;
-                background-color: #f8f9fa;
-                color: #6c757d;
-                font-size: 14px;
-              }
-              .fee-breakdown-total {
-                font-weight: bold;
-                font-size: 16px;
-                color: #dc3545;
-                border-top: 2px solid #dc3545;
-                padding-top: 10px;
-                margin-top: 10px;
-              }
-            </style>
-          </head>
-          <body>
-            <div class="container">
-              <div class="header">
-                <h1>📋 Enrollment Update</h1>
-              </div>
-              
-              <div class="content">
-                <div class="message">
-                  <h2>Enrollment Status Update</h2>
-                  <p>Dear ${student.name || 'Student'}, we regret to inform you that your enrollment application has been <strong>rejected</strong>.</p>
-                </div>
-
-                <div class="status-badge">
-                  ❌ Enrollment Rejected
-                </div>
-
-                <!-- Student Details Section -->
-                <div class="details">
-                  <h3 style="color: #495057; margin-bottom: 15px; text-align: center;">👤 Student Information</h3>
-                  <div class="detail-row">
-                    <span class="detail-label">Student Name:</span>
-                    <span class="detail-value">${student.name || 'N/A'}</span>
-                  </div>
-                  <div class="detail-row">
-                    <span class="detail-label">Student ID:</span>
-                    <span class="detail-value">${student.studentId || 'N/A'}</span>
-                  </div>
-                  <div class="detail-row">
-                    <span class="detail-label">Email:</span>
-                    <span class="detail-value">${student.email || 'N/A'}</span>
-                  </div>
-                </div>
-
-                <!-- Fee Information Section -->
-                ${actualTotal > 0 ? `
-                <div class="details">
-                  <h3 style="color: #495057; margin-bottom: 15px; text-align: center;">💰 Fee Information</h3>
-                  ${totalAmount > 0 ? `
-                  <div class="detail-row">
-                    <span class="detail-label">Course Fee:</span>
-                    <span class="detail-value">₹${totalAmount.toLocaleString('en-IN')}</span>
-                  </div>` : ''}
-                  ${charges > 0 ? `
-                  <div class="detail-row">
-                    <span class="detail-label">Late Fees:</span>
-                    <span class="detail-value">₹${charges.toLocaleString('en-IN')}</span>
-                  </div>` : ''}
-                  ${admissionRegistrationPayment > 0 ? `
-                  <div class="detail-row">
-                    <span class="detail-label">Registration Payment:</span>
-                    <span class="detail-value">₹${admissionRegistrationPayment.toLocaleString('en-IN')}</span>
-                  </div>` : ''}
-                  ${actualTotal > admissionRegistrationPayment ? `
-                  <div class="detail-row fee-breakdown-total">
-                    <span class="detail-label">Total Amount:</span>
-                    <span class="detail-value">₹${actualTotal.toLocaleString('en-IN')}</span>
-                  </div>` : ''}
-                </div>` : ''}
-
-                <div class="support-info">
-                  <h4 style="margin-top: 0; color: #856404;">📞 Need Help?</h4>
-                  <p style="margin: 0;">If you have any questions about this decision or would like to discuss your application, please contact our admissions team.</p>
-                </div>
-
-                <div style="text-align: center; margin: 30px 0;">
-                  <p>We appreciate your interest in Ryma Academy.</p>
-                  <p>You may reapply in the future when you meet the required criteria.</p>
-                </div>
-              </div>
-
-              <div class="footer">
-                <p><strong>Ryma Academy</strong></p>
-                <p>For support, contact us at: <a href="mailto:support@rymaacademy.com">support@rymaacademy.com</a></p>
-                <p>This is an automated message. Please do not reply directly to this email.</p>
-              </div>
-            </div>
-          </body>
-          </html>
-        `;
-
-          await sendMail(
-            student.email,
-            '📋 Enrollment Status Update - Ryma Academy',
-            rejectionHtml,
-            true // Include BCC for enrollment notifications
-          );
-          console.log('✅ Enrollment rejection email sent successfully to:', student.email);
-        } else {
-          console.error('❌ No student email found for rejection notification:', {
-            studentId: student?._id,
-            studentEmail: student?.email,
-            studentName: student?.name
-          });
-        }
-      } catch (err) {
-        console.error('❌ Failed to send enrollment rejection email:', {
-          error: err.message,
-          studentEmail: student?.email,
-          studentId: student?._id,
-          stack: err.stack
+    // Validate installments for installment fee type
+    if (feeType === 'installment') {
+      if (!installments || installments.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Installments are required for installment fee type'
         });
       }
+
+      // Calculate total installment amount
+      const totalInstallmentAmount = installments.reduce((sum, inst) => sum + (inst.amount || 0), 0);
+      const expectedTotal = totalAmount - admissionRegistrationPayment;
+
+      if (Math.abs(totalInstallmentAmount - expectedTotal) > 0.01) {
+        return res.status(400).json({
+          success: false,
+          message: `Total installment amount (₹${totalInstallmentAmount}) must equal course fee (₹${expectedTotal})`
+        });
+      }
+
+      // Validate each installment has required fields
+      for (let i = 0; i < installments.length; i++) {
+        const inst = installments[i];
+        if (!inst.amount || inst.amount <= 0) {
+          return res.status(400).json({
+            success: false,
+            message: `Installment ${i + 1} amount is required and must be greater than 0`
+          });
+        }
+        if (!inst.dueDate) {
+          return res.status(400).json({
+            success: false,
+            message: `Installment ${i + 1} due date is required`
+          });
+        }
+      }
     }
+
+    // Generate enrollment number
+    const currentYear = new Date().getFullYear();
+    const latestEnrollment = await Enrollment.findOne(
+      { enrollmentNo: new RegExp(`^ENR${currentYear}`) },
+      {},
+      { sort: { enrollmentNo: -1 } }
+    );
+
+    let sequenceNumber = 1;
+    if (latestEnrollment && latestEnrollment.enrollmentNo) {
+      const lastSequence = parseInt(latestEnrollment.enrollmentNo.slice(-4));
+      sequenceNumber = lastSequence + 1;
+    }
+
+    const enrollmentNo = `ENR${currentYear}${sequenceNumber.toString().padStart(4, '0')}`;
+
+    // ✅ Calculate amountReceived and pendingAmount explicitly
+    const amountReceived = admissionRegistrationPayment;
+    const pendingAmount = totalAmount - amountReceived;
+
+    // Create enrollment with explicit values
+    const enrollment = new Enrollment({
+      enrollmentNo,
+      admission,
+      student: admissionDetails.student.toString(),
+      course: admissionDetails.course.toString(),
+      batch,
+      mode,
+      totalAmount,
+      amountReceived,           // ✅ Set explicitly
+      pendingAmount,            // ✅ Set explicitly
+      feeType,
+      dueDate: dueDate || null,
+      leadDate,
+      leadSource,
+      call,
+      installments: feeType === 'installment' ? installments : [],
+      admissionRegistrationPayment,
+      counsellor: req.user.id,
+      enrollmentStatus: 'pending'
+    });
+
+    await enrollment.save();
+
+    // Populate the saved enrollment
+    await enrollment.populate([
+      { path: 'student', select: 'studentId name email phone dateOfBirth' },
+      { path: 'course', select: 'name fee duration' },
+      { path: 'batch', select: 'name timing code' },
+      { path: 'admission', select: 'admissionNo trainingBranch' }
+    ]);
+
+    // Add activity log
+    await enrollment.addActivity(
+      'status_update',
+      'Enrollment created successfully - Pending admin approval',
+      req.user.id
+    );
+
+    res.status(201).json({
+      success: true,
+      data: enrollment,
+      message: 'Enrollment created successfully and pending admin approval'
+    });
+
   } catch (error) {
     console.error('Create enrollment error:', error);
     res.status(500).json({
@@ -876,11 +703,12 @@ const createEnrollment = async (req, res) => {
   }
 };
 
-
+// Get all enrollments
 const getEnrollments = async (req, res) => {
   try {
     const {
       status,
+      enrollmentStatus,
       trainingBranch,
       counsellor,
       page = 1,
@@ -901,6 +729,7 @@ const getEnrollments = async (req, res) => {
     }
 
     if (status) query.status = status;
+    if (enrollmentStatus) query.enrollmentStatus = enrollmentStatus;
     if (trainingBranch) query.trainingBranch = trainingBranch;
 
     // Search functionality
@@ -955,7 +784,7 @@ const getEnrollments = async (req, res) => {
   }
 };
 
-
+// Get single enrollment
 const getEnrollment = async (req, res) => {
   try {
     const enrollment = await Enrollment.findById(req.params.id)
@@ -1003,7 +832,7 @@ const getEnrollment = async (req, res) => {
   }
 };
 
-
+// Update enrollment
 const updateEnrollment = async (req, res) => {
   try {
     console.log('🔄 ========== UPDATE ENROLLMENT STARTED ==========');
@@ -1013,235 +842,145 @@ const updateEnrollment = async (req, res) => {
     const enrollment = await Enrollment.findById(req.params.id);
 
     if (!enrollment) {
-      console.log('❌ Enrollment not found:', req.params.id);
       return res.status(404).json({
         success: false,
         message: 'Enrollment not found'
       });
     }
 
-    console.log('✅ Enrollment found');
-
-    // Authorization check with proper case handling
+    // Authorization check
     const userRole = req.user.role;
-    console.log('👤 User role:', userRole, 'User ID:', req.user.id);
-    console.log('👤 Enrollment counsellor:', enrollment.counsellor.toString());
-
     if (userRole === 'Counsellor' && enrollment.counsellor.toString() !== req.user.id) {
-      console.log('🚫 ACCESS DENIED - Counsellor does not own this enrollment');
       return res.status(403).json({
         success: false,
         message: 'Access denied to update this enrollment'
       });
     }
 
-    // FEE TYPE CHANGE VALIDATION
+    // Check if enrollment is approved - counsellors cannot edit approved/rejected enrollments
+    if (userRole === 'Counsellor' && enrollment.enrollmentStatus !== 'pending') {
+      return res.status(403).json({
+        success: false,
+        message: 'Cannot edit enrollment that is already approved or rejected'
+      });
+    }
+
+    // Fee type change validation
     if (req.body.feeType && req.body.feeType !== enrollment.feeType) {
-      console.log('🔄 Fee type change detected:', enrollment.feeType, '->', req.body.feeType);
       const approvedPayments = await Payment.find({
         enrollment: enrollment._id,
         verificationStatus: 'approved'
       });
 
       if (approvedPayments.length > 0) {
-        console.log('🚫 FEE TYPE CHANGE BLOCKED - Approved payments exist');
         return res.status(400).json({
           success: false,
-          message: 'Cannot change fee type once payments have been approved for this enrollment'
+          message: 'Cannot change fee type once payments have been approved'
         });
       }
     }
 
     // Define allowed updates based on user role
     let allowedUpdates = [];
-
-    console.log('🔍 User role for update permissions:', userRole);
-
     if (userRole === 'Counsellor') {
       allowedUpdates = [
-        'batch', 'mode', 'firstEMI', 'secondEMI', 'thirdEMI',
-        'dueDate', 'charges', 'call', 'trainingBranch', 'feeType',
-        'totalAmount', 'actualAmount', 'discount', 'leadDate', 'leadSource', 'admissionRegistrationPayment'
+        'batch', 'mode', 'dueDate', 'call', 'feeType',
+        'totalAmount', 'discount', 'leadDate', 'leadSource', 
+        'admissionRegistrationPayment', 'installments'
       ];
     } else if (userRole === 'admin') {
       allowedUpdates = [
-        'batch', 'mode', 'status', 'firstEMI', 'secondEMI', 'thirdEMI',
-        'dueDate', 'charges', 'call', 'trainingBranch', 'feeType',
-        'totalAmount', 'actualAmount', 'discount', 'leadDate', 'leadSource', 'counsellor', 'admissionRegistrationPayment'
+        'batch', 'mode', 'status', 'dueDate', 'call', 'feeType',
+        'totalAmount', 'discount', 'leadDate', 'leadSource', 
+        'counsellor', 'admissionRegistrationPayment', 'installments',
+        'enrollmentStatus'
       ];
     } else {
-      console.log('❓ Unknown user role:', userRole);
       return res.status(403).json({
         success: false,
         message: 'Unauthorized role for updating enrollment'
       });
     }
 
-    console.log('✅ Allowed updates for', userRole + ':', allowedUpdates);
-
-    // For counsellors: Filter out status and counsellor fields instead of throwing error
+    // Filter updates
     let updates = Object.keys(req.body);
-    console.log('📋 Requested updates:', updates);
-
     if (userRole === 'Counsellor') {
-      const originalLength = updates.length;
-      updates = updates.filter(update =>
-        update !== 'status' && update !== 'counsellor'
-      );
-      console.log('👤 Counsellor - Filtered updates (status/counsellor removed):', updates);
-      console.log(`   Removed ${originalLength - updates.length} restricted fields`);
+      updates = updates.filter(update => update !== 'status' && update !== 'counsellor' && update !== 'enrollmentStatus');
     }
 
     const validUpdates = updates.filter(update => allowedUpdates.includes(update));
-    const invalidUpdates = updates.filter(update => !allowedUpdates.includes(update));
-
-    // Log what will be updated and what will be ignored
-    if (validUpdates.length > 0) {
-      console.log('✅ Valid updates to apply:', validUpdates);
-      console.log('📊 Update details:');
-      validUpdates.forEach(field => {
-        console.log(`   ${field}: ${JSON.stringify(req.body[field])}`);
-      });
-    }
-    if (invalidUpdates.length > 0) {
-      console.log('⚠️ Invalid updates (will be ignored):', invalidUpdates);
-    }
 
     if (validUpdates.length === 0) {
-      console.log('⚠️ No valid fields to update - enrollment unchanged');
-
-      await enrollment.populate([
-        { path: 'student', select: 'studentId name email phone' },
-        { path: 'course', select: 'name fee duration' },
-        { path: 'batch', select: 'name timing' },
-        { path: 'counsellor', select: 'name email' }
-      ]);
-
       return res.json({
         success: true,
         data: enrollment,
-        message: 'No valid fields to update - enrollment unchanged',
-        invalidFields: invalidUpdates,
-        allowedFields: allowedUpdates,
-        userRole: userRole
+        message: 'No valid fields to update'
       });
     }
 
-    // Apply updates
-    console.log('🛠️  Applying updates to enrollment...');
-    let statusChanged = false;
-    let newStatus = enrollment.status;
-    let oldStatus = enrollment.status;
-    validUpdates.forEach(update => {
-      const oldValue = enrollment[update];
-      const newValue = req.body[update];
-      if (update === 'status' && newValue !== oldValue) {
-        statusChanged = true;
-        newStatus = newValue;
-        oldStatus = oldValue;
-      }
-      enrollment[update] = newValue;
-      console.log(`   🔄 ${update}: ${JSON.stringify(oldValue)} → ${JSON.stringify(newValue)}`);
-    });
+    // Validate installments if provided
+    if (validUpdates.includes('installments') || validUpdates.includes('feeType')) {
+      const feeType = req.body.feeType || enrollment.feeType;
+      const installments = req.body.installments || enrollment.installments;
+      const totalAmount = req.body.totalAmount || enrollment.totalAmount;
+      const admissionRegistrationPayment = req.body.admissionRegistrationPayment || enrollment.admissionRegistrationPayment;
 
-    // EMI validation for installment fee type (before saving)
-    if (enrollment.feeType === 'installment') {
-      // Calculate actual total including late fees and registration payment
-      const actualTotal = (enrollment.totalAmount || 0) + (enrollment.charges || 0) + (enrollment.admissionRegistrationPayment || 0);
-
-      const firstEMIAmount = enrollment.firstEMI?.amount || 0;
-      const secondEMIAmount = enrollment.secondEMI?.amount || 0;
-      const thirdEMIAmount = enrollment.thirdEMI?.amount || 0;
-      const totalEMI = firstEMIAmount + secondEMIAmount + thirdEMIAmount;
-
-      if (totalEMI !== actualTotal) {
-        console.log('❌ EMI validation failed - Total mismatch:', {
-          totalEMI,
-          actualTotal,
-          baseAmount: enrollment.totalAmount,
-          charges: enrollment.charges,
-          registrationPayment: enrollment.admissionRegistrationPayment
-        });
-        return res.status(400).json({
-          success: false,
-          message: `EMI total (₹${totalEMI}) must match total amount (₹${actualTotal}). [Base: ₹${enrollment.totalAmount} + Late Fees: ₹${enrollment.charges || 0} + Registration: ₹${enrollment.admissionRegistrationPayment || 0}]`
-        });
-      }
-
-      // Validate EMI dates if amounts are provided
-      const emis = [
-        { name: 'First EMI', data: enrollment.firstEMI },
-        { name: 'Second EMI', data: enrollment.secondEMI },
-        { name: 'Third EMI', data: enrollment.thirdEMI }
-      ];
-
-      for (const emi of emis) {
-        if (emi.data?.amount > 0 && !emi.data?.date) {
-          console.log('❌ EMI validation failed - Missing date for:', emi.name);
+      if (feeType === 'installment') {
+        if (!installments || installments.length === 0) {
           return res.status(400).json({
             success: false,
-            message: `${emi.name} date is required when amount is provided`
+            message: 'Installments are required for installment fee type'
+          });
+        }
+
+        const totalInstallmentAmount = installments.reduce((sum, inst) => sum + (inst.amount || 0), 0);
+        const expectedTotal = totalAmount - admissionRegistrationPayment;
+
+        if (Math.abs(totalInstallmentAmount - expectedTotal) > 0.01) {
+          return res.status(400).json({
+            success: false,
+            message: `Total installment amount (₹${totalInstallmentAmount}) must equal course fee (₹${expectedTotal})`
           });
         }
       }
     }
 
+    // Apply updates with explicit amount calculations
+    validUpdates.forEach(update => {
+      enrollment[update] = req.body[update];
+    });
+
+    // ✅ Recalculate amounts if totalAmount or admissionRegistrationPayment changed
+    if (validUpdates.includes('totalAmount') || validUpdates.includes('admissionRegistrationPayment')) {
+      const newTotal = req.body.totalAmount !== undefined ? req.body.totalAmount : enrollment.totalAmount;
+      const newRegPayment = req.body.admissionRegistrationPayment !== undefined ? req.body.admissionRegistrationPayment : enrollment.admissionRegistrationPayment;
+      
+      // If amountReceived is not being updated, keep it as is
+      // But recalculate pendingAmount
+      enrollment.pendingAmount = newTotal - enrollment.amountReceived;
+    }
+
     await enrollment.save();
-    console.log('💾 Enrollment saved successfully');
 
-    // Add activity log if changes were made - FIXED ACTIVITY TYPE
-    if (validUpdates.length > 0) {
-      console.log('📝 Logging activity for updates:', validUpdates);
-      // Use a valid enum value for activity type
-      const activityType = 'status_update';
-      await enrollment.addActivity(
-        activityType,
-        `Enrollment updated: ${validUpdates.join(', ')}`,
-        req.user.id
-      );
-      console.log('✅ Activity logged successfully');
-    }
-
-    // Send mail if status changed to accepted or rejected
-    if (statusChanged) {
-      await enrollment.populate({ path: 'student', select: 'name email' });
-      if (newStatus === 'active') {
-        try {
-          await sendMail(
-            enrollment.student.email,
-            'Enrollment Accepted',
-            `<p>Dear ${enrollment.student.name || 'Student'},</p>
-            <p>Your enrollment has been <b>accepted</b>.</p>
-            <p>Admission Registration Payment: <b>₹${enrollment.admissionRegistrationPayment || 0}</b></p>
-            <p>Thank you.</p>`
-          );
-        } catch (err) {
-          console.error('Failed to send enrollment acceptance email:', err.message);
-        }
-      } else if (newStatus === 'rejected' || newStatus === 'cancelled') {
-        try {
-          await sendEnrollmentRejectionMail(enrollment.student, enrollment.admissionRegistrationPayment, enrollment.charges, enrollment.totalAmount);
-        } catch (err) {
-          console.error('Failed to send enrollment rejection email:', err.message);
-        }
-      }
-    }
+    // Add activity log
+    await enrollment.addActivity(
+      'status_update',
+      `Enrollment updated: ${validUpdates.join(', ')}`,
+      req.user.id
+    );
 
     await enrollment.populate([
       { path: 'student', select: 'studentId name email phone' },
       { path: 'course', select: 'name fee duration' },
       { path: 'batch', select: 'name timing' },
-      { path: 'counsellor', select: 'name email' }
+      { path: 'counsellor', select: 'FullName email' }
     ]);
-
-    console.log('✅ Enrollment update completed successfully');
 
     res.json({
       success: true,
       data: enrollment,
       message: `Enrollment updated successfully (${validUpdates.length} fields)`,
-      updatedFields: validUpdates,
-      ignoredFields: invalidUpdates
+      updatedFields: validUpdates
     });
 
   } catch (error) {
@@ -1254,6 +993,106 @@ const updateEnrollment = async (req, res) => {
   }
 };
 
+// Approve enrollment (Admin only)
+const approveEnrollment = async (req, res) => {
+  try {
+    const enrollment = await Enrollment.findById(req.params.id)
+      .populate('student', 'name email dateOfBirth phone')
+      .populate('course', 'name duration')
+      .populate('batch', 'code timing')
+      .populate('admission', 'trainingBranch');
+
+    if (!enrollment) {
+      return res.status(404).json({
+        success: false,
+        message: 'Enrollment not found'
+      });
+    }
+
+    if (enrollment.enrollmentStatus === 'approved') {
+      return res.status(400).json({
+        success: false,
+        message: 'Enrollment is already approved'
+      });
+    }
+
+    enrollment.enrollmentStatus = 'approved';
+    await enrollment.save();
+
+    // Add activity log
+    await enrollment.addActivity(
+      'status_update',
+      'Enrollment approved by admin',
+      req.user.id
+    );
+
+    // Send approval email
+    await sendEnrollmentApprovalMail(enrollment);
+
+    res.json({
+      success: true,
+      data: enrollment,
+      message: 'Enrollment approved successfully'
+    });
+  } catch (error) {
+    console.error('Approve enrollment error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error approving enrollment',
+      error: error.message
+    });
+  }
+};
+
+// Reject enrollment (Admin only)
+const rejectEnrollment = async (req, res) => {
+  try {
+    const enrollment = await Enrollment.findById(req.params.id)
+      .populate('student', 'name email');
+
+    if (!enrollment) {
+      return res.status(404).json({
+        success: false,
+        message: 'Enrollment not found'
+      });
+    }
+
+    if (enrollment.enrollmentStatus === 'rejected') {
+      return res.status(400).json({
+        success: false,
+        message: 'Enrollment is already rejected'
+      });
+    }
+
+    enrollment.enrollmentStatus = 'rejected';
+    await enrollment.save();
+
+    // Add activity log
+    await enrollment.addActivity(
+      'status_update',
+      'Enrollment rejected by admin',
+      req.user.id
+    );
+
+    // Send rejection email
+    await sendEnrollmentRejectionMail(enrollment.student, enrollment);
+
+    res.json({
+      success: true,
+      data: enrollment,
+      message: 'Enrollment rejected successfully'
+    });
+  } catch (error) {
+    console.error('Reject enrollment error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error rejecting enrollment',
+      error: error.message
+    });
+  }
+};
+
+// Get enrollment stats (Admin only)
 const getEnrollmentStats = async (req, res) => {
   try {
     if (req.user.role !== 'admin') {
@@ -1263,17 +1102,7 @@ const getEnrollmentStats = async (req, res) => {
       });
     }
 
-    const { branch, startDate, endDate } = req.query;
-
-    let matchStage = {};
-    if (branch) matchStage.trainingBranch = branch;
-    if (startDate && endDate) {
-      matchStage.enrollmentDate = {
-        $gte: new Date(startDate),
-        $lte: new Date(endDate)
-      };
-    }
-
+    const { branch } = req.query;
     const stats = await Enrollment.getStatistics(branch);
 
     res.json({
@@ -1290,7 +1119,7 @@ const getEnrollmentStats = async (req, res) => {
   }
 };
 
-
+// Get fee delays
 const getFeeDelays = async (req, res) => {
   try {
     let query = {
@@ -1298,7 +1127,6 @@ const getFeeDelays = async (req, res) => {
       pendingAmount: { $gt: 0 }
     };
 
-    // Counsellor can only see their own fee delays
     if (req.user.role === 'Counsellor') {
       query.counsellor = req.user.id;
     }
@@ -1306,7 +1134,7 @@ const getFeeDelays = async (req, res) => {
     const enrollments = await Enrollment.find(query)
       .populate('student', 'studentId name email phone')
       .populate('course', 'name')
-      .populate('counsellor', 'name email')
+      .populate('counsellor', 'FullName email')
       .sort({ dueDate: 1 });
 
     res.json({
@@ -1323,7 +1151,7 @@ const getFeeDelays = async (req, res) => {
   }
 };
 
-
+// Add activity
 const addActivity = async (req, res) => {
   try {
     const { type, description } = req.body;
@@ -1336,7 +1164,6 @@ const addActivity = async (req, res) => {
       });
     }
 
-    // Check if counsellor owns this enrollment
     if (req.user.role === 'Counsellor' && enrollment.counsellor.toString() !== req.user.id) {
       return res.status(403).json({
         success: false,
@@ -1360,6 +1187,7 @@ const addActivity = async (req, res) => {
   }
 };
 
+// Delete enrollment (Admin only)
 const deleteEnrollment = async (req, res) => {
   try {
     const enrollment = await Enrollment.findByIdAndDelete(req.params.id);
@@ -1383,64 +1211,15 @@ const deleteEnrollment = async (req, res) => {
   }
 };
 
-// Allow to delete only those enrollments whose never done any payment 
-const deleteEnrollmentByCounsellor = async (req, res) => {
-  try {
-    const enrollment = await Enrollment.findById(req.params.id);
-    console.log("Enrollment to delete:", req.params.id);
-    if (!enrollment) {
-      console.log("Enrollment not found:", req.params.id);
-      return res.status(404).json({
-        success: false,
-        message: 'Enrollment not found'
-      });
-    }
-    // Check if counsellor owns this enrollment
-    // if (enrollment.counsellor.toString() !== req.user.id) {
-    //   return res.status(403).json({
-    //     success: false,
-    //     message: 'Access denied to delete this enrollment'
-    //   });
-    // }
-    // Check if any payments exist for this enrollment
-    const payments = await Payment.find({ enrollment: enrollment._id });
-    if (payments.length > 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'Cannot delete enrollment with existing payments'
-      });
-    }
-    await Enrollment.findByIdAndDelete(req.params.id);
-    res.json({
-      success: true,
-      message: 'Enrollment deleted successfully'
-    });
-
-  } catch (error) {
-    console.error('Delete enrollment by counsellor error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error deleting enrollment',
-      error: error.message
-    });
-  }
-};
-
-
-
-
-
-
-
-
 module.exports = {
   createEnrollment,
   getEnrollments,
   getEnrollment,
   updateEnrollment,
+  approveEnrollment,
+  rejectEnrollment,
   getEnrollmentStats,
   getFeeDelays,
   deleteEnrollment,
-  deleteEnrollmentByCounsellor,
   addActivity
 };
