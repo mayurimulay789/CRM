@@ -63,7 +63,7 @@ const AdmissionManagement = () => {
     { key: 'documents', label: 'Documents', visible: true },
     { key: 'appliedBatch', label: 'Applied Batch', visible: false },
     { key: 'source', label: 'Source', visible: false },
-    { key: 'emailVerified', label: 'Email Verified', visible: true },
+    // { key: 'emailVerified', label: 'Email Verified', visible: true },
     { key: 'notes', label: 'Notes', visible: false },
     { key: 'actions', label: 'Actions', visible: true }
   ];
@@ -607,7 +607,7 @@ const AdmissionManagement = () => {
 
                     <div className="space-y-2 max-h-64 overflow-y-auto">
                       {columns.map(column => (
-                        <label key={column.key} className="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded cursor-pointer">
+                        <label key={column.key} className="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded cursor-pointer text-center">
                           <input
                             type="checkbox"
                             checked={column.visible}
@@ -674,7 +674,7 @@ const AdmissionManagement = () => {
                       column.visible && (
                         <th
                           key={column.key}
-                          className="px-2 lg:px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap border-b border-gray-200 bg-gray-50 text-center"
+                          className="px-2 lg:px-4 py-3 text-xs font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap border-b border-gray-200 bg-gray-50 text-center"
                         >
                           {column.label}
                         </th>
@@ -784,11 +784,6 @@ const AdmissionManagement = () => {
                                 <td key={column.key} className={`${baseCellClasses} text-gray-500 whitespace-nowrap`}>
                                   <div className="flex flex-col items-start">
                                     <span>{formatDate(admission.admissionDate)}</span>
-                                    {admission.createdAt && (
-                                      <span className="text-xs text-gray-400">
-                                        {formatDate(admission.createdAt)}
-                                      </span>
-                                    )}
                                   </div>
                                 </td>
                               );

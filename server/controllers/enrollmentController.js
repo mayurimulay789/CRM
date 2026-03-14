@@ -274,7 +274,7 @@ async function sendEnrollmentApprovalMail(enrollment) {
 </head>
 <body>
     <div class="enrollment-container">
-        <img src="https://res.cloudinary.com/dpyry0mh1/image/upload/v1773287825/Screenshot_2026-03-11_141445_ibusnj.png" alt="" class="imgformate">
+        <img src="https://res.cloudinary.com/dk9lypgfv/image/upload/v1773463891/Screenshot_2026-03-11_141445_ar7p06.png" alt="" class="imgformate">
 
         <div class="content">
             <div class="greeting">Dear <strong>${enrollment.student?.name || 'Student'}</strong>,</div>
@@ -660,7 +660,7 @@ async function sendEnrollmentRejectionMail(student, enrollment) {
 <body>
     <div class="enrollment-container">
         <!-- Same header image as original (or could be replaced with a rejection-specific one) -->
-        <img src="https://res.cloudinary.com/dpyry0mh1/image/upload/v1773287825/Screenshot_2026-03-11_141445_ibusnj.png" alt="RYMA ACADEMY Banner" class="imgformate">
+        <img src="https://res.cloudinary.com/dk9lypgfv/image/upload/v1773463891/Screenshot_2026-03-11_141445_ar7p06.png" alt="RYMA ACADEMY Banner" class="imgformate">
 
         <div class="content">
             <div class="greeting">Dear <strong>${enrollment.student?.name || 'Student'}</strong>,</div>
