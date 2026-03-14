@@ -60,7 +60,6 @@ const AdmissionsManagement = () => {
     { key: 'documents', label: 'Documents', visible: true },
     { key: 'appliedBatch', label: 'Applied Batch', visible: false },
     { key: 'source', label: 'Source', visible: false },
-    { key: 'emailVerified', label: 'Email Verified', visible: true },
     { key: 'notes', label: 'Notes', visible: false },
     { key: 'actions', label: 'Actions', visible: true }
   ];
@@ -606,7 +605,7 @@ const AdmissionsManagement = () => {
                       </div>
                     </div>
 
-                    <div className="space-y-2 max-h-64 overflow-y-auto">
+                    <div className="space-y-2 max-h-64 overflow-y-auto ">
                       {columns.map(column => (
                         <label key={column.key} className="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded cursor-pointer">
                           <input
@@ -669,13 +668,13 @@ const AdmissionsManagement = () => {
           <div className="flex-1 min-h-0 overflow-auto">
             <div className="overflow-x-auto h-full">
               <table className="min-w-full divide-y divide-gray-200 border-collapse">
-                <thead className="bg-gray-50 sticky top-0 z-10">
+                <thead className="bg-gray-50 sticky top-0 z-10 text-center">
                   <tr>
                     {columns.map(column =>
                       column.visible && (
                         <th
                           key={column.key}
-                          className="px-2 lg:px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap border-b border-gray-200 bg-gray-50 text-center"
+                          className="px-2 lg:px-4 py-3 text-xs font-semibold text-gray-700 uppercase tracking-wider whitespace-nowrap border-b border-gray-200 bg-gray-50 text-center"
                         >
                           {column.label}
                         </th>
@@ -824,11 +823,6 @@ const AdmissionsManagement = () => {
                                 <td key={column.key} className={`${baseCellClasses} text-gray-500 whitespace-nowrap`}>
                                   <div className="flex flex-col items-start">
                                     <span>{formatDate(admission.admissionDate)}</span>
-                                    {admission.createdAt && (
-                                      <span className="text-xs text-gray-400">
-                                        {formatDate(admission.createdAt)}
-                                      </span>
-                                    )}
                                   </div>
                                 </td>
                               );
