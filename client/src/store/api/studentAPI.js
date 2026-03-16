@@ -55,7 +55,7 @@ const studentAPI = {
     return response;
   },
 
-  // Create new student with file upload support
+  // Create new student with file upload services
   createStudent: async (studentData) => {
     const response = await studentApi.post('/', studentData, {
       headers: {
@@ -65,7 +65,7 @@ const studentAPI = {
     return response;
   },
 
-  // Update student with file upload support
+  // Update student with file upload services
   updateStudent: async (studentId, studentData) => {
     const response = await studentApi.put(`/${studentId}`, studentData, {
       headers: {
