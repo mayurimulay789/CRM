@@ -149,7 +149,7 @@ async function sendAdmissionEmail(admission, type = 'approved') {
       </head>
       <body>
         <div class="email-container">
-          <img src="https://res.cloudinary.com/dpyry0mh1/image/upload/v1773287825/Screenshot_2026-03-11_141445_ibusnj.png" alt="" class="imgformate">
+          <img src="https://res.cloudinary.com/dk9lypgfv/image/upload/v1773463891/Screenshot_2026-03-11_141445_ar7p06.png" alt="" class="imgformate">
           <div class="content">
             <div class="greeting">Dear <strong>${student.name}</strong>,</div>
             <div class="congrats-big">Congratulations!!</div>
@@ -189,7 +189,7 @@ async function sendAdmissionEmail(admission, type = 'approved') {
                 `).join('')}
                 <li>
                    <strong>Policy Document</strong><br>
-                    <a href= 'https://res.cloudinary.com/dpyry0mh1/image/upload/fl_attachment/v1773289421/RYMA_ACADEMY_PRIVACY_POLICIES_1_1_2_ycygav.pdf' download="RYMA_ACADEMY_Privacy_Policies.pdf" className="your-button-classes" target="_blank" rel="noopener noreferrer">
+                    <a href= 'https://res.cloudinary.com/dk9lypgfv/image/upload/fl_attachment/v1773464584/RYMA_ACADEMY_PRIVACY_POLICIES_xjurml.pdf' download="RYMA_ACADEMY_Privacy_Policies.pdf" className="your-button-classes" target="_blank" rel="noopener noreferrer">
   📥 Download Privacy Policies (PDF)
 </a>
                 </li>

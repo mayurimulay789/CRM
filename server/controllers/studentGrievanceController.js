@@ -707,7 +707,7 @@ exports.submitGrievance = async (req, res) => {
 <body>
     <div class="enrollment-container">
         <!-- Header Image (same as official template) -->
-        <img src="https://res.cloudinary.com/dpyry0mh1/image/upload/v1773287825/Screenshot_2026-03-11_141445_ibusnj.png" alt="RYMA ACADEMY Banner" class="imgformate">
+        <img src="https://res.cloudinary.com/dk9lypgfv/image/upload/v1773463891/Screenshot_2026-03-11_141445_ar7p06.png" alt="RYMA ACADEMY Banner" class="imgformate">
 
         <div class="content">
             <div class="greeting">Dear <strong>${grievance.studentName}</strong>,</div>
@@ -1097,7 +1097,7 @@ exports.approveGrievance = async (req, res) => {
 <body>
     <div class="enrollment-container">
         <!-- Header Image (same as official template) -->
-        <img src="https://res.cloudinary.com/dpyry0mh1/image/upload/v1773287825/Screenshot_2026-03-11_141445_ibusnj.png" alt="RYMA ACADEMY Banner" class="imgformate">
+        <img src="https://res.cloudinary.com/dk9lypgfv/image/upload/v1773463891/Screenshot_2026-03-11_141445_ar7p06.png" alt="RYMA ACADEMY Banner" class="imgformate">
 
         <div class="content">
             <div class="greeting">Dear <strong>${grievance.studentName}</strong>,</div>
@@ -1449,7 +1449,7 @@ exports.rejectGrievance = async (req, res) => {
 <body>
     <div class="enrollment-container">
         <!-- Header Image (same as official template) -->
-        <img src="https://res.cloudinary.com/dpyry0mh1/image/upload/v1773287825/Screenshot_2026-03-11_141445_ibusnj.png" alt="RYMA ACADEMY Banner" class="imgformate">
+        <img src="https://res.cloudinary.com/dk9lypgfv/image/upload/v1773463891/Screenshot_2026-03-11_141445_ar7p06.png" alt="RYMA ACADEMY Banner" class="imgformate">
 
         <div class="content">
             <div class="greeting">Dear <strong>${grievance.studentName}</strong>,</div>
@@ -1803,7 +1803,7 @@ exports.updateGrievance = async (req, res) => {
 <body>
     <div class="enrollment-container">
         <!-- Header Image (same as official template) -->
-        <img src="https://res.cloudinary.com/dpyry0mh1/image/upload/v1773287825/Screenshot_2026-03-11_141445_ibusnj.png" alt="RYMA ACADEMY Banner" class="imgformate">
+        <img src="https://res.cloudinary.com/dk9lypgfv/image/upload/v1773463891/Screenshot_2026-03-11_141445_ar7p06.png" alt="RYMA ACADEMY Banner" class="imgformate">
 
         <div class="content">
             <div class="greeting">Dear <strong>${grievance.studentName}</strong>,</div>

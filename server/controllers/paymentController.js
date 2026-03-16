@@ -877,7 +877,7 @@ function generateInstallmentPaymentEmail(payment, student, enrollment) {
     <div class="email-container">
         <!-- Header image (replace src with actual image) -->
     
-         <img src="https://res.cloudinary.com/dpyry0mh1/image/upload/v1773287825/Screenshot_2026-03-11_141445_ibusnj.png" alt="" class="imgformate">
+         <img src="https://res.cloudinary.com/dk9lypgfv/image/upload/v1773463891/Screenshot_2026-03-11_141445_ar7p06.png" alt="" class="imgformate">
         <div class="content">
             <!-- Dear student -->
             <div class="greeting">Dear <strong>${student.name}</strong>,</div>
@@ -1186,7 +1186,7 @@ function generateGenericPaymentEmail(payment, student, enrollment) {
     <div class="email-container">
         <!-- Header image (replace src with actual image) -->
     
-       <img src="https://res.cloudinary.com/dpyry0mh1/image/upload/v1773287825/Screenshot_2026-03-11_141445_ibusnj.png" alt="" class="imgformate">
+       <img src="https://res.cloudinary.com/dk9lypgfv/image/upload/v1773463891/Screenshot_2026-03-11_141445_ar7p06.png" alt="" class="imgformate">
         <div class="content">
             <!-- Dear student -->
             <div class="greeting">Dear <strong>${student.name}</strong>,</div>
