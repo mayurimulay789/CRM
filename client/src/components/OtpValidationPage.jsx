@@ -624,12 +624,12 @@ export default function OtpValidationPage() {
               .
             </p>
             <p className="text-sm text-gray-600 mt-2">
-              Contact support at{" "}
+              Contact services at{" "}
               <a 
-                href="mailto:support@rymaacademy.com" 
+                href="mailto:services@rymaacademy.com" 
                 className="text-blue-600 hover:text-blue-800 font-medium"
               >
-                support@rymaacademy.com
+                services@rymaacademy.com
               </a>
             </p>
           </div>

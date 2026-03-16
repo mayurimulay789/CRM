@@ -731,7 +731,7 @@ async function sendEnrollmentRejectionMail(student, enrollment) {
                     <td class="value-cell"><strong>${formatDateToDDMMYYYY(enrollment.enrollmentDate)}</strong></td>
                 </tr>
             </table>
-            <!-- Support / Next steps box (like help-box) -->
+            <!-- services / Next steps box (like help-box) -->
             <div class="help-box">
                 <strong>📞 Need assistance?</strong> If you have questions about this decision or would like to discuss alternative programs, please contact our admissions team. We're here to help you explore your options.
             </div>
