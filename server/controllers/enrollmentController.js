@@ -47,13 +47,14 @@ async function sendEnrollmentApprovalMail(enrollment) {
         : '';
 
       const enrollmentHtml = `
-       <!DOCTYPE html>
+      <!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RYMA ACADEMY – Official Enrollment Record</title>
     <style>
+        /* Base styles (unchanged except where noted) */
         body {
             margin: 0;
             padding: 0;
@@ -119,6 +120,7 @@ async function sendEnrollmentApprovalMail(enrollment) {
             letter-spacing: 1px;
         }
 
+        /* ---- TABLE STYLES (desktop first) ---- */
         .enroll-table {
             width: 100%;
             border-collapse: collapse;
@@ -130,7 +132,7 @@ async function sendEnrollmentApprovalMail(enrollment) {
             margin-bottom: 25px;
         }
 
-        .enroll-table td, .enroll-table th {
+        .enroll-table td {
             padding: 14px 20px;
             border-bottom: 1px solid #f2d6d6;
             font-size: 16px;
@@ -158,6 +160,53 @@ async function sendEnrollmentApprovalMail(enrollment) {
             color: #b33838;
         }
 
+        /* ---- RESPONSIVE STACKING FOR MOBILE ---- */
+        @media screen and (max-width: 600px) {
+            /* Make tables block-level */
+            .enroll-table,
+            .enroll-table tbody,
+            .enroll-table tr,
+            .enroll-table td {
+                display: block;
+                width: 100%;
+                box-sizing: border-box;
+            }
+
+            /* Each row becomes a card */
+            .enroll-table tr {
+                margin-bottom: 1.5rem;
+                border: 1px solid #e9c1c1;
+                border-radius: 12px;
+                padding: 0.25rem 0;
+                background: #fff;
+            }
+
+            /* Cells stack vertically */
+            .enroll-table td {
+                border: none;
+                border-bottom: 1px solid #f2d6d6;
+                padding: 12px 16px;
+                width: 100% !important;  /* override inline width if any */
+            }
+
+            .enroll-table td:last-child {
+                border-bottom: none;
+            }
+
+            /* Adjust label cell for mobile */
+            .label-cell {
+                border-right: none;
+                background-color: #fde5e5;
+                font-weight: 700;
+            }
+
+            /* Optional: keep value cell background */
+            .value-cell {
+                background-color: #fffbfb;
+            }
+        }
+
+        /* Other existing styles (unchanged) */
         .warning-note {
             background: #ffebeb;
             padding: 18px 24px;
@@ -259,8 +308,12 @@ async function sendEnrollmentApprovalMail(enrollment) {
             color: #ffd6d6;
         }
 
+        /* Make header image responsive */
         .imgformate {
-            width: 1200px;
+            width: 100%;
+            max-width: 1200px;
+            height: auto;
+            display: block;
         }
         
         .fee-summary {
@@ -274,7 +327,8 @@ async function sendEnrollmentApprovalMail(enrollment) {
 </head>
 <body>
     <div class="enrollment-container">
-        <img src="https://res.cloudinary.com/dk9lypgfv/image/upload/v1773463891/Screenshot_2026-03-11_141445_ar7p06.png" alt="" class="imgformate">
+        <!-- Responsive header image -->
+        <img src="https://res.cloudinary.com/dk9lypgfv/image/upload/v1773463891/Screenshot_2026-03-11_141445_ar7p06.png" alt="RYMA Academy Banner" class="imgformate">
 
         <div class="content">
             <div class="greeting">Dear <strong>${enrollment.student?.name || 'Student'}</strong>,</div>
@@ -292,6 +346,7 @@ async function sendEnrollmentApprovalMail(enrollment) {
 
             <div class="section-title">OFFICIAL ENROLLMENT RECORD — RYMA ACADEMY</div>
 
+            <!-- Fixed table: all rows properly included, no nested table -->
             <table class="enroll-table" cellpadding="0" cellspacing="0">
                 <tr>
                     <td class="label-cell">Student Name</td>
@@ -367,6 +422,7 @@ async function sendEnrollmentApprovalMail(enrollment) {
                 </tr>
             </table>
 
+            <!-- Installment table (if any) will also receive the responsive treatment -->
             ${installmentTableHTML}
 
             <div class="warning-note">
@@ -425,7 +481,7 @@ async function sendEnrollmentRejectionMail(student, enrollment) {
       console.log(`📧 Sending enrollment rejection email to: ${student.email}`);
 
       const rejectionHtml = `
-       <!DOCTYPE html>
+        <!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
@@ -642,17 +698,77 @@ async function sendEnrollmentRejectionMail(student, enrollment) {
             display: block;
         }
 
-        /* Responsive tweaks */
-        @media (max-width: 600px) {
+        /* ----- RESPONSIVE STACKING FOR TABLES ----- */
+        @media screen and (max-width: 600px) {
+            /* Make header image fluid */
             .imgformate {
                 width: 100%;
                 height: auto;
+                max-width: 100%;
             }
+
+            /* Adjust content padding */
             .content {
-                padding: 20px;
+                padding: 20px 16px;
             }
-            .enroll-table td, .enroll-table th {
-                padding: 10px;
+
+            /* Convert tables to block layout */
+            .enroll-table,
+            .enroll-table tbody,
+            .enroll-table tr,
+            .enroll-table td {
+                display: block;
+                width: 100%;
+                box-sizing: border-box;
+            }
+
+            /* Each row becomes a card */
+            .enroll-table tr {
+                margin-bottom: 1.5rem;
+                border: 1px solid #e9c1c1;
+                border-radius: 12px;
+                padding: 0;
+                background: #fff;
+            }
+
+            /* Cells stack vertically */
+            .enroll-table td {
+                border: none;
+                border-bottom: 1px solid #f2d6d6;
+                padding: 12px 16px;
+                width: 100% !important;
+            }
+
+            .enroll-table td:last-child {
+                border-bottom: none;
+            }
+
+            /* Adjust label cell for mobile */
+            .label-cell {
+                border-right: none;
+                background-color: #fde5e5;
+                font-weight: 700;
+            }
+
+            .value-cell {
+                background-color: #fffbfb;
+            }
+
+            /* Optional: keep section titles readable */
+            .section-title {
+                font-size: 20px;
+                margin: 25px 0 15px;
+            }
+
+            /* Adjust warning/help boxes */
+            .warning-note,
+            .help-box {
+                padding: 15px 20px;
+                border-radius: 30px 8px 30px 8px;
+            }
+
+            .contact-footer {
+                padding: 15px 20px;
             }
         }
     </style>
