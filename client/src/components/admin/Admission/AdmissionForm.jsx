@@ -17,9 +17,8 @@ const AdmissionForm = ({ admission, onClose, isCounsellor = false }) => {
   const { students } = useSelector((state) => state.students);
   const { courses } = useSelector((state) => state.courses);
   const { batches } = useSelector((state) => state.batch);
-  const {
-    counsellors
-  } = useSelector(state => state.auth);
+  const { counsellors } = useSelector((state) => state.auth); // Assume { list: [] }
+
   const [formData, setFormData] = useState({
     student: '',
     course: '',
@@ -31,15 +30,9 @@ const AdmissionForm = ({ admission, onClose, isCounsellor = false }) => {
     notes: '',
     status: 'pending',
     emailVerified: false,
-    admissionDate: '' // ADDED
+    admissionDate: ''
   });
 
-  console.log(students)
-
-  // Store initial values for reset
-  const initialFormDataRef = useRef(null);
-
-  // File states
   const [files, setFiles] = useState({
     admissionFrontPage: null,
     admissionBackPage: null,
@@ -50,6 +43,10 @@ const AdmissionForm = ({ admission, onClose, isCounsellor = false }) => {
   const [errors, setErrors] = useState({});
   const [touched, setTouched] = useState({});
 
+  // Store initial values for reset
+  const initialFormDataRef = useRef(null);
+
+  // Fetch required data
   useEffect(() => {
     dispatch(fetchStudents());
     dispatch(fetchCourses());
@@ -57,42 +54,55 @@ const AdmissionForm = ({ admission, onClose, isCounsellor = false }) => {
     dispatch(getAllCounsellors());
   }, [dispatch]);
 
+  // Populate form for editing or set default admissionDate for new
   useEffect(() => {
     if (admission) {
       const loadedData = {
         student: admission.student?._id || admission.student || '',
         course: admission.course?._id || admission.course || '',
         trainingBranch: admission.trainingBranch || '',
-        counsellor: admission.counsellor || '',
+        counsellor: admission.counsellor || '', // expects counsellor ID
         termsCondition: admission.termsCondition || false,
-        appliedBatch: admission.appliedBatch || '',
+        appliedBatch: admission.appliedBatch || '', // expects batch ID
         source: admission.source || 'website',
         notes: admission.notes || '',
         status: admission.status || 'pending',
         emailVerified: admission.emailVerified || false,
-        admissionDate: admission.admissionDate || '' // ADDED
+        admissionDate: admission.admissionDate || ''
       };
       setFormData(loadedData);
       initialFormDataRef.current = loadedData;
     } else {
-      // New admission: set today's date as default
       const today = new Date().toISOString().split('T')[0];
-      setFormData((prev) => ({ ...prev, admissionDate: today }));
-      initialFormDataRef.current = { ...formData, admissionDate: today };
+      const defaultData = {
+        student: '',
+        course: '',
+        trainingBranch: '',
+        counsellor: '',
+        termsCondition: false,
+        appliedBatch: '',
+        source: 'website',
+        notes: '',
+        status: 'pending',
+        emailVerified: false,
+        admissionDate: today
+      };
+      setFormData(defaultData);
+      initialFormDataRef.current = defaultData;
     }
   }, [admission]);
 
-  // Auto-close after success (optional)
+  // Auto-close after success
   useEffect(() => {
     if (operationSuccess && (operationSuccess.includes('created') || operationSuccess.includes('updated'))) {
       const timer = setTimeout(() => {
         onClose();
-      }, 2000); // Increased to 2 seconds for better visibility
+      }, 2000);
       return () => clearTimeout(timer);
     }
   }, [operationSuccess, onClose]);
 
-  // Cleanup
+  // Cleanup on unmount
   useEffect(() => {
     return () => {
       dispatch(clearError());
@@ -100,15 +110,78 @@ const AdmissionForm = ({ admission, onClose, isCounsellor = false }) => {
     };
   }, [dispatch]);
 
-  // Validation helpers (same as before)
+  // ------------------ Validation ------------------
   const validateField = (name, value) => {
-    // ... (keep your existing validation logic)
+    const newErrors = { ...errors };
+
+    switch (name) {
+      case 'student':
+        if (!value) newErrors.student = 'Student is required';
+        else delete newErrors.student;
+        break;
+      case 'course':
+        if (!value) newErrors.course = 'Course is required';
+        else delete newErrors.course;
+        break;
+      case 'trainingBranch':
+        if (!value.trim()) newErrors.trainingBranch = 'Training branch is required';
+        else delete newErrors.trainingBranch;
+        break;
+      case 'counsellor':
+        if (!value.trim()) newErrors.counsellor = 'Counsellor is required';
+        else delete newErrors.counsellor;
+        break;
+      case 'termsCondition':
+        if (!value) newErrors.termsCondition = 'You must accept terms and conditions';
+        else delete newErrors.termsCondition;
+        break;
+      case 'notes':
+        if (value && value.length > 500) newErrors.notes = 'Notes must be less than 500 characters';
+        else delete newErrors.notes;
+        break;
+      default:
+        break;
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const validateForm = () => {
-    // ... (keep your existing validation logic)
+    const newErrors = {};
+
+    if (!formData.student) newErrors.student = 'Student is required';
+    if (!formData.course) newErrors.course = 'Course is required';
+    if (!formData.trainingBranch.trim()) newErrors.trainingBranch = 'Training branch is required';
+    if (!formData.counsellor.trim()) newErrors.counsellor = 'Counsellor is required';
+    if (!formData.termsCondition) newErrors.termsCondition = 'You must accept terms and conditions';
+    if (formData.notes && formData.notes.length > 500) newErrors.notes = 'Notes must be less than 500 characters';
+
+    setErrors(newErrors);
+    setTouched({
+      student: true,
+      course: true,
+      trainingBranch: true,
+      counsellor: true,
+      termsCondition: true,
+      notes: true
+    });
+
+    return Object.keys(newErrors).length === 0;
   };
 
+  const isFormValid = () => {
+    return (
+      formData.student &&
+      formData.course &&
+      formData.trainingBranch.trim() &&
+      formData.counsellor.trim() &&
+      formData.termsCondition &&
+      Object.keys(errors).length === 0
+    );
+  };
+
+  // ------------------ Handlers ------------------
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     const fieldValue = type === 'checkbox' ? checked : value;
@@ -134,24 +207,25 @@ const AdmissionForm = ({ admission, onClose, isCounsellor = false }) => {
     if (!validateForm()) return;
 
     const submitFormData = new FormData();
-    // Append all form fields
     submitFormData.append('student', formData.student);
     submitFormData.append('course', formData.course);
     submitFormData.append('trainingBranch', formData.trainingBranch.trim());
-    submitFormData.append('counsellor', formData.counsellor.trim());
+    submitFormData.append('counsellor', formData.counsellor.trim()); // counsellor ID
     submitFormData.append('termsCondition', formData.termsCondition);
-    submitFormData.append('appliedBatch', formData.appliedBatch.trim());
+    if (formData.appliedBatch) {
+      submitFormData.append('appliedBatch', formData.appliedBatch); // batch ID
+    }
     submitFormData.append('source', formData.source);
     submitFormData.append('notes', formData.notes.trim());
-    submitFormData.append('admissionDate', formData.admissionDate); // ADDED
+    submitFormData.append('admissionDate', formData.admissionDate);
 
-    // Admin-only fields
+    // Admin-only fields (not for counsellors)
     if (!isCounsellor) {
       submitFormData.append('status', formData.status);
       submitFormData.append('emailVerified', formData.emailVerified);
     }
 
-    // Append files only if new ones are selected
+    // Append files if any
     if (files.admissionFrontPage) submitFormData.append('admissionFrontPage', files.admissionFrontPage);
     if (files.admissionBackPage) submitFormData.append('admissionBackPage', files.admissionBackPage);
     if (files.studentStatement) submitFormData.append('studentStatement', files.studentStatement);
@@ -172,15 +246,6 @@ const AdmissionForm = ({ admission, onClose, isCounsellor = false }) => {
   const handleReset = () => {
     if (initialFormDataRef.current) {
       setFormData(initialFormDataRef.current);
-    } else {
-      // fallback (should not happen)
-      const today = new Date().toISOString().split('T')[0];
-      setFormData({
-        student: '', course: '', trainingBranch: '', counsellor: '',
-        termsCondition: false, appliedBatch: '',
-        source: 'website', notes: '', status: 'pending',
-        emailVerified: false, admissionDate: today
-      });
     }
     setFiles({
       admissionFrontPage: null,
@@ -196,7 +261,6 @@ const AdmissionForm = ({ admission, onClose, isCounsellor = false }) => {
   const getFileName = (file) => (file ? file.name : 'No file chosen');
   const notesCount = formData.notes.length;
 
-  // Hardcoded options (can be moved to constants/config)
   const branches = ['Main Campus', 'Downtown Branch', 'Westside Center', 'Online'];
   const activeCourses = courses.filter((course) => course.isActive);
 
@@ -208,7 +272,6 @@ const AdmissionForm = ({ admission, onClose, isCounsellor = false }) => {
     return 'Create New Admission';
   };
 
-  const canEditStatus = !isCounsellor;
   const isDisabled = operationLoading;
 
   return (
@@ -219,36 +282,30 @@ const AdmissionForm = ({ admission, onClose, isCounsellor = false }) => {
           <button
             onClick={onClose}
             disabled={isDisabled}
-            className={`text-gray-400 hover:text-gray-600 text-2xl ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''
-              }`}
+            className={`text-gray-400 hover:text-gray-600 text-2xl ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             ×
           </button>
         </div>
 
-        {/* Success message */}
+        {/* Success / Error messages (unchanged) */}
         {operationSuccess && (
           <div className="mb-6 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <span>✅</span>
               <span>{operationSuccess}</span>
             </div>
-            <button onClick={onClose} className="text-green-700 hover:text-green-900">
-              ×
-            </button>
+            <button onClick={onClose} className="text-green-700 hover:text-green-900">×</button>
           </div>
         )}
 
-        {/* Error message */}
         {error && (
           <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <span>❌</span>
               <span>{error}</span>
             </div>
-            <button onClick={() => dispatch(clearError())} className="text-red-700 hover:text-red-900">
-              ×
-            </button>
+            <button onClick={() => dispatch(clearError())} className="text-red-700 hover:text-red-900">×</button>
           </div>
         )}
 
@@ -266,8 +323,7 @@ const AdmissionForm = ({ admission, onClose, isCounsellor = false }) => {
                 value={formData.student}
                 onChange={handleChange}
                 onBlur={handleBlur}
-                className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.student ? 'border-red-300' : 'border-gray-300'
-                  }`}
+                className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.student ? 'border-red-300' : 'border-gray-300'}`}
                 disabled={isDisabled}
               >
                 <option value="">Select a student</option>
@@ -293,8 +349,7 @@ const AdmissionForm = ({ admission, onClose, isCounsellor = false }) => {
                 value={formData.course}
                 onChange={handleChange}
                 onBlur={handleBlur}
-                className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.course ? 'border-red-300' : 'border-gray-300'
-                  }`}
+                className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.course ? 'border-red-300' : 'border-gray-300'}`}
                 disabled={isDisabled}
               >
                 <option value="">Select a course</option>
@@ -323,8 +378,7 @@ const AdmissionForm = ({ admission, onClose, isCounsellor = false }) => {
                 value={formData.trainingBranch}
                 onChange={handleChange}
                 onBlur={handleBlur}
-                className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.trainingBranch ? 'border-red-300' : 'border-gray-300'
-                  }`}
+                className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.trainingBranch ? 'border-red-300' : 'border-gray-300'}`}
                 disabled={isDisabled}
               >
                 <option value="">Select training branch</option>
@@ -350,13 +404,12 @@ const AdmissionForm = ({ admission, onClose, isCounsellor = false }) => {
                 value={formData.counsellor}
                 onChange={handleChange}
                 onBlur={handleBlur}
-                className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.counsellor ? 'border-red-300' : 'border-gray-300'
-                  }`}
+                className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.counsellor ? 'border-red-300' : 'border-gray-300'}`}
                 disabled={isDisabled}
               >
                 <option value="">Select counsellor</option>
-                {counsellors.list.map((counsellor) => (
-                  <option key={counsellor._id} value={counsellor.FullName}>
+                {counsellors?.list?.map((counsellor) => (
+                  <option key={counsellor._id} value={counsellor._id}>
                     {counsellor.FullName}
                   </option>
                 ))}
@@ -367,7 +420,7 @@ const AdmissionForm = ({ admission, onClose, isCounsellor = false }) => {
             </div>
           </div>
 
-          {/* Priority and Source */}
+          {/* Source and Status */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Source */}
             <div>
@@ -389,7 +442,8 @@ const AdmissionForm = ({ admission, onClose, isCounsellor = false }) => {
                 <option value="social_media">Social Media</option>
               </select>
             </div>
-            {/* Status */}
+
+            {/* Status - disabled for counsellors */}
             <div>
               <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-2">
                 Status
@@ -400,7 +454,7 @@ const AdmissionForm = ({ admission, onClose, isCounsellor = false }) => {
                 value={formData.status}
                 onChange={handleChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                disabled={isDisabled}
+                disabled={isDisabled || isCounsellor} // Counsellors cannot edit status
               >
                 <option value="pending">Pending</option>
                 <option value="approved">Approved</option>
@@ -412,7 +466,7 @@ const AdmissionForm = ({ admission, onClose, isCounsellor = false }) => {
 
           {/* Applied Batch and Admission Date */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Applied Batch */}
+            {/* Applied Batch - use batch._id as value */}
             <div>
               <label htmlFor="appliedBatch" className="block text-sm font-medium text-gray-700 mb-2">
                 Applied Batch
@@ -427,7 +481,7 @@ const AdmissionForm = ({ admission, onClose, isCounsellor = false }) => {
               >
                 <option value="">Select batch</option>
                 {batches.map((batch) => (
-                  <option key={batch._id} value={batch.name}>
+                  <option key={batch._id} value={batch._id}>
                     {batch.name}
                   </option>
                 ))}
@@ -452,9 +506,8 @@ const AdmissionForm = ({ admission, onClose, isCounsellor = false }) => {
           </div>
 
           {/* Admin-only fields */}
-          {canEditStatus && (
+          {!isCounsellor && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Email Verified */}
               <div className="flex items-center">
                 <input
                   type="checkbox"
@@ -472,7 +525,7 @@ const AdmissionForm = ({ admission, onClose, isCounsellor = false }) => {
             </div>
           )}
 
-          {/* Document Uploads */}
+          {/* Document Uploads (unchanged) */}
           <div className="bg-blue-50 p-4 rounded-lg">
             <h3 className="text-lg font-semibold text-blue-800 mb-4">Upload Documents (Images or PDFs)</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -518,8 +571,7 @@ const AdmissionForm = ({ admission, onClose, isCounsellor = false }) => {
               value={formData.notes}
               onChange={handleChange}
               onBlur={handleBlur}
-              className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none ${errors.notes ? 'border-red-300' : 'border-gray-300'
-                }`}
+              className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none ${errors.notes ? 'border-red-300' : 'border-gray-300'}`}
               placeholder="Additional notes or comments..."
               disabled={isDisabled}
             />
@@ -537,8 +589,7 @@ const AdmissionForm = ({ admission, onClose, isCounsellor = false }) => {
               checked={formData.termsCondition}
               onChange={handleChange}
               onBlur={handleBlur}
-              className={`h-4 w-4 mt-1 text-blue-600 focus:ring-blue-500 border-gray-300 rounded ${errors.termsCondition ? 'border-red-300' : ''
-                }`}
+              className={`h-4 w-4 mt-1 text-blue-600 focus:ring-blue-500 border-gray-300 rounded ${errors.termsCondition ? 'border-red-300' : ''}`}
               disabled={isDisabled}
             />
             <div className="flex-1">
@@ -574,7 +625,7 @@ const AdmissionForm = ({ admission, onClose, isCounsellor = false }) => {
             </button>
             <button
               type="submit"
-              disabled={isDisabled || !formData.termsCondition}
+              disabled={isDisabled || !isFormValid()}
               className="px-6 py-2 bg-[#890c25] text-white rounded-lg hover:bg-[#890c25] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
             >
               {operationLoading ? (

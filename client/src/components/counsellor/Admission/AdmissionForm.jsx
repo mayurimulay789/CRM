@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { createAdmission, updateAdmission, clearError, clearSuccess } from '../../../store/slices/admissionSlice';
 import { fetchStudents } from '../../../store/slices/studentSlice';
 import { fetchCourses } from '../../../store/slices/courseSlice';
-import {getBatches} from '../../../store/slices/batchSlice';
+import { getBatches } from '../../../store/slices/batchSlice';
 
 const AdmissionForm = ({ admission, onClose }) => {
   const dispatch = useDispatch();
@@ -21,9 +21,6 @@ const AdmissionForm = ({ admission, onClose }) => {
     source: 'website',
     notes: ''
   });
-
-  console.log(students)
-
   // File states
   const [files, setFiles] = useState({
     admissionFrontPage: null,
@@ -36,7 +33,7 @@ const AdmissionForm = ({ admission, onClose }) => {
   const [touched, setTouched] = useState({});
 
   useEffect(() => {
-    // Fetch students and courses for dropdowns
+    // Fetch students, courses, and batches for dropdowns
     dispatch(fetchStudents());
     dispatch(fetchCourses());
     dispatch(getBatches());
@@ -49,7 +46,7 @@ const AdmissionForm = ({ admission, onClose }) => {
         course: admission.course?._id || admission.course || '',
         trainingBranch: admission.trainingBranch || '',
         termsCondition: admission.termsCondition || false,
-        appliedBatch: admission.appliedBatch || '',
+        appliedBatch: admission.appliedBatch || '', // expecting batch ID (or populated object with _id)
         source: admission.source || 'website',
         notes: admission.notes || ''
       });
@@ -111,14 +108,6 @@ const AdmissionForm = ({ admission, onClose }) => {
         }
         break;
 
-      case 'studentStatement':
-        if (value && value.length > 1000) {
-          newErrors.studentStatement = 'Student statement must be less than 1000 characters';
-        } else {
-          delete newErrors.studentStatement;
-        }
-        break;
-
       case 'notes':
         if (value && value.length > 500) {
           newErrors.notes = 'Notes must be less than 500 characters';
@@ -149,7 +138,6 @@ const AdmissionForm = ({ admission, onClose }) => {
     if (!formData.trainingBranch.trim()) {
       newErrors.trainingBranch = 'Training branch is required';
     }
-
 
     if (!formData.termsCondition) {
       newErrors.termsCondition = 'Terms and conditions must be accepted';
@@ -217,7 +205,9 @@ const AdmissionForm = ({ admission, onClose }) => {
     submitFormData.append('course', formData.course);
     submitFormData.append('trainingBranch', formData.trainingBranch.trim());
     submitFormData.append('termsCondition', formData.termsCondition);
-    submitFormData.append('appliedBatch', formData.appliedBatch.trim());
+    if (formData.appliedBatch) {
+      submitFormData.append('appliedBatch', formData.appliedBatch); // batch ID
+    }
     submitFormData.append('source', formData.source);
     submitFormData.append('notes', formData.notes.trim());
 
@@ -375,7 +365,7 @@ const AdmissionForm = ({ admission, onClose }) => {
           </div>
         </div>
 
-        {/* Training Branch and Counsellor */}
+        {/* Training Branch and Source */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Training Branch */}
           <div>
@@ -398,6 +388,8 @@ const AdmissionForm = ({ admission, onClose }) => {
               <p className="mt-1 text-sm text-red-600">{errors.trainingBranch}</p>
             )}
           </div>
+
+          {/* Source */}
           <div>
             <label htmlFor="source" className="block text-sm font-medium text-gray-700 mb-2">
               Source
@@ -419,7 +411,6 @@ const AdmissionForm = ({ admission, onClose }) => {
           </div>
         </div>
 
-
         {/* Applied Batch */}
         <div>
           <label htmlFor="appliedBatch" className="block text-sm font-medium text-gray-700 mb-2">
@@ -431,10 +422,11 @@ const AdmissionForm = ({ admission, onClose }) => {
             value={formData.appliedBatch}
             onChange={handleChange}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            disabled={operationLoading}
           >
             <option value="">Select batch</option>
             {batches.map((batch) => (
-              <option key={batch._id} value={batch.name}>
+              <option key={batch._id} value={batch._id}>
                 {batch.name}
               </option>
             ))}
@@ -455,7 +447,7 @@ const AdmissionForm = ({ admission, onClose }) => {
                 id="admissionFrontPage"
                 name="admissionFrontPage"
                 onChange={handleFileChange}
-                accept="image/*,.pdf,.jpeg,.png,.gif,.bmp,.webp,.svg"
+                accept="image/*,.pdf"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 disabled={operationLoading}
               />
@@ -474,7 +466,7 @@ const AdmissionForm = ({ admission, onClose }) => {
                 id="admissionBackPage"
                 name="admissionBackPage"
                 onChange={handleFileChange}
-                accept="image/*,.pdf,.jpeg,.png,.gif,.bmp,.webp,.svg"
+                accept="image/*,.pdf"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 disabled={operationLoading}
               />
@@ -493,7 +485,7 @@ const AdmissionForm = ({ admission, onClose }) => {
                 id="studentStatement"
                 name="studentStatement"
                 onChange={handleFileChange}
-                accept="image/*,.pdf,.jpeg,.png,.gif,.bmp,.webp,.svg"
+                accept="image/*,.pdf"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 disabled={operationLoading}
               />
@@ -512,7 +504,7 @@ const AdmissionForm = ({ admission, onClose }) => {
                 id="confidentialForm"
                 name="confidentialForm"
                 onChange={handleFileChange}
-                accept="image/*,.pdf,.jpeg,.png,.gif,.bmp,.webp,.svg"
+                accept="image/*,.pdf"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 disabled={operationLoading}
               />
@@ -618,7 +610,6 @@ const AdmissionForm = ({ admission, onClose }) => {
             )}
           </button>
         </div>
-
       </form>
     </div>
   );
