@@ -269,7 +269,6 @@ const AdmissionsManagement = () => {
       pending: { color: 'bg-yellow-100 text-yellow-800', label: 'Pending' },
       approved: { color: 'bg-green-100 text-green-800', label: 'Approved' },
       rejected: { color: 'bg-red-100 text-red-800', label: 'Rejected' },
-      waiting_list: { color: 'bg-blue-100 text-blue-800', label: 'Waiting List' }
     };
 
     const config = statusConfig[status] || statusConfig.pending;
@@ -383,7 +382,6 @@ const AdmissionsManagement = () => {
       pending: admissions.filter(a => a.status === 'pending').length,
       approved: admissions.filter(a => a.status === 'approved').length,
       rejected: admissions.filter(a => a.status === 'rejected').length,
-      waiting: admissions.filter(a => a.status === 'waiting_list').length,
       editable: admissions.filter(a => canEditAdmission(a)).length
     };
 
@@ -514,7 +512,7 @@ const AdmissionsManagement = () => {
                   <div className="p-4">
                     <h3 className="font-semibold text-gray-800 mb-3 text-sm lg:text-base">Filter by Status</h3>
                     <div className="space-y-2">
-                      {['all', 'pending', 'approved', 'rejected', 'waiting_list'].map(status => (
+                      {['all', 'pending', 'approved', 'rejected'].map(status => (
                         <label key={status} className="flex items-center space-x-2 cursor-pointer">
                           <input
                             type="radio"
@@ -810,9 +808,7 @@ const AdmissionsManagement = () => {
                                     {getStatusBadge(admission.status)}
                                     {admission.status !== 'pending' && (
                                       <span className="text-xs text-gray-500 mt-1 hidden lg:block">
-                                        {admission.status === 'approved' ? '✅ Approved by Admin' :
-                                          admission.status === 'rejected' ? '❌ Rejected by Admin - Can be edited' :
-                                            '⏳ In Waiting List'}
+                                        {admission.status === 'approved' ? '✅ Approved by Admin' : admission.status === 'rejected'}
                                       </span>
                                     )}
                                   </div>

@@ -171,7 +171,6 @@ async function sendAdmissionEmail(admission, type = 'approved') {
               <tr><td class="label-cell">Student ID</td><td class="value-cell"><strong>${student.studentId}</strong></td></tr>
               <tr><td class="label-cell">Applied Program</td><td class="value-cell"><strong>${course.name}</strong></td></tr>
               <tr><td class="label-cell">Program Duration</td><td class="value-cell"><strong>${course.duration}</strong></td></tr>
-              <tr><td class="label-cell">Program Fee</td><td class="value-cell"><strong>₹${course.fee}</strong></td></tr>
               <tr><td class="label-cell">Training Campus</td><td class="value-cell"><strong>${admission.trainingBranch}</strong></td></tr>
               <tr><td class="label-cell">Admission Date</td><td class="value-cell"><strong>${new Date(admission.admissionDate).toLocaleDateString('en-IN')}</strong></td></tr>
               <tr><td class="label-cell">Processed By</td><td class="value-cell"><strong>${admission.counsellor}</strong></td></tr>

@@ -290,7 +290,6 @@ const AdmissionManagement = () => {
       pending: { color: 'bg-yellow-100 text-yellow-800', label: 'Pending' },
       approved: { color: 'bg-green-100 text-green-800', label: 'Approved' },
       rejected: { color: 'bg-red-100 text-red-800', label: 'Rejected' },
-      waiting_list: { color: 'bg-blue-100 text-blue-800', label: 'Waiting List' }
     };
 
     const config = statusConfig[status] || statusConfig.pending;
@@ -403,12 +402,6 @@ const AdmissionManagement = () => {
           >
             ❌ Reject
           </button>
-          <button
-            onClick={() => handleStatusUpdate(admission._id, 'waiting_list')}
-            className="text-blue-600 hover:text-blue-900 px-1 lg:px-2 py-1 rounded hover:bg-blue-50 transition-colors border border-blue-200 text-xs w-full lg:w-auto"
-          >
-            ⏳ Wait List
-          </button>
         </div>
       );
     }
@@ -430,7 +423,6 @@ const AdmissionManagement = () => {
       pending: admissions.filter(a => a.status === 'pending').length,
       approved: admissions.filter(a => a.status === 'approved').length,
       rejected: admissions.filter(a => a.status === 'rejected').length,
-      waiting: admissions.filter(a => a.status === 'waiting_list').length
     };
 
     return stats;
@@ -469,9 +461,6 @@ const AdmissionManagement = () => {
                 </div>
                 <div className="text-xs bg-red-50 px-2 py-1 rounded-full">
                   <span className="font-semibold text-red-700">Rejected: {adminStats.rejected}</span>
-                </div>
-                <div className="text-xs bg-indigo-50 px-2 py-1 rounded-full">
-                  <span className="font-semibold text-indigo-700">Waiting: {adminStats.waiting}</span>
                 </div>
               </div>
             </div>
@@ -514,7 +503,7 @@ const AdmissionManagement = () => {
                   <div className="p-4">
                     <h3 className="font-semibold text-gray-800 mb-3 text-sm lg:text-base">Filter by Status</h3>
                     <div className="space-y-2">
-                      {['all', 'pending', 'approved', 'rejected', 'waiting_list'].map(status => (
+                      {['all', 'pending', 'approved', 'rejected'].map(status => (
                         <label key={status} className="flex items-center space-x-2 cursor-pointer">
                           <input
                             type="radio"
