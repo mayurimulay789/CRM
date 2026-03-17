@@ -8,12 +8,14 @@ import {
 } from '../../../store/slices/enrollmentSlice';
 import { fetchAdmissions } from '../../../store/slices/admissionSlice';
 import { getBatches } from '../../../store/slices/batchSlice';
+import { getAllCounsellors } from '../../../store/slices/authSlice'; // ✅ Import counsellor thunk
 
 const EnrollmentForm = ({ enrollment, onClose }) => {
   const dispatch = useDispatch();
   const { operationLoading, error, success } = useSelector(state => state.enrollments);
   const { admissions } = useSelector(state => state.admissions);
   const { batches } = useSelector(state => state.batch);
+  const { counsellors: counsellorsData } = useSelector(state => state.auth); // ✅ Get counsellors from auth state
   
   const [formData, setFormData] = useState({
     admission: '',
@@ -35,9 +37,11 @@ const EnrollmentForm = ({ enrollment, onClose }) => {
   const [selectedAdmission, setSelectedAdmission] = useState(null);
   const [touched, setTouched] = useState({});
 
+  // ✅ Fetch all required data
   useEffect(() => {
     dispatch(fetchAdmissions());
     dispatch(getBatches());
+    dispatch(getAllCounsellors()); // ✅ Fetch all counsellors
   }, [dispatch]);
 
   // Format date for input
@@ -333,16 +337,8 @@ const EnrollmentForm = ({ enrollment, onClose }) => {
     b.status === 'Running' || b.status === 'Upcoming'
   );
 
-  // Get unique counsellors from admissions (you might want to fetch from users)
-  const counsellors = [...new Set(admissions.map(a => a.counsellor?._id || a.counsellor))]
-    .filter(Boolean)
-    .map(id => {
-      const admission = admissions.find(a => a.counsellor?._id === id || a.counsellor === id);
-      return {
-        id,
-        name: admission?.counsellor?.FullName || 'Unknown Counsellor'
-      };
-    });
+  // ✅ Get counsellors from auth slice
+  const counsellorsList = counsellorsData?.list || [];
 
   const RequiredStar = () => <span className="text-red-500 ml-1">*</span>;
 
@@ -416,7 +412,7 @@ const EnrollmentForm = ({ enrollment, onClose }) => {
               {errors.batch && <p className="text-red-500 text-xs mt-1">{errors.batch}</p>}
             </div>
 
-            {/* Counsellor */}
+            {/* Counsellor - Using authSlice data */}
             <div>
               <label className="block text-sm font-medium mb-1">Counsellor <RequiredStar /></label>
               <select
@@ -424,14 +420,27 @@ const EnrollmentForm = ({ enrollment, onClose }) => {
                 value={formData.counsellor}
                 onChange={handleChange}
                 onBlur={() => handleBlur('counsellor')}
-                className={`w-full px-3 py-2 border rounded-lg text-sm ${errors.counsellor ? 'border-red-500' : 'border-gray-300'}`}
+                className={`w-full px-3 py-2 border rounded-lg text-sm ${
+                  errors.counsellor ? 'border-red-500' : 'border-gray-300'
+                } ${counsellorsData?.loading ? 'bg-gray-100' : 'bg-white'}`}
+                disabled={counsellorsData?.loading}
               >
-                <option value="">Select Counsellor</option>
-                {counsellors.map(c => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
+                <option value="">
+                  {counsellorsData?.loading ? 'Loading counsellors...' : 'Select Counsellor'}
+                </option>
+                {!counsellorsData?.loading && counsellorsList.map(counsellor => (
+                  <option key={counsellor._id} value={counsellor._id}>
+                    {counsellor.FullName || counsellor.name || counsellor.email}
+                    {counsellor.email && ` (${counsellor.email})`}
+                  </option>
                 ))}
               </select>
               {errors.counsellor && <p className="text-red-500 text-xs mt-1">{errors.counsellor}</p>}
+              
+              {/* Show error if any */}
+              {counsellorsData?.error && (
+                <p className="text-red-500 text-xs mt-1">Error loading counsellors: {counsellorsData.error}</p>
+              )}
             </div>
 
             {/* Mode */}
@@ -654,6 +663,7 @@ const EnrollmentForm = ({ enrollment, onClose }) => {
                   name="leadDate"
                   value={formData.leadDate}
                   onChange={handleChange}
+                  max={new Date().toISOString().split('T')[0]} // ✅ Prevent future dates
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                 />
               </div>
