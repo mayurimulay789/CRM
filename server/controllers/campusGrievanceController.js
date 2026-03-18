@@ -131,7 +131,7 @@ exports.approveGrievance = async (req, res) => {
             const counsellorEmail = grievance.submittedBy?.email;
             if (counsellorEmail) {
                 const approvalHtml = `
-         <!DOCTYPE html>
+          <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -157,7 +157,7 @@ exports.approveGrievance = async (req, res) => {
     }
 
     .card {
-      max-width: 800px;        /* 🔹 increased from 600px to 800px for a wider layout */
+      max-width: 1200px;        /* 🔹 increased from 600px to 800px for a wider layout */
       width: 100%;
       background-color: #ffffff;
       box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
@@ -192,7 +192,8 @@ exports.approveGrievance = async (req, res) => {
       line-height: 1.5;
       margin-bottom: 28px;
       font-size: 0.98rem;
-      padding: 14px 18px;
+      padding-top: 14px;
+      padding-right: 50px;
     }
 
     /* details grid – exactly like screenshot: label above value */
@@ -318,14 +319,12 @@ exports.approveGrievance = async (req, res) => {
       font-size: 1.1rem;
       margin-top: 6px;
     }
-
-    .disclaimer {
-      margin-top: 24px;
-      font-size: 0.75rem;
-      padding: 10px 14px;
-      text-align: center;
-    }
-
+.disclaimer {
+            font-size: 14px;
+            color: black;
+            padding-top: 15px;
+            line-height: 1.5;
+        }
     hr {
       border: none;
       border-top: 1px solid #d9e2ec;
@@ -428,32 +427,16 @@ exports.approveGrievance = async (req, res) => {
         <div class="regards-line">Regards,</div>
         <div style="font-weight: 500; color: #1f4973;">Office of Grievance Cell</div>
         <div style="margin: 4px 0 2px; color: #2c3e50;">Authorised Signatory</div>
-        <div class="office-name">RYMAC ACADEMY</div>
+        <div class="office-name">RYMA ACADEMY</div>
       </div>
 
       <!-- disclaimer (exact wording, auto-generated) -->
       <div class="disclaimer">
         Disclaimer: This is an auto-generated email. Please do not reply directly to this message.
       </div>
-
-      <!-- subtle extra note: placeholders are kept, all data from original template appears -->
-      <div style="font-size: 0.7rem; color: #9aaebf; text-align: center; margin-top: 16px;">
-        Complaint reference #250005688869 • 18 March 2025
-      </div>
     </div>
   </div>
 
-  <!-- small note: the design matches screenshot structure:
-       - Dear {{student_name}}
-       - OFFICE OF GRIEVANCE CELL
-       - confirmation paragraph
-       - complaint number / status / subject / date (as separate label+value)
-       - representative contact paragraph
-       - queries line + assistance text
-       - two-column table (helpline, email, website) exactly as shown
-       - signature and disclaimer
-  -->
-</body>
 </html>
         `;
 
@@ -508,7 +491,7 @@ exports.rejectGrievance = async (req, res) => {
             const counsellorEmail = grievance.submittedBy?.email;
             if (counsellorEmail) {
                 const rejectionHtml = `
-         <!DOCTYPE html>
+          <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -534,7 +517,7 @@ exports.rejectGrievance = async (req, res) => {
     }
 
     .card {
-      max-width: 800px;
+      max-width: 1200px;
       width: 100%;
       background-color: #ffffff;
       box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
@@ -567,9 +550,9 @@ exports.rejectGrievance = async (req, res) => {
 
     .intro-text {
       line-height: 1.5;
-      margin-bottom: 28px;
       font-size: 0.98rem;
-      padding: 14px 18px;
+      padding-top: 14px;
+      padding-right:50px;
     }
 
     /* details grid – label above value */
@@ -696,11 +679,11 @@ exports.rejectGrievance = async (req, res) => {
     }
 
     .disclaimer {
-      margin-top: 24px;
-      font-size: 0.75rem;
-      padding: 10px 14px;
-      text-align: center;
-    }
+            font-size: 14px;
+            color: black;
+            padding-top: 15px;
+            line-height: 1.5;
+        }
 
     hr {
       border: none;
@@ -742,7 +725,7 @@ exports.rejectGrievance = async (req, res) => {
       </div>
 
       <!-- Rejection reason (new block) -->
-      <div style="background-color: #fff4f4; border-left: 4px solid #dc3545; padding: 16px 20px; margin-bottom: 28px; border-radius: 0 8px 8px 0;">
+      <div style="padding: 16px 50px 0 0; margin-bottom: 28px;">
         <div style="font-weight: 600; color: #a11d2b; margin-bottom: 6px;">Rejection Reason</div>
         <div style="color: #2d2d2d;">${rejectionReason || 'No specific reason provided.'}</div>
       </div>
@@ -806,17 +789,12 @@ exports.rejectGrievance = async (req, res) => {
         <div class="regards-line">Regards,</div>
         <div style="font-weight: 500; color: #1f4973;">Office of Grievance Cell</div>
         <div style="margin: 4px 0 2px; color: #2c3e50;">Authorised Signatory</div>
-        <div class="office-name">RYMAC ACADEMY</div>
+        <div class="office-name">RYMA ACADEMY</div>
       </div>
 
       <!-- Disclaimer -->
       <div class="disclaimer">
         Disclaimer: This is an auto-generated email. Please do not reply directly to this message.
-      </div>
-
-      <!-- Optional reference line (updated) -->
-      <div style="font-size: 0.7rem; color: #9aaebf; text-align: center; margin-top: 16px;">
-        Complaint reference #${grievance._id.slice(-6)} • Decided on ${formatDate(decisionDate) || '18 March 2025'}
       </div>
     </div>
   </div>

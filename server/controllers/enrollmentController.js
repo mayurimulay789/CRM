@@ -102,8 +102,7 @@ async function sendEnrollmentApprovalMail(enrollment) {
     }
 
     .office-line {
-      color: #7e3939;
-      font-weight: 600;
+      color: black;
       margin: 5px 0 15px;
       font-size: 16px;
     }
@@ -126,37 +125,34 @@ async function sendEnrollmentApprovalMail(enrollment) {
 
     /* Highlight block (styled like .family-block) */
     .family-block {
-      padding: 16px 20px;
-      margin: 20px 0;
-      color: #572626;
+      padding-top:10px;
+      padding-left:2px;
+      color: black;
       font-weight: 500;
 
     }
 
     .director-quote {
-      padding: 22px 26px;
-      margin: 20px 0 25px;
+      padding: 6px 10px;
+      margin: 10px 0 15px;
     }
 
     .quote-mark {
-      font-size: 40px;
-      color: #b44848;
+      color: black;
       font-family: 'Times New Roman', serif;
       line-height: 0.6;
-      margin-right: 4px;
     }
 
     .director-quote p {
       font-size: 18px;
       font-style: italic;
-      color: #592b2b;
-      margin: 8px 0 10px 0;
-      font-weight: 500;
+      color: black;
+      font-weight: 400;
     }
 
     .director-name {
       font-weight: 700;
-      color: #862b2b;
+      color: black;
       text-align: right;
       font-size: 16px;
     }
@@ -177,13 +173,13 @@ async function sendEnrollmentApprovalMail(enrollment) {
 
     @media (min-width: 768px) {
       .section-title {
-        font-size: 22px;
+        font-size: 20px;
       }
     }
 
     @media (min-width: 1200px) {
       .section-title {
-        font-size: 28px;
+        font-size: 26px;
       }
     }
 
@@ -330,18 +326,18 @@ async function sendEnrollmentApprovalMail(enrollment) {
       padding: 18px 25px;
 
 
-      color: #6d3131;
+      color: black;
       font-size: 15px;
       text-align: center;
     }
 
     .contact-table a {
-      color: #a13030;
+      color: black;
       text-decoration: underline;
     }
 
     .footer-red {
-      background-color: #8f2626;
+      background-color: black;
       padding: 18px 28px;
       text-align: center;
       color: #ffd7d7;
@@ -358,11 +354,8 @@ async function sendEnrollmentApprovalMail(enrollment) {
 
     /* Additional styles from enrollment */
     .warning-note {
-
-      padding: 18px 24px;
-
-      margin: 28px 0 20px;
-      color: #792e2e;
+    
+      color: black;
       font-size: 15px;
       text-align: center;
 
@@ -370,7 +363,7 @@ async function sendEnrollmentApprovalMail(enrollment) {
 
     .signature {
       margin: 30px 0 20px;
-      color: #592525;
+      color: black;
     }
 
     .disclaimer {
@@ -387,11 +380,6 @@ async function sendEnrollmentApprovalMail(enrollment) {
 
 <body>
   <div class="email-container">
-    <!-- Gradient header (from admission) -->
-    <div class="header">
-      RYMA ACADEMY
-    </div>
-
     <!-- Header image (from admission) -->
     <img src="https://res.cloudinary.com/dk9lypgfv/image/upload/v1773463891/Screenshot_2026-03-11_141445_ar7p06.png"
       alt="RYMA Academy Banner" class="imgformate">
@@ -486,12 +474,12 @@ async function sendEnrollmentApprovalMail(enrollment) {
         <tr>
           <td class="label-cell">Due amount to Pay</td>
           <td class="value-cell"><strong>₹${(enrollment.totalAmount || 0) - (enrollment.admissionRegistrationPayment ||
-              0)}</strong></td>
+          0)}</strong></td>
         </tr>
         <tr>
           <td class="label-cell">Fee Type</td>
           <td class="value-cell"><strong>${enrollment.feeType === 'one-time' ? 'One Time Payment' :
-              'Installment'}</strong></td>
+          'Installment'}</strong></td>
         </tr>
       </table>
 
@@ -516,13 +504,13 @@ async function sendEnrollmentApprovalMail(enrollment) {
 
       <!-- Verification warning -->
       <div class="warning-note">
-        ⚠️ <strong>Please verify all details carefully.</strong> Any discrepancy must be reported to your
-        Education Counsellor within 48 hours.
+        ⚠️ <strong>Please verify all details carefully.</strong> 
+        <p>Any discrepancy must be reported to your
+        Education Counsellor within 48 hours.</p>
       </div>
 
       <!-- Director's quote (from enrollment) -->
       <div class="director-quote">
-        <span class="quote-mark">“</span>
         <p>At RYMA ACADEMY, we believe every great journey begins with a single, courageous step forward. You
           have taken that step. Now let us walk the rest of this path — together.</p>
         <div class="director-name">~ Mr. Parveen Jain | Director, RYMA ACADEMY</div>
@@ -581,13 +569,14 @@ async function sendEnrollmentRejectionMail(student, enrollment) {
       console.log(`📧 Sending enrollment rejection email to: ${student.email}`);
 
       const rejectionHtml = `
-       <!DOCTYPE html>
+<!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RYMA ACADEMY – Application Status</title>
     <style>
+        /* ===== EXACT STYLES FROM OFFICIAL ENROLLMENT TEMPLATE ===== */
         body {
             margin: 0;
             padding: 0;
@@ -619,8 +608,7 @@ async function sendEnrollmentRejectionMail(student, enrollment) {
         }
 
         .office-line {
-            color: #7e3939;
-            font-weight: 600;
+            color: black;
             margin: 5px 0 15px;
             font-size: 16px;
         }
@@ -642,8 +630,9 @@ async function sendEnrollmentRejectionMail(student, enrollment) {
             font-weight: 500;
         }
 
+        /* Mobile-first section title – matches enrollment template */
         .section-title {
-            font-size: 22px;
+            font-size: 12px;
             font-weight: 700;
             color: #aa2929;
             border-bottom: 3px solid #e0adad;
@@ -651,6 +640,18 @@ async function sendEnrollmentRejectionMail(student, enrollment) {
             margin: 30px 0 20px;
             text-transform: uppercase;
             letter-spacing: 1px;
+        }
+
+        @media (min-width: 768px) {
+            .section-title {
+                font-size: 18px;
+            }
+        }
+
+        @media (min-width: 1200px) {
+            .section-title {
+                font-size: 24px;
+            }
         }
 
         .enroll-table {
@@ -693,23 +694,14 @@ async function sendEnrollmentRejectionMail(student, enrollment) {
         }
 
         .warning-note {
-           
-            padding: 18px 24px;
-           
-            margin: 28px 0 20px;
-            color: #792e2e;
+            padding-top:10px;
+            color: black;
             font-size: 15px;
-            text-align: center;
-           
         }
 
         .help-box {
-           
-          
-            padding: 18px 25px;
-            margin: 25px 0;
-        
-            color: #6d3131;
+            padding: 18px;
+            color: black;
         }
 
         .help-box a {
@@ -751,22 +743,21 @@ async function sendEnrollmentRejectionMail(student, enrollment) {
         }
 
         .signature {
+          padding-left:18px;
             margin: 30px 0 20px;
-            color: #592525;
+            color: black;
         }
 
         .contact-footer {
-           
             padding: 18px 25px;
-           
-            color: #6d3131;
+            color: black;
             font-size: 15px;
             margin: 20px 0;
             word-break: break-word;
         }
 
         .contact-footer a {
-            color: #a13030;
+            color: black;
             text-decoration: underline;
         }
 
@@ -794,25 +785,18 @@ async function sendEnrollmentRejectionMail(student, enrollment) {
         }
 
         .imgformate {
-            width: 1200px;
+            width: 100%;
+            max-width: 1200px;
+            height: auto;
             display: block;
         }
 
-        /* ----- RESPONSIVE STACKING FOR TABLES ----- */
+        /* ----- RESPONSIVE STACKING FOR TABLES (same as enrollment) ----- */
         @media screen and (max-width: 600px) {
-            /* Make header image fluid */
-            .imgformate {
-                width: 100%;
-                height: auto;
-                max-width: 100%;
-            }
-
-            /* Adjust content padding */
             .content {
                 padding: 20px 16px;
             }
 
-            /* Convert tables to block layout */
             .enroll-table,
             .enroll-table tbody,
             .enroll-table tr,
@@ -822,7 +806,6 @@ async function sendEnrollmentRejectionMail(student, enrollment) {
                 box-sizing: border-box;
             }
 
-            /* Each row becomes a card */
             .enroll-table tr {
                 margin-bottom: 1.5rem;
                 border: 1px solid #e9c1c1;
@@ -831,7 +814,6 @@ async function sendEnrollmentRejectionMail(student, enrollment) {
                 background: #fff;
             }
 
-            /* Cells stack vertically */
             .enroll-table td {
                 border: none;
                 border-bottom: 1px solid #f2d6d6;
@@ -843,39 +825,27 @@ async function sendEnrollmentRejectionMail(student, enrollment) {
                 border-bottom: none;
             }
 
-            /* Adjust label cell for mobile */
             .label-cell {
                 border-right: none;
                 background-color: #fde5e5;
-                font-weight: 700;
             }
 
             .value-cell {
                 background-color: #fffbfb;
             }
 
-            /* Optional: keep section titles readable */
-            .section-title {
-                font-size: 20px;
-                margin: 25px 0 15px;
-            }
-
-            /* Adjust warning/help boxes */
             .warning-note,
-            .help-box {
-                padding: 15px 20px;
-                border-radius: 30px 8px 30px 8px;
-            }
-
+            .help-box,
             .contact-footer {
                 padding: 15px 20px;
+                border-radius: 30px 8px 30px 8px;
             }
         }
     </style>
 </head>
 <body>
     <div class="enrollment-container">
-        <!-- Same header image as original (or could be replaced with a rejection-specific one) -->
+        <!-- Same branded header image -->
         <img src="https://res.cloudinary.com/dk9lypgfv/image/upload/v1773463891/Screenshot_2026-03-11_141445_ar7p06.png" alt="RYMA ACADEMY Banner" class="imgformate">
 
         <div class="content">
@@ -886,14 +856,14 @@ async function sendEnrollmentRejectionMail(student, enrollment) {
                 We have completed the review of your enrollment application. After careful consideration, we regret to inform you that your application has been <strong>rejected</strong>.
             </div>
 
-            <!-- Rejection status badge (styled like the highlight but with different emphasis) -->
+            <!-- Rejection badge -->
             <div class="warning-note">
                 ⛔ <strong>Enrollment Rejected</strong> — Your application did not meet the required criteria at this time.
             </div>
 
-            <!-- Optional: Show submitted details for reference -->
+            <!-- Application summary table -->
             <div class="section-title">Application Summary</div>
-             <table class="enroll-table" cellpadding="0" cellspacing="0">
+            <table class="enroll-table" cellpadding="0" cellspacing="0">
                 <tr>
                     <td class="label-cell">Student Name</td>
                     <td class="value-cell"><strong>${enrollment.student?.name || 'Student'}</strong></td>
@@ -916,6 +886,7 @@ async function sendEnrollmentRejectionMail(student, enrollment) {
                 </tr>
             </table>
 
+            <!-- Program details table -->
             <div class="section-title">PROGRAM DETAILS</div>
             <table class="enroll-table" cellpadding="0" cellspacing="0">
                 <tr>
@@ -947,16 +918,28 @@ async function sendEnrollmentRejectionMail(student, enrollment) {
                     <td class="value-cell"><strong>${formatDateToDDMMYYYY(enrollment.enrollmentDate)}</strong></td>
                 </tr>
             </table>
-            <!-- services / Next steps box (like help-box) -->
+
+            <!-- Help / next steps box (now styled like .highlight) -->
             <div class="help-box">
                 <strong>📞 Need assistance?</strong> If you have questions about this decision or would like to discuss alternative programs, please contact our admissions team. We're here to help you explore your options.
             </div>
+
+            <!-- Director's quote (optional – can be included or omitted) -->
+            <!-- Uncomment if you want the quote:
+            <div class="quote-block">
+                <span class="quote-mark">“</span>
+                <p>Every closed door is a new beginning. We encourage you to revisit your goals and apply again when you're ready.</p>
+                <div class="director-name">~ Mr. Parveen Jain | Director, RYMA ACADEMY</div>
+            </div>
+            -->
+
             <div class="signature">
                 With sincere regards,<br>
                 <strong>Admissions & Student Services</strong><br>
                 RYMA ACADEMY
             </div>
 
+            <!-- Contact footer with consistent styling -->
             <div class="contact-footer">
                 📞 +91-9873336133<br>
                 📧 <a href="mailto:services@rymaacademy.com">services@rymaacademy.com</a><br>

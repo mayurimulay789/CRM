@@ -168,28 +168,26 @@ async function sendAdmissionEmail(admission, type = 'approved') {
       line-height: 1.2;
     }
 
-    s .message {
+    .message {
       font-size: 16px;
-      color: #3a2a2a;
+      color: black;
       line-height: 1.5;
       margin: 15px 0 10px;
     }
 
     .family-block {
-      padding: 16px 20px;
       margin: 20px 0;
-      color: #572626;
-      font-weight: 500;
+      color:black;
     }
 
     .director-quote {
-      padding: 22px 26px;
+      color:black;
       margin: 20px 0 25px;
     }
 
     .quote-mark {
       font-size: 40px;
-      color: #b44848;
+     color:black;
       font-family: 'Times New Roman', serif;
       line-height: 0.6;
       margin-right: 4px;
@@ -198,14 +196,14 @@ async function sendAdmissionEmail(admission, type = 'approved') {
     .director-quote p {
       font-size: 18px;
       font-style: italic;
-      color: #592b2b;
+      color:black;
       margin: 8px 0 10px 0;
       font-weight: 500;
     }
 
     .director-name {
       font-weight: 700;
-      color: #862b2b;
+      color: black;
       text-align: right;
       font-size: 16px;
     }
@@ -220,18 +218,18 @@ async function sendAdmissionEmail(admission, type = 'approved') {
       letter-spacing: 1px;
     }
     .section-title {
-  font-size: 18px;
+  font-size: 16px;
 }
 
 @media (min-width: 768px) {
   .section-title {
-    font-size: 22px;
+    font-size: 20px;
   }
 }
 
 @media (min-width: 1200px) {
   .section-title {
-    font-size: 28px;
+    font-size: 25px;
   }
 }
 
@@ -311,7 +309,7 @@ async function sendAdmissionEmail(admission, type = 'approved') {
     .footnote {
       padding: 18px 24px;
       margin: 28px 0 20px;
-      color: #792e2e;
+      color: black;
       font-size: 15px;
       text-align: center;
     }
@@ -368,7 +366,7 @@ async function sendAdmissionEmail(admission, type = 'approved') {
         future. Today, that effort has been acknowledged.
       </div>
       <div class="family-block">
-        <strong>On behalf of the entire RYMA ACADEMY family</strong> — it is our immense honour and privilege to
+        On behalf of the entire RYMA ACADEMY family. — it is our immense honour and privilege to
         officially confirm your admission. You are now a part of an institution that has been built on one singular
         promise:
       </div>
@@ -436,12 +434,12 @@ async function sendAdmissionEmail(admission, type = 'approved') {
         Any discrepancy must be reported to your Education Counsellor within 48 hours.
       </div>
 
-      <p style="font-size: 18px; color: #7e3939; text-align: center; margin: 30px 0 10px; font-weight: 500;">
-        Welcome to a legacy of excellence, <strong style="color: #b33838;">${student.name}</strong>.<br>
+      <p style="font-size: 18px; color: black; text-align: center; margin: 30px 0 10px; font-weight: 500;">
+        Welcome to a legacy of excellence, <strong style="color: black;">${student.name}</strong>.<br>
         Your story begins today. <em>Make it extraordinary.</em>
       </p>
 
-      <div style="margin: 30px 0 20px; color: #592525;">
+      <div style="margin: 30px 0 20px; color: black;">
         With the highest regards & warmest welcome,<br>
         <strong>Team of Admissions & Student Services</strong><br>
         RYMA ACADEMY
@@ -452,7 +450,7 @@ async function sendAdmissionEmail(admission, type = 'approved') {
         style="margin:20px 0;">
         <tr>
           <td
-            style="padding:18px 25px; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color:#6d3131; font-size:15px;">
+            style="padding:18px 25px; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color:black; font-size:15px;">
             <table width="100%" cellpadding="0" cellspacing="0" border="0">
               <tr>
                 <td align="center" style="padding:4px 0;">📞 +91-9873336133</td>
@@ -461,13 +459,13 @@ async function sendAdmissionEmail(admission, type = 'approved') {
             <table width="100%" cellpadding="0" cellspacing="0" border="0">
               <tr>
                 <td align="center" style="padding:4px 0;"><a href="mailto:services@rymaacademy.com"
-                    style="color:#a13030; text-decoration:underline;">services@rymaacademy.com</a></td>
+                    style="color:black; text-decoration:underline;">services@rymaacademy.com</a></td>
               </tr>
             </table>
             <table width="100%" cellpadding="0" cellspacing="0" border="0">
               <tr>
                 <td align="center" style="padding:4px 0;"><a href="https://www.rymaacademy.com"
-                    style="color:#a13030; text-decoration:underline;">www.rymaacademy.com</a></td>
+                    style="color:black; text-decoration:underline;">www.rymaacademy.com</a></td>
               </tr>
             </table>
             <table width="100%" cellpadding="0" cellspacing="0" border="0">
