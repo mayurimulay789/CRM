@@ -372,22 +372,20 @@ const AdmissionForm = ({ admission, onClose, isCounsellor = false }) => {
               <label htmlFor="trainingBranch" className="block text-sm font-medium text-gray-700 mb-2">
                 Training Branch <span className="text-red-500">*</span>
               </label>
-              <select
+
+              <input
+                type="text"
                 id="trainingBranch"
                 name="trainingBranch"
                 value={formData.trainingBranch}
                 onChange={handleChange}
                 onBlur={handleBlur}
-                className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.trainingBranch ? 'border-red-300' : 'border-gray-300'}`}
+                className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.trainingBranch ? 'border-red-300' : 'border-gray-300'
+                  }`}
+                placeholder="Enter training branch location"
                 disabled={isDisabled}
-              >
-                <option value="">Select training branch</option>
-                {branches.map((branch) => (
-                  <option key={branch} value={branch}>
-                    {branch}
-                  </option>
-                ))}
-              </select>
+              />
+
               {errors.trainingBranch && touched.trainingBranch && (
                 <p className="mt-1 text-sm text-red-600">{errors.trainingBranch}</p>
               )}
