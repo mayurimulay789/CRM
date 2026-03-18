@@ -3,823 +3,839 @@ const { sendMail } = require("../utils/email");
 
 // ✅ Create new grievance
 exports.createGrievance = async (req, res) => {
-  try {
-    const grievanceData = {
-      ...req.body,
-      submittedBy: req.user._id,
-    };
-    const grievance = await CampusGrievance.create(grievanceData);
-    res.status(201).json(grievance);
-  } catch (err) {
-    res.status(500).json({ message: "Failed to create grievance", error: err.message });
-  }
+    try {
+        const grievanceData = {
+            ...req.body,
+            submittedBy: req.user._id,
+        };
+        const grievance = await CampusGrievance.create(grievanceData);
+        res.status(201).json(grievance);
+    } catch (err) {
+        res.status(500).json({ message: "Failed to create grievance", error: err.message });
+    }
 };
 
 // ✅ Get all grievances
 exports.getAllGrievances = async (req, res) => {
-  try {
-    let query = {};
+    try {
+        let query = {};
 
-    if (req.user.role === "admin") {
-      const User = require("../models/User");
-      const counsellorIds = await User.find({ role: "Counsellor" }).select("_id");
-      query.submittedBy = { $in: counsellorIds };
-    } else if (req.user.role === "Counsellor") {
-      query.submittedBy = req.user._id;
+        if (req.user.role === "admin") {
+            const User = require("../models/User");
+            const counsellorIds = await User.find({ role: "Counsellor" }).select("_id");
+            query.submittedBy = { $in: counsellorIds };
+        } else if (req.user.role === "Counsellor") {
+            query.submittedBy = req.user._id;
+        }
+
+        const grievances = await CampusGrievance.find(query)
+            .populate("submittedBy", "FullName email role")
+            .sort({ createdAt: -1 });
+
+        res.json(grievances);
+    } catch (err) {
+        console.error("Get grievances error:", err);
+        res.status(500).json({ message: "Failed to fetch grievances", error: err.message });
     }
-
-    const grievances = await CampusGrievance.find(query)
-      .populate("submittedBy", "FullName email role")
-      .sort({ createdAt: -1 });
-
-    res.json(grievances);
-  } catch (err) {
-    console.error("Get grievances error:", err);
-    res.status(500).json({ message: "Failed to fetch grievances", error: err.message });
-  }
 };
 
 // ✅ Update grievance
 exports.updateGrievance = async (req, res) => {
-  try {
-    const grievance = await CampusGrievance.findById(req.params.id);
-    if (!grievance) {
-      return res.status(404).json({ message: "Grievance not found" });
-    }
+    try {
+        const grievance = await CampusGrievance.findById(req.params.id);
+        if (!grievance) {
+            return res.status(404).json({ message: "Grievance not found" });
+        }
 
-    // Allow admin to update any grievance, or counsellor to update their own if status is submittedToAdmin
-    if (req.user.role !== 'admin' && (!req.user._id.equals(grievance.submittedBy) || grievance.status !== 'submittedToAdmin')) {
-      return res.status(403).json({ message: "Not authorized to update this grievance" });
-    }
+        // Allow admin to update any grievance, or counsellor to update their own if status is submittedToAdmin
+        if (req.user.role !== 'admin' && (!req.user._id.equals(grievance.submittedBy) || grievance.status !== 'submittedToAdmin')) {
+            return res.status(403).json({ message: "Not authorized to update this grievance" });
+        }
 
-    const updatedGrievance = await CampusGrievance.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-    });
-    res.json(updatedGrievance);
-  } catch (err) {
-    console.error("Update grievance error:", err);
-    res.status(500).json({ message: "Failed to update grievance", error: err.message });
-  }
+        const updatedGrievance = await CampusGrievance.findByIdAndUpdate(req.params.id, req.body, {
+            new: true,
+        });
+        res.json(updatedGrievance);
+    } catch (err) {
+        console.error("Update grievance error:", err);
+        res.status(500).json({ message: "Failed to update grievance", error: err.message });
+    }
 };
 
 // ✅ Delete grievance
 exports.deleteGrievance = async (req, res) => {
-  try {
-    const grievance = await CampusGrievance.findById(req.params.id);
-    if (!grievance) {
-      return res.status(404).json({ message: "Grievance not found" });
-    }
+    try {
+        const grievance = await CampusGrievance.findById(req.params.id);
+        if (!grievance) {
+            return res.status(404).json({ message: "Grievance not found" });
+        }
 
-    // Allow admin to delete any grievance, or counsellor to delete their own if status is submittedToAdmin
-    if (req.user.role !== 'admin' && (!req.user._id.equals(grievance.submittedBy) || grievance.status !== 'submittedToAdmin')) {
-      return res.status(403).json({ message: "Not authorized to delete this grievance" });
-    }
+        // Allow admin to delete any grievance, or counsellor to delete their own if status is submittedToAdmin
+        if (req.user.role !== 'admin' && (!req.user._id.equals(grievance.submittedBy) || grievance.status !== 'submittedToAdmin')) {
+            return res.status(403).json({ message: "Not authorized to delete this grievance" });
+        }
 
-    await CampusGrievance.findByIdAndDelete(req.params.id);
-    res.json({ message: "Grievance deleted successfully" });
-  } catch (err) {
-    console.error("Delete grievance error:", err);
-    res.status(500).json({ message: "Failed to delete grievance", error: err.message });
-  }
+        await CampusGrievance.findByIdAndDelete(req.params.id);
+        res.json({ message: "Grievance deleted successfully" });
+    } catch (err) {
+        console.error("Delete grievance error:", err);
+        res.status(500).json({ message: "Failed to delete grievance", error: err.message });
+    }
 };
 
 // ✅ Approve grievance
 exports.approveGrievance = async (req, res) => {
-  try {
-    console.log("Approve request by:", req.user);
-    console.log("Grievance ID:", req.params.id);
+    try {
+        console.log("Approve request by:", req.user);
+        console.log("Grievance ID:", req.params.id);
 
-    const { adminResponse } = req.body;
+        const { adminResponse } = req.body;
 
-    // First update the grievance
-    const updated = await CampusGrievance.findByIdAndUpdate(
-      req.params.id,
-      { status: "approved", adminResponse },
-      { new: true }
-    );
+        // First update the grievance
+        const updated = await CampusGrievance.findByIdAndUpdate(
+            req.params.id,
+            { status: "approved", adminResponse },
+            { new: true }
+        );
 
-    if (!updated) {
-      return res.status(404).json({ message: "Grievance not found" });
+        if (!updated) {
+            return res.status(404).json({ message: "Grievance not found" });
+        }
+
+        // Then fetch with populate separately (more reliable)
+        const grievance = await CampusGrievance.findById(updated._id)
+            .populate("submittedBy", "FullName email");
+
+        console.log("Populated submittedBy:", grievance.submittedBy);
+
+        function formatDate(dateString, options = {}) {
+            if (!dateString) return '';
+
+            const date = new Date(dateString);
+            // Check if date is valid
+            if (isNaN(date.getTime())) return '';
+
+            const defaultOptions = {
+                year: 'numeric',
+                month: 'long',   // "March"
+                day: 'numeric',  // "18"
+                timeZone: 'UTC'  // Use UTC to avoid offset shifts (optional)
+            };
+
+            const formatter = new Intl.DateTimeFormat('en-US', { ...defaultOptions, ...options });
+            return formatter.format(date);
+        }
+
+        // Send approval email to the counsellor who submitted the grievance
+        try {
+            const counsellorEmail = grievance.submittedBy?.email;
+            if (counsellorEmail) {
+                const approvalHtml = `
+         <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Grievance acknowledgement – RYMAC ACADEMY</title>
+  <style>
+    /* reset & base styles – suitable for email clients and modern browsers */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', Roboto, Arial, sans-serif;
     }
 
-    // Then fetch with populate separately (more reliable)
-    const grievance = await CampusGrievance.findById(updated._id)
-      .populate("submittedBy", "FullName email");
+    body {
+      background-color: #e9ecef;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 24px 16px;
+      margin: 0;
+    }
 
-    console.log("Populated submittedBy:", grievance.submittedBy);
+    .card {
+      max-width: 800px;        /* 🔹 increased from 600px to 800px for a wider layout */
+      width: 100%;
+      background-color: #ffffff;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
+      overflow: hidden;
+      border: 1px solid #dee2e6;
+    }
 
-    // Send approval email to the counsellor who submitted the grievance
-    try {
-      const counsellorEmail = grievance.submittedBy?.email;
-      if (counsellorEmail) {
-        const approvalHtml = `
-          <!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RYMA ACADEMY – Campus Grievance Status Update</title>
-    <style>
-        body {
-            margin: 0;
-            padding: 0;
-            background-color: #f2e5e5;
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-        }
+    .content {
+      padding: 32px 32px 28px;
+    }
 
-        .enrollment-container {
-            max-width: 1200px;
-            margin: auto;
-            background-color: #ffffff;
-            overflow: hidden;
-            box-shadow: 0 12px 28px rgba(150, 30, 30, 0.2);
-        }
+    .header-title {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: #1e3c5c;
+      letter-spacing: 0.3px;
+      margin-top: 4px;
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      border-left: 5px solid #0d6efd;
+      padding-left: 16px;
+    }
 
-        .content {
-            padding: 28px 32px 32px;
-        }
+    .greeting {
+      font-size: 1.1rem;
+      font-weight: 500;
+      color: #212529;
+      margin-bottom: 16px;
+    }
 
-        .greeting {
-            font-size: 18px;
-            font-weight: 500;
-            color: #3b2323;
-            margin-bottom: 8px;
-        }
+    .intro-text {
+      line-height: 1.5;
+      margin-bottom: 28px;
+      font-size: 0.98rem;
+      padding: 14px 18px;
+    }
 
-        .greeting strong {
-            color: #b13e3e;
-        }
+    /* details grid – exactly like screenshot: label above value */
+    .details-grid {
+      background-color: #f2f6fc;
+      border-radius: 5px;
+      padding: 22px 24px;
+      margin-bottom: 28px;
+      border: 1px solid #d0e0f0;
+    }
 
-        .office-line {
-            color: #7e3939;
-            font-weight: 600;
-            margin: 5px 0 15px;
-            font-size: 16px;
-        }
+    .detail-item {
+      margin-bottom: 18px;
+    }
 
-        .message {
-            font-size: 16px;
-            color: #3a2a2a;
-            line-height: 1.5;
-            margin: 15px 0 10px;
-        }
+    .detail-item:last-child {
+      margin-bottom: 0;
+    }
 
-        .highlight {
-            background: #fef0f0;
-            padding: 16px 20px;
-            border-radius: 30px 10px 30px 10px;
-            margin: 20px 0;
-            border-left: 6px solid #b13e3e;
-            color: #572626;
-            font-weight: 500;
-        }
+    .detail-label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      color: #3a5f7a;
+      margin-bottom: 4px;
+    }
 
-        .section-title {
-            font-size: 22px;
-            font-weight: 700;
-            color: #aa2929;
-            border-bottom: 3px solid #e0adad;
-            padding-bottom: 10px;
-            margin: 30px 0 20px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
+    .detail-value {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: #0b2b40;
+      line-height: 1.3;
+      word-break: break-word;
+    }
 
-        .enroll-table {
-            width: 100%;
-            border-collapse: collapse;
-            background: #ffffff;
-            border-radius: 20px;
-            overflow: hidden;
-            box-shadow: 0 6px 18px rgba(150, 40, 40, 0.1);
-            border: 1px solid #e9c1c1;
-            margin-bottom: 25px;
-        }
+    .detail-value.small-mobile {
+      font-size: 1.1rem;
+    }
 
-        .enroll-table td, .enroll-table th {
-            padding: 14px 20px;
-            border-bottom: 1px solid #f2d6d6;
-            font-size: 16px;
-        }
+    .status-badge {
+      display: inline-block;
+      background-color: #ffc107;
+      color: #1e1e1e;
+      font-weight: 600;
+      padding: 6px 16px;
+      border-radius: 40px;
+      font-size: 1rem;
+      letter-spacing: 0.3px;
+    }
 
-        .enroll-table tr:last-child td {
-            border-bottom: none;
-        }
+    /* override for status to keep consistent but we keep inside detail-value */
+    .message-block {
+      color: #2b3e4f;
+      line-height: 1.6;
+      margin: 24px 0 20px;
+      font-size: 0.98rem;
+    }
 
-        .label-cell {
-            background-color: #fde5e5;
-            color: #892b2b;
-            font-weight: 700;
-            width: 42%;
-            border-right: 1px solid #e2b2b2;
-        }
+    .message-block strong {
+      color: #1e3c5c;
+    }
 
-        .value-cell {
-            background-color: #fffbfb;
-            color: #2e1c1c;
-            font-weight: 500;
-        }
+    .contact-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 22px 0 18px;
+      background: #ffffff;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+      border: 1px solid #dee7ef;
+    }
 
-        .value-cell strong {
-            color: #b33838;
-        }
+    .contact-table td {
+      padding: 14px 16px;
+      border-bottom: 1px solid #e2eaf2;
+      vertical-align: top;
+    }
 
-        .warning-note {
-            background: #ffebeb;
-            padding: 18px 24px;
-            border-radius: 60px 10px 60px 10px;
-            margin: 28px 0 20px;
-            color: #792e2e;
-            font-size: 15px;
-            text-align: center;
-            border: 1px solid #e2acac;
-        }
+    .contact-table tr:last-child td {
+      border-bottom: none;
+    }
 
-        .help-box {
-            background-color: #fadfdf;
-            border-radius: 30px;
-            padding: 18px 25px;
-            margin: 25px 0;
-            border: 1px solid #d69494;
-            color: #6d3131;
-        }
+    .contact-table td:first-child {
+      font-weight: 650;
+      color: #1f4973;
+      width: 38%;
+      background-color: #f9fcff;
+    }
 
-        .help-box a {
-            color: #a23131;
-            font-weight: 600;
-            text-decoration: underline;
-        }
+    .contact-table td:last-child {
+      color: #1a2e44;
+      background-color: #ffffff;
+    }
 
-        .quote-block {
-            background: #fff3f3;
-            border-radius: 40px 12px 40px 12px;
-            padding: 22px 26px;
-            margin: 20px 0 25px;
-            border: 1px solid #e6b2b2;
-            box-shadow: 0 6px 14px rgba(170, 60, 60, 0.1);
-        }
+    .contact-link {
+      color: #0d6efd;
+      text-decoration: none;
+      font-weight: 500;
+      border-bottom: 1px dotted #0d6efd;
+    }
 
-        .quote-mark {
-            font-size: 40px;
-            color: #b44848;
-            font-family: 'Times New Roman', serif;
-            line-height: 0.6;
-            margin-right: 4px;
-        }
+    .contact-link:hover {
+      color: #0b5ed7;
+    }
 
-        .quote-block p {
-            font-size: 18px;
-            font-style: italic;
-            color: #592b2b;
-            margin: 8px 0 10px 0;
-            font-weight: 500;
-        }
+    .signature-block {
+      margin-top: 32px;
+      border-top: 1px dashed #b6c9db;
+      padding-top: 22px;
+    }
 
-        .director-name {
-            font-weight: 700;
-            color: #862b2b;
-            text-align: right;
-            font-size: 16px;
-        }
+    .regards-line {
+      font-weight: 500;
+      color: #1d3a5c;
+      margin-bottom: 6px;
+    }
 
-        .signature {
-            margin: 30px 0 20px;
-            color: #592525;
-        }
+    .office-name {
+      font-weight: 700;
+      color: #002d4c;
+      font-size: 1.1rem;
+      margin-top: 6px;
+    }
 
-        .contact-footer {
-            background: #fae1e1;
-            padding: 18px 25px;
-            border-radius: 30px;
-            color: #6d3131;
-            font-size: 15px;
-            margin: 20px 0;
-            word-break: break-word;
-        }
+    .disclaimer {
+      margin-top: 24px;
+      font-size: 0.75rem;
+      padding: 10px 14px;
+      text-align: center;
+    }
 
-        .contact-footer a {
-            color: #a13030;
-            text-decoration: underline;
-        }
+    hr {
+      border: none;
+      border-top: 1px solid #d9e2ec;
+      margin: 24px 0 18px;
+    }
 
-        .footer-red {
-            background-color: #8f2626;
-            padding: 18px 28px;
-            text-align: center;
-            color: #ffd7d7;
-            font-size: 14px;
-            border-top: 3px solid #b33a3a;
-        }
+    .assist-text {
+      font-weight: 500;
+      color: #1d3a5c;
+      margin-bottom: 6px;
+    }
 
-        .disclaimer {
-            font-size: 12px;
-            color: #ffe5e5;
-            background-color: #6d2b2b;
-            padding: 16px 24px;
-            text-align: left;
-            line-height: 1.5;
-            border-top: 1px solid #b27373;
-        }
+    .mobile-email-highlight {
+      font-weight: 600;
+      color: #003f6f;
+    }
 
-        .disclaimer a {
-            color: #ffd6d6;
-        }
-
-        .imgformate {
-            width: 1200px;
-            display: block;
-        }
-
-        @media (max-width: 600px) {
-            .imgformate {
-                width: 100%;
-                height: auto;
-            }
-            .content {
-                padding: 20px;
-            }
-            .enroll-table td, .enroll-table th {
-                padding: 10px;
-            }
-        }
-    </style>
+    /* small tweak for inline with original table layout */
+    .call-now {
+      font-weight: 600;
+      color: #1b4c7c;
+    }
+  </style>
 </head>
+
 <body>
-    <div class="enrollment-container">
-        <!-- Header Image (same as official template) -->
-        <img src="https://res.cloudinary.com/dk9lypgfv/image/upload/v1773463891/Screenshot_2026-03-11_141445_ar7p06.png" alt="RYMA ACADEMY Banner" class="imgformate">
+  <div class="card">
+    <!-- image included as per your template (cloudinary link) -->
+    <img src="https://res.cloudinary.com/dk9lypgfv/image/upload/v1773463891/Screenshot_2026-03-11_141445_ar7p06.png"
+      alt="" class="imgformate" style="max-width:100%; height:auto; display:block;">
+    <div class="content">
+      <!-- Dear student (placeholder) -->
+      <div class="greeting">Dear ${grievance.submittedBy?.FullName || grievance.name},</div>
 
-        <div class="content">
-            <div class="greeting">Dear <strong>${grievance.submittedBy?.FullName || grievance.name}</strong>,</div>
-            <div class="office-line">Greetings from the Office of Academic Affairs, RYMA ACADEMY.</div>
+      <!-- confirmation intro (exactly as screenshot) -->
+      <div class="intro-text">
+        This is to confirm that your grievance has been successfully registered with the Office of Grievance Cell. Your
+        complaint is currently under evaluation by the designated review committee.
+      </div>
 
-            <div class="message">
-                We are pleased to inform you that your campus grievance has been reviewed and <strong>approved</strong>. The details of the resolution are provided below.
-            </div>
-
-            <!-- Status highlight (positive message) -->
-            <div class="highlight">
-                ✅ <strong>Status: APPROVED</strong> — Your grievance has been resolved in your favor.
-            </div>
-
-            <!-- Subject Section -->
-            <div class="section-title">📝 Subject</div>
-            <table class="enroll-table" cellpadding="0" cellspacing="0">
-                <tr>
-                    <td class="label-cell">Subject</td>
-                    <td class="value-cell"><strong>${grievance.subject || 'No subject specified'}</strong></td>
-                </tr>
-            </table>
-
-            <!-- Original Complaint Section -->
-            <div class="section-title">📋 Your Complaint</div>
-            <table class="enroll-table" cellpadding="0" cellspacing="0">
-                <tr>
-                    <td class="label-cell">Description</td>
-                    <td class="value-cell">${grievance.complaint || 'No complaint details available'}</td>
-                </tr>
-            </table>
-
-            <!-- Admin Response Section -->
-            <div class="section-title">💬 Admin Response</div>
-            <table class="enroll-table" cellpadding="0" cellspacing="0">
-                <tr>
-                    <td class="label-cell">Response</td>
-                    <td class="value-cell">${grievance.adminResponse || 'No specific response provided'}</td>
-                </tr>
-            </table>
-
-            <!-- Next Steps / Help Box (styled as help-box) -->
-            <div class="help-box">
-                <strong>📋 What's Next:</strong>
-                <ul style="margin: 8px 0 0 20px; padding-left: 0; color: #6d3131;">
-                    <li>Your grievance has been resolved in your favor.</li>
-                    <li>The necessary actions will be taken as indicated in the admin response.</li>
-                    <li>If you have any follow-up questions, please contact the administration.</li>
-                    <li>Keep this email for your records.</li>
-                </ul>
-            </div>
-
-            <!-- Quote Block (adapted for approval context) -->
-            <div class="quote-block">
-                <span class="quote-mark">“</span>
-                <p>We thank you for your patience and trust. Your feedback is a gift that helps us grow stronger together.</p>
-                <div class="director-name">~ Mr. Parveen Jain | Director, RYMA ACADEMY</div>
-            </div>
-
-            <!-- Signature -->
-            <div class="signature">
-                With sincere regards,<br>
-                <strong>Student Grievance Cell</strong><br>
-                RYMA ACADEMY
-            </div>
-
-            <!-- Contact Footer (exactly as original, but in the new red style) -->
-            <div class="contact-footer">
-                📞 +91-9873336133<br>
-                📧 <a href="mailto:services@rymaacademy.com">services@rymaacademy.com</a><br>
-                🌐 <a href="https://www.rymaacademy.com">www.rymaacademy.com</a><br>
-                📍 D-7/32, 1st Floor, Main Vishram Chowk, Sec-6, Rohini, Delhi – 110085
-            </div>
+      <!-- complaint details block – label above value style, like image -->
+      <div class="details-grid">
+        <div class="detail-item">
+          <div class="detail-label">COMPLAINT NUMBER</div>
+          <div class="detail-value">${grievance._id}</div>
         </div>
+        <div class="detail-item">
+          <div class="detail-label">STATUS</div>
+          <div class="detail-value"><span class="status-badge">UNDER EVALUATION</span></div>
+        </div>
+        <div class="detail-item">
+          <div class="detail-label">SUBJECT</div>
+          <div class="detail-value">${grievance.subject || 'No subject specified'}</div>
+        </div>
+        <div class="detail-item">
+          <div class="detail-label">SUBMITTED ON</div>
+          <div class="detail-value">${formatDate(grievance.createdAt)}</div>
+        </div>
+      </div>
 
-        <!-- Disclaimer and Footer -->
-        <div class="disclaimer">
-            <strong>Disclaimer:</strong> This is an electronically generated communication. The information contained herein reflects the official decision of the administration regarding your grievance.
-        </div>
-        <div class="footer-red">
-            © RYMA ACADEMY – Official Correspondence
-        </div>
+      <!-- contact / representative paragraph (exact wording) -->
+      <div class="message-block">
+        A representative from the Grievance Cell may contact you at your registered mobile number or email address
+        within <strong>48–72 hours</strong> should any additional information be required to facilitate the review
+        process.
+      </div>
+
+      <div class="message-block" style="margin-top: 8px;">
+        Should you have any queries in the interim, please do not hesitate to reach us through the channels listed
+        below.
+      </div>
+
+      <!-- assistance line before table -->
+      <div class="assist-text" style="margin-top: 28px;">
+        It would be our pleasure to assist you in case you require any help, you can connect with us through the
+        following modes:
+      </div>
+
+      <!-- TABLE exactly matching the markdown-style layout from screenshot -->
+      <table class="contact-table">
+        <tr>
+          <td>Helpline Number</td>
+          <td><span class="call-now">Call us at</span> <a href="tel:9873336133" class="contact-link"
+              style="font-weight:600;">9873336133</a></td>
+        </tr>
+        <tr>
+          <td>Email ID</td>
+          <td><span class="call-now">Write to us at</span> <a href="mailto:services@rymacademy.com"
+              class="contact-link">services@rymacademy.com</a></td>
+        </tr>
+        <tr>
+          <td>Website</td>
+          <td><a href="#" class="contact-link" style="font-weight:500;">Click here to know more</a>
+            <!-- # is placeholder, actual would be link --></td>
+        </tr>
+      </table>
+
+      <!-- signature block (as in original) -->
+      <div class="signature-block">
+        <div class="regards-line">Regards,</div>
+        <div style="font-weight: 500; color: #1f4973;">Office of Grievance Cell</div>
+        <div style="margin: 4px 0 2px; color: #2c3e50;">Authorised Signatory</div>
+        <div class="office-name">RYMAC ACADEMY</div>
+      </div>
+
+      <!-- disclaimer (exact wording, auto-generated) -->
+      <div class="disclaimer">
+        Disclaimer: This is an auto-generated email. Please do not reply directly to this message.
+      </div>
+
+      <!-- subtle extra note: placeholders are kept, all data from original template appears -->
+      <div style="font-size: 0.7rem; color: #9aaebf; text-align: center; margin-top: 16px;">
+        Complaint reference #250005688869 • 18 March 2025
+      </div>
     </div>
+  </div>
+
+  <!-- small note: the design matches screenshot structure:
+       - Dear {{student_name}}
+       - OFFICE OF GRIEVANCE CELL
+       - confirmation paragraph
+       - complaint number / status / subject / date (as separate label+value)
+       - representative contact paragraph
+       - queries line + assistance text
+       - two-column table (helpline, email, website) exactly as shown
+       - signature and disclaimer
+  -->
 </body>
 </html>
         `;
-        
-        await sendMail(counsellorEmail, "🎉 Campus Grievance Approved - Ryma Academy", approvalHtml);
-        console.log("✅ Approval email sent to:", counsellorEmail);
-      } else {
-        console.error("❌ No email found on submittedBy user for grievance:", grievance._id);
-      }
-    } catch (emailError) {
-      console.error("Email sending failed:", emailError.message);
-    }
 
-    res.json({ message: "Grievance approved successfully", grievance });
-  } catch (err) {
-    console.error("Approve grievance error:", err);
-    res.status(500).json({ message: "Failed to approve grievance", error: err.message });
-  }
+                await sendMail(counsellorEmail, "🎉 Campus Grievance Approved - Ryma Academy", approvalHtml);
+                console.log("✅ Approval email sent to:", counsellorEmail);
+            } else {
+                console.error("❌ No email found on submittedBy user for grievance:", grievance._id);
+            }
+        } catch (emailError) {
+            console.error("Email sending failed:", emailError.message);
+        }
+
+        res.json({ message: "Grievance approved successfully", grievance });
+    } catch (err) {
+        console.error("Approve grievance error:", err);
+        res.status(500).json({ message: "Failed to approve grievance", error: err.message });
+    }
 };
 
 // ✅ Reject grievance
 exports.rejectGrievance = async (req, res) => {
-  try {
-    console.log("Reject request by:", req.user);
-    console.log("Grievance ID:", req.params.id);
-
-    const adminResponse = req.body.adminResponse || '';
-
-    // Validate grievance ID
-    if (!req.params.id || !req.params.id.match(/^[0-9a-fA-F]{24}$/)) {
-      return res.status(400).json({ message: "Invalid grievance ID" });
-    }
-
-    // First update the grievance
-    const updated = await CampusGrievance.findByIdAndUpdate(
-      req.params.id,
-      { status: "rejected", adminResponse },
-      { new: true }
-    );
-
-    if (!updated) {
-      return res.status(404).json({ message: "Grievance not found" });
-    }
-
-    // Then fetch with populate separately (more reliable)
-    const grievance = await CampusGrievance.findById(updated._id)
-      .populate("submittedBy", "FullName email");
-
-    console.log("Populated submittedBy:", grievance.submittedBy);
-
-    // Send rejection email to the counsellor who submitted the grievance
     try {
-      const counsellorEmail = grievance.submittedBy?.email;
-      if (counsellorEmail) {
-        const rejectionHtml = `
-          <!DOCTYPE html>
-<html>
+        console.log("Reject request by:", req.user);
+        console.log("Grievance ID:", req.params.id);
+
+        const adminResponse = req.body.adminResponse || '';
+
+        // Validate grievance ID
+        if (!req.params.id || !req.params.id.match(/^[0-9a-fA-F]{24}$/)) {
+            return res.status(400).json({ message: "Invalid grievance ID" });
+        }
+
+        // First update the grievance
+        const updated = await CampusGrievance.findByIdAndUpdate(
+            req.params.id,
+            { status: "rejected", adminResponse },
+            { new: true }
+        );
+
+        if (!updated) {
+            return res.status(404).json({ message: "Grievance not found" });
+        }
+
+        // Then fetch with populate separately (more reliable)
+        const grievance = await CampusGrievance.findById(updated._id)
+            .populate("submittedBy", "FullName email");
+
+        console.log("Populated submittedBy:", grievance.submittedBy);
+
+        // Send rejection email to the counsellor who submitted the grievance
+        try {
+            const counsellorEmail = grievance.submittedBy?.email;
+            if (counsellorEmail) {
+                const rejectionHtml = `
+         <!DOCTYPE html>
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RYMA ACADEMY – Campus Grievance Status Update</title>
-    <style>
-        body {
-            margin: 0;
-            padding: 0;
-            background-color: #f2e5e5;
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Grievance Rejection – RYMAC ACADEMY</title>
+  <style>
+    /* reset & base styles – suitable for email clients and modern browsers */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', Roboto, Arial, sans-serif;
+    }
 
-        .enrollment-container {
-            max-width: 1200px;
-            margin: auto;
-            background-color: #ffffff;
-            overflow: hidden;
-            box-shadow: 0 12px 28px rgba(150, 30, 30, 0.2);
-        }
+    body {
+      background-color: #e9ecef;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 24px 16px;
+      margin: 0;
+    }
 
-        .content {
-            padding: 28px 32px 32px;
-        }
+    .card {
+      max-width: 800px;
+      width: 100%;
+      background-color: #ffffff;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
+      overflow: hidden;
+      border: 1px solid #dee2e6;
+    }
 
-        .greeting {
-            font-size: 18px;
-            font-weight: 500;
-            color: #3b2323;
-            margin-bottom: 8px;
-        }
+    .content {
+      padding: 32px 32px 28px;
+    }
 
-        .greeting strong {
-            color: #b13e3e;
-        }
+    .header-title {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: #1e3c5c;
+      letter-spacing: 0.3px;
+      margin-top: 4px;
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      border-left: 5px solid #0d6efd;
+      padding-left: 16px;
+    }
 
-        .office-line {
-            color: #7e3939;
-            font-weight: 600;
-            margin: 5px 0 15px;
-            font-size: 16px;
-        }
+    .greeting {
+      font-size: 1.1rem;
+      font-weight: 500;
+      color: #212529;
+      margin-bottom: 16px;
+    }
 
-        .message {
-            font-size: 16px;
-            color: #3a2a2a;
-            line-height: 1.5;
-            margin: 15px 0 10px;
-        }
+    .intro-text {
+      line-height: 1.5;
+      margin-bottom: 28px;
+      font-size: 0.98rem;
+      padding: 14px 18px;
+    }
 
-        .highlight {
-            background: #fef0f0;
-            padding: 16px 20px;
-            border-radius: 30px 10px 30px 10px;
-            margin: 20px 0;
-            border-left: 6px solid #b13e3e;
-            color: #572626;
-            font-weight: 500;
-        }
+    /* details grid – label above value */
+    .details-grid {
+      background-color: #f2f6fc;
+      border-radius: 5px;
+      padding: 22px 24px;
+      margin-bottom: 28px;
+      border: 1px solid #d0e0f0;
+    }
 
-        .section-title {
-            font-size: 22px;
-            font-weight: 700;
-            color: #aa2929;
-            border-bottom: 3px solid #e0adad;
-            padding-bottom: 10px;
-            margin: 30px 0 20px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
+    .detail-item {
+      margin-bottom: 18px;
+    }
 
-        .enroll-table {
-            width: 100%;
-            border-collapse: collapse;
-            background: #ffffff;
-            border-radius: 20px;
-            overflow: hidden;
-            box-shadow: 0 6px 18px rgba(150, 40, 40, 0.1);
-            border: 1px solid #e9c1c1;
-            margin-bottom: 25px;
-        }
+    .detail-item:last-child {
+      margin-bottom: 0;
+    }
 
-        .enroll-table td, .enroll-table th {
-            padding: 14px 20px;
-            border-bottom: 1px solid #f2d6d6;
-            font-size: 16px;
-        }
+    .detail-label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      color: #3a5f7a;
+      margin-bottom: 4px;
+    }
 
-        .enroll-table tr:last-child td {
-            border-bottom: none;
-        }
+    .detail-value {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: #0b2b40;
+      line-height: 1.3;
+      word-break: break-word;
+    }
 
-        .label-cell {
-            background-color: #fde5e5;
-            color: #892b2b;
-            font-weight: 700;
-            width: 42%;
-            border-right: 1px solid #e2b2b2;
-        }
+    .detail-value.small-mobile {
+      font-size: 1.1rem;
+    }
 
-        .value-cell {
-            background-color: #fffbfb;
-            color: #2e1c1c;
-            font-weight: 500;
-        }
+    .status-badge.rejected {
+      display: inline-block;
+      background-color: #dc3545;
+      color: #ffffff;
+      font-weight: 600;
+      padding: 6px 16px;
+      border-radius: 40px;
+      font-size: 1rem;
+      letter-spacing: 0.3px;
+    }
 
-        .value-cell strong {
-            color: #b33838;
-        }
+    .message-block {
+      color: #2b3e4f;
+      line-height: 1.6;
+      margin: 24px 0 20px;
+      font-size: 0.98rem;
+    }
 
-        .warning-note {
-            background: #ffebeb;
-            padding: 18px 24px;
-            border-radius: 60px 10px 60px 10px;
-            margin: 28px 0 20px;
-            color: #792e2e;
-            font-size: 15px;
-            text-align: center;
-            border: 1px solid #e2acac;
-        }
+    .message-block strong {
+      color: #1e3c5c;
+    }
 
-        .help-box {
-            background-color: #fadfdf;
-            border-radius: 30px;
-            padding: 18px 25px;
-            margin: 25px 0;
-            border: 1px solid #d69494;
-            color: #6d3131;
-        }
+    .contact-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 22px 0 18px;
+      background: #ffffff;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+      border: 1px solid #dee7ef;
+    }
 
-        .help-box a {
-            color: #a23131;
-            font-weight: 600;
-            text-decoration: underline;
-        }
+    .contact-table td {
+      padding: 14px 16px;
+      border-bottom: 1px solid #e2eaf2;
+      vertical-align: top;
+    }
 
-        .quote-block {
-            background: #fff3f3;
-            border-radius: 40px 12px 40px 12px;
-            padding: 22px 26px;
-            margin: 20px 0 25px;
-            border: 1px solid #e6b2b2;
-            box-shadow: 0 6px 14px rgba(170, 60, 60, 0.1);
-        }
+    .contact-table tr:last-child td {
+      border-bottom: none;
+    }
 
-        .quote-mark {
-            font-size: 40px;
-            color: #b44848;
-            font-family: 'Times New Roman', serif;
-            line-height: 0.6;
-            margin-right: 4px;
-        }
+    .contact-table td:first-child {
+      font-weight: 650;
+      color: #1f4973;
+      width: 38%;
+      background-color: #f9fcff;
+    }
 
-        .quote-block p {
-            font-size: 18px;
-            font-style: italic;
-            color: #592b2b;
-            margin: 8px 0 10px 0;
-            font-weight: 500;
-        }
+    .contact-table td:last-child {
+      color: #1a2e44;
+      background-color: #ffffff;
+    }
 
-        .director-name {
-            font-weight: 700;
-            color: #862b2b;
-            text-align: right;
-            font-size: 16px;
-        }
+    .contact-link {
+      color: #0d6efd;
+      text-decoration: none;
+      font-weight: 500;
+      border-bottom: 1px dotted #0d6efd;
+    }
 
-        .signature {
-            margin: 30px 0 20px;
-            color: #592525;
-        }
+    .contact-link:hover {
+      color: #0b5ed7;
+    }
 
-        .contact-footer {
-            background: #fae1e1;
-            padding: 18px 25px;
-            border-radius: 30px;
-            color: #6d3131;
-            font-size: 15px;
-            margin: 20px 0;
-            word-break: break-word;
-        }
+    .signature-block {
+      margin-top: 32px;
+      border-top: 1px dashed #b6c9db;
+      padding-top: 22px;
+    }
 
-        .contact-footer a {
-            color: #a13030;
-            text-decoration: underline;
-        }
+    .regards-line {
+      font-weight: 500;
+      color: #1d3a5c;
+      margin-bottom: 6px;
+    }
 
-        .footer-red {
-            background-color: #8f2626;
-            padding: 18px 28px;
-            text-align: center;
-            color: #ffd7d7;
-            font-size: 14px;
-            border-top: 3px solid #b33a3a;
-        }
+    .office-name {
+      font-weight: 700;
+      color: #002d4c;
+      font-size: 1.1rem;
+      margin-top: 6px;
+    }
 
-        .disclaimer {
-            font-size: 12px;
-            color: #ffe5e5;
-            background-color: #6d2b2b;
-            padding: 16px 24px;
-            text-align: left;
-            line-height: 1.5;
-            border-top: 1px solid #b27373;
-        }
+    .disclaimer {
+      margin-top: 24px;
+      font-size: 0.75rem;
+      padding: 10px 14px;
+      text-align: center;
+    }
 
-        .disclaimer a {
-            color: #ffd6d6;
-        }
+    hr {
+      border: none;
+      border-top: 1px solid #d9e2ec;
+      margin: 24px 0 18px;
+    }
 
-        .imgformate {
-            width: 1200px;
-            display: block;
-        }
+    .assist-text {
+      font-weight: 500;
+      color: #1d3a5c;
+      margin-bottom: 6px;
+    }
 
-        @media (max-width: 600px) {
-            .imgformate {
-                width: 100%;
-                height: auto;
-            }
-            .content {
-                padding: 20px;
-            }
-            .enroll-table td, .enroll-table th {
-                padding: 10px;
-            }
-        }
-    </style>
+    .mobile-email-highlight {
+      font-weight: 600;
+      color: #003f6f;
+    }
+
+    .call-now {
+      font-weight: 600;
+      color: #1b4c7c;
+    }
+  </style>
 </head>
+
 <body>
-    <div class="enrollment-container">
-        <!-- Header Image (same as official template) -->
-        <img src="https://res.cloudinary.com/dk9lypgfv/image/upload/v1773463891/Screenshot_2026-03-11_141445_ar7p06.png" alt="RYMA ACADEMY Banner" class="imgformate">
+  <div class="card">
+    <!-- Academy logo / banner (same as original) -->
+    <img src="https://res.cloudinary.com/dk9lypgfv/image/upload/v1773463891/Screenshot_2026-03-11_141445_ar7p06.png"
+      alt="RYMAC ACADEMY" style="max-width:100%; height:auto; display:block;">
+    <div class="content">
 
-        <div class="content">
-            <div class="greeting">Dear <strong>${grievance.submittedBy?.FullName || grievance.name}</strong>,</div>
-            <div class="office-line">Greetings from the Office of Academic Affairs, RYMA ACADEMY.</div>
+      <!-- Greeting (uses student's name) -->
+      <div class="greeting">Dear ${grievance.submittedBy?.FullName || grievance.name},</div>
 
-            <div class="message">
-                We have completed the review of your campus grievance. After careful consideration, we regret to inform you that your grievance has been <strong>rejected</strong>. The details of the decision are provided below.
-            </div>
+      <!-- Rejection intro (replaces the acknowledgement text) -->
+      <div class="intro-text">
+        We have completed the review of your grievance (Ref. No. <strong>${grievance._id}</strong>). After careful evaluation by the Grievance Cell, we regret to inform you that your grievance has been <strong>rejected</strong> for the following reason(s):
+      </div>
 
-            <!-- Rejection status highlight (warning-note style) -->
-            <div class="warning-note">
-                ❌ <strong>Status: REJECTED</strong> — Your grievance did not meet the criteria for approval at this time.
-            </div>
+      <!-- Rejection reason (new block) -->
+      <div style="background-color: #fff4f4; border-left: 4px solid #dc3545; padding: 16px 20px; margin-bottom: 28px; border-radius: 0 8px 8px 0;">
+        <div style="font-weight: 600; color: #a11d2b; margin-bottom: 6px;">Rejection Reason</div>
+        <div style="color: #2d2d2d;">${rejectionReason || 'No specific reason provided.'}</div>
+      </div>
 
-            <!-- Subject Section -->
-            <div class="section-title">📝 Subject</div>
-            <table class="enroll-table" cellpadding="0" cellspacing="0">
-                <tr>
-                    <td class="label-cell">Subject</td>
-                    <td class="value-cell"><strong>${grievance.subject || 'No subject specified'}</strong></td>
-                </tr>
-            </table>
-
-            <!-- Original Complaint Section -->
-            <div class="section-title">📋 Your Complaint</div>
-            <table class="enroll-table" cellpadding="0" cellspacing="0">
-                <tr>
-                    <td class="label-cell">Description</td>
-                    <td class="value-cell">${grievance.complaint || 'No complaint details available'}</td>
-                </tr>
-            </table>
-
-            <!-- Admin Response Section -->
-            <div class="section-title">💬 Admin Response</div>
-            <table class="enroll-table" cellpadding="0" cellspacing="0">
-                <tr>
-                    <td class="label-cell">Response</td>
-                    <td class="value-cell">${adminResponse || 'No specific response provided'}</td>
-                </tr>
-            </table>
-
-            <!-- Next Steps / Help Box (styled as help-box) -->
-            <div class="help-box">
-                <strong>📞 What You Can Do Next:</strong>
-                <ul style="margin: 8px 0 0 20px; padding-left: 0; color: #6d3131;">
-                    <li>Review the admin response carefully for more details.</li>
-                    <li>If you have additional evidence or information, you may submit a new grievance.</li>
-                    <li>Contact the administration directly if you need clarification.</li>
-                    <li>Keep this email for your records.</li>
-                </ul>
-            </div>
-
-            <!-- Quote Block (adapted for rejection context) -->
-            <div class="quote-block">
-                <span class="quote-mark">“</span>
-                <p>We understand that this may be disappointing. Please know that every concern is taken seriously, and we encourage you to continue sharing your feedback. Your voice is important to us.</p>
-                <div class="director-name">~ Mr. Parveen Jain | Director, RYMA ACADEMY</div>
-            </div>
-
-            <!-- Signature -->
-            <div class="signature">
-                With sincere regards,<br>
-                <strong>Student Grievance Cell</strong><br>
-                RYMA ACADEMY
-            </div>
-
-            <!-- Contact Footer (exactly as original) -->
-            <div class="contact-footer">
-                📞 +91-9873336133<br>
-                📧 <a href="mailto:services@rymaacademy.com">services@rymaacademy.com</a><br>
-                🌐 <a href="https://www.rymaacademy.com">www.rymaacademy.com</a><br>
-                📍 D-7/32, 1st Floor, Main Vishram Chowk, Sec-6, Rohini, Delhi – 110085
-            </div>
+      <!-- Details grid: complaint number, status, subject, submitted on, decided on -->
+      <div class="details-grid">
+        <div class="detail-item">
+          <div class="detail-label">COMPLAINT NUMBER</div>
+          <div class="detail-value">${grievance._id}</div>
         </div>
+        <div class="detail-item">
+          <div class="detail-label">STATUS</div>
+          <div class="detail-value"><span class="status-badge rejected">REJECTED</span></div>
+        </div>
+        <div class="detail-item">
+          <div class="detail-label">SUBJECT</div>
+          <div class="detail-value">${grievance.subject || 'No subject specified'}</div>
+        </div>
+        <div class="detail-item">
+          <div class="detail-label">SUBMITTED ON</div>
+          <div class="detail-value">${formatDate(grievance.createdAt)}</div>
+        </div>
+        <div class="detail-item">
+          <div class="detail-label">DECIDED ON</div>
+          <div class="detail-value">${formatDate(decisionDate) || formatDate(new Date())}</div>
+        </div>
+      </div>
 
-        <!-- Disclaimer and Footer -->
-        <div class="disclaimer">
-            <strong>Disclaimer:</strong> This is an electronically generated communication. The information contained herein reflects the official decision of the administration regarding your grievance.
-        </div>
-        <div class="footer-red">
-            © RYMA ACADEMY – Official Correspondence
-        </div>
+      <!-- Next steps / closure paragraph -->
+      <div class="message-block">
+        This decision is final and concludes the grievance process at this level. If you believe there is new evidence or wish to appeal, please refer to the academy's grievance appeal policy available on our website.
+      </div>
+
+      <div class="message-block" style="margin-top: 8px;">
+        Should you have any questions regarding this decision, you may contact us through the channels below.
+      </div>
+
+      <!-- Assistance line (unchanged) -->
+      <div class="assist-text" style="margin-top: 28px;">
+        It would be our pleasure to assist you in case you require any help. You can connect with us through the following modes:
+      </div>
+
+      <!-- Contact table (exactly as original) -->
+      <table class="contact-table">
+        <tr>
+          <td>Helpline Number</td>
+          <td><span class="call-now">Call us at</span> <a href="tel:9873336133" class="contact-link" style="font-weight:600;">9873336133</a></td>
+        </tr>
+        <tr>
+          <td>Email ID</td>
+          <td><span class="call-now">Write to us at</span> <a href="mailto:services@rymacademy.com" class="contact-link">services@rymacademy.com</a></td>
+        </tr>
+        <tr>
+          <td>Website</td>
+          <td><a href="#" class="contact-link" style="font-weight:500;">Click here to know more</a></td>
+        </tr>
+      </table>
+
+      <!-- Signature block -->
+      <div class="signature-block">
+        <div class="regards-line">Regards,</div>
+        <div style="font-weight: 500; color: #1f4973;">Office of Grievance Cell</div>
+        <div style="margin: 4px 0 2px; color: #2c3e50;">Authorised Signatory</div>
+        <div class="office-name">RYMAC ACADEMY</div>
+      </div>
+
+      <!-- Disclaimer -->
+      <div class="disclaimer">
+        Disclaimer: This is an auto-generated email. Please do not reply directly to this message.
+      </div>
+
+      <!-- Optional reference line (updated) -->
+      <div style="font-size: 0.7rem; color: #9aaebf; text-align: center; margin-top: 16px;">
+        Complaint reference #${grievance._id.slice(-6)} • Decided on ${formatDate(decisionDate) || '18 March 2025'}
+      </div>
     </div>
+  </div>
 </body>
 </html>
         `;
-        
-        await sendMail(counsellorEmail, "📋 Campus Grievance Decision - Ryma Academy", rejectionHtml);
-        console.log("✅ Rejection email sent to:", counsellorEmail);
-      } else {
-        console.error("❌ No email found on submittedBy user for grievance:", grievance._id);
-      }
-    } catch (emailError) {
-      console.error("Email sending failed:", emailError.message);
-    }
 
-    res.json({ message: "Grievance rejected successfully", grievance });
-  } catch (err) {
-    console.error("Reject grievance error:", err);
-    res.status(500).json({ message: "Failed to reject grievance", error: err.message });
-  }
+                await sendMail(counsellorEmail, "📋 Campus Grievance Decision - Ryma Academy", rejectionHtml);
+                console.log("✅ Rejection email sent to:", counsellorEmail);
+            } else {
+                console.error("❌ No email found on submittedBy user for grievance:", grievance._id);
+            }
+        } catch (emailError) {
+            console.error("Email sending failed:", emailError.message);
+        }
+
+        res.json({ message: "Grievance rejected successfully", grievance });
+    } catch (err) {
+        console.error("Reject grievance error:", err);
+        res.status(500).json({ message: "Failed to reject grievance", error: err.message });
+    }
 };

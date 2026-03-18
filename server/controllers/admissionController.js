@@ -109,127 +109,384 @@ async function sendAdmissionEmail(admission, type = 'approved') {
     let subject, html;
     subject = '🎓 Welcome to RYMA ACADEMY – Your Admission is Officially Confirmed';
     html = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="UTF-8">
-        <style>
-          body { margin:0; padding:0; background-color:#f3e5e5; font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif; }
-          .email-container { max-width:1200px; margin:auto; background-color:#ffffff; overflow:hidden; box-shadow:0 12px 28px rgba(150,30,30,0.2); }
-          .header { width:100%; background:linear-gradient(145deg,#b22222,#8b1a1a); color:white; font-size:32px; font-weight:800; text-align:center; padding:40px 20px; box-sizing:border-box; letter-spacing:4px; text-transform:uppercase; border-bottom:4px solid #f3c3c3; }
-          .content { padding:28px 32px 32px; }
-          .greeting { font-size:18px; font-weight:500; color:#3b2323; margin-bottom:16px; }
-          .greeting strong { color:#b13e3e; }
-          .congrats-big { font-size:30px; font-weight:800; color:#aa2d2d; margin:5px 0 10px; text-transform:uppercase; line-height:1.2; }
-          .message { font-size:16px; color:#3a2a2a; line-height:1.5; margin:15px 0 10px; }
-          .family-block { background:#fef0f0; padding:16px 20px; border-radius:30px 10px 30px 10px; margin:20px 0; border-left:6px solid #b13e3e; color:#572626; font-weight:500; }
-          .director-quote { background:#fff3f3; border-radius:40px 12px 40px 12px; padding:22px 26px; margin:20px 0 25px; border:1px solid #e6b2b2; box-shadow:0 6px 14px rgba(170,60,60,0.1); }
-          .quote-mark { font-size:40px; color:#b44848; font-family:'Times New Roman',serif; line-height:0.6; margin-right:4px; }
-          .director-quote p { font-size:18px; font-style:italic; color:#592b2b; margin:8px 0 10px 0; font-weight:500; }
-          .director-name { font-weight:700; color:#862b2b; text-align:right; font-size:16px; }
-          .section-title { font-size:22px; font-weight:700; color:#aa2929; border-bottom:3px solid #e0adad; padding-bottom:10px; margin:30px 0 20px; text-transform:uppercase; letter-spacing:1px; }
-          .admission-table { width:100%; border-collapse:collapse; background:#ffffff; border-radius:24px; overflow:hidden; box-shadow:0 6px 18px rgba(150,40,40,0.1); border:1px solid #e9c1c1; }
-          .admission-table td { padding:14px 20px; border-bottom:1px solid #f2d6d6; font-size:16px; }
-          .admission-table tr:last-child td { border-bottom:none; }
-          .label-cell { background-color:#fde5e5; color:#892b2b; font-weight:700; width:42%; border-right:1px solid #e2b2b2; }
-          .value-cell { background-color:#fffbfb; color:#2e1c1c; font-weight:500; }
-          .value-cell strong { color:#b33838; }
-          .documents-section { background:#fef0f0; border-radius:20px; padding:20px; margin:25px 0; border:1px solid #e6b2b2; }
-          .documents-section h3 { color:#aa2929; margin-top:0; border-bottom:2px solid #e0adad; padding-bottom:8px; }
-          .documents-section ul { list-style:none; padding:0; margin:10px 0 0; }
-          .documents-section li { margin:12px 0; padding:10px; background:white; border-radius:8px; border-left:5px solid #b13e3e; }
-          .documents-section a { color:#b13e3e; text-decoration:none; font-weight:bold; }
-          .footnote { background:#ffebeb; padding:18px 24px; border-radius:60px 10px 60px 10px; margin:28px 0 20px; color:#792e2e; font-size:15px; text-align:center; border:1px solid #e2acac; }
-          hr { border:none; height:2px; background:linear-gradient(to right,#efc2c2,#c96666,#efc2c2); margin:28px 0; }
-          .contact-footer { background:#fae1e1; padding:18px 25px; border-radius:30px; color:#6d3131; font-size:15px; margin:20px 0; display:flex; flex-wrap:wrap; justify-content:center; align-items:center; gap:12px 8px; }
-          .contact-footer a { color:#a13030; text-decoration:underline; white-space:nowrap; }
-          .footer-red { background-color:#8f2626; padding:18px 28px; text-align:center; color:#ffd7d7; font-size:14px; border-top:3px solid #b33a3a; }
-          .imgformate { width:1200px; }
-        </style>
-      </head>
-      <body>
-        <div class="email-container">
-          <img src="https://res.cloudinary.com/dk9lypgfv/image/upload/v1773463891/Screenshot_2026-03-11_141445_ar7p06.png" alt="" class="imgformate">
-          <div class="content">
-            <div class="greeting">Dear <strong>${student.name}</strong>,</div>
-            <div class="congrats-big">Congratulations!!</div>
-            <div class="message">
-              This single word carries the weight of every late night, every effort, and every dream you have invested in your future. Today, that effort has been acknowledged.
-            </div>
-            <div class="family-block">
-              <strong>On behalf of the entire RYMA ACADEMY family</strong> — it is our immense honour and privilege to officially confirm your admission. You are now a part of an institution that has been built on one singular promise:
-            </div>
-            <div class="director-quote">
-              <span class="quote-mark">“</span>
-              <p>We do not just build careers. We build people who change the world.</p>
-              <div class="director-name">— Mr. Parveen Jain (Director), RYMA ACADEMY</div>
-            </div>
-            <hr>
-            <div class="section-title">RYMA ACADEMY — OFFICIAL ADMISSION RECORD</div>
-            <table class="admission-table" cellpadding="0" cellspacing="0">
-              <tr><td class="label-cell">Student Name</td><td class="value-cell"><strong>${student.name}</strong></td></tr>
-              <tr><td class="label-cell">Student ID</td><td class="value-cell"><strong>${student.studentId}</strong></td></tr>
-              <tr><td class="label-cell">Applied Program</td><td class="value-cell"><strong>${course.name}</strong></td></tr>
-              <tr><td class="label-cell">Program Duration</td><td class="value-cell"><strong>${course.duration}</strong></td></tr>
-              <tr><td class="label-cell">Training Campus</td><td class="value-cell"><strong>${admission.trainingBranch}</strong></td></tr>
-              <tr><td class="label-cell">Admission Date</td><td class="value-cell"><strong>${new Date(admission.admissionDate).toLocaleDateString('en-IN')}</strong></td></tr>
-              <tr><td class="label-cell">Processed By</td><td class="value-cell"><strong>${admission.counsellor}</strong></td></tr>
-            </table>
-            <div class="documents-section">
-              <h3>📄 Your Admission Documents</h3>
-              <ul>
-                ${downloadableDocs.map(doc => `
-                  <li>
-                    <strong>${doc.name}</strong><br>
-                    <a href="${doc.downloadUrl}" download target="_blank">
-                      📥 Download
-                    </a>
-                  </li>
-                `).join('')}
-                <li>
-                   <strong>Policy Document</strong><br>
-                    <a href= 'https://res.cloudinary.com/dk9lypgfv/image/upload/fl_attachment/v1773464584/RYMA_ACADEMY_PRIVACY_POLICIES_xjurml.pdf' download="RYMA_ACADEMY_Privacy_Policies.pdf" className="your-button-classes" target="_blank" rel="noopener noreferrer">
-  📥 Download Privacy Policies (PDF)
-</a>
-                </li>
-              </ul>
-              <p style="font-size:0.9em; color:#666;">Right-click and "Save As" if the download does not start automatically.</p>
-            </div>
-            <div class="footnote">
-              <span style="font-size: 1.2em;">⏳</span> <strong>Please verify all details above.</strong><br>
-              Any discrepancy must be reported to your Education Counsellor within 48 hours.
-            </div>
+     <!DOCTYPE html>
+<html>
 
-            <p style="font-size: 18px; color: #7e3939; text-align: center; margin: 30px 0 10px; font-weight: 500;">
-              Welcome to a legacy of excellence, <strong style="color: #b33838;">${student.name}</strong>.<br>
-              Your story begins today. <em>Make it extraordinary.</em>
-            </p>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #f3e5e5;
+      font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    }
 
-            <div style="margin: 30px 0 20px; color: #592525;">
-              With the highest regards & warmest welcome,<br>
-              <strong>Team of Admissions & Student Services</strong><br>
-              RYMA ACADEMY
-            </div>
+    .email-container {
+      max-width: 1200px;
+      margin: auto;
+      background-color: #ffffff;
+      overflow: hidden;
+      box-shadow: 0 12px 28px rgba(150, 30, 30, 0.2);
+    }
 
-            <!-- CONTACT FOOTER (Email-Safe) -->
-            <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#fae1e1; border-radius:30px; margin:20px 0;" bgcolor="#fae1e1">
+    .header {
+      width: 100%;
+      background: linear-gradient(145deg, #b22222, #8b1a1a);
+      color: white;
+      font-size: 32px;
+      font-weight: 800;
+      text-align: center;
+      padding: 40px 20px;
+      box-sizing: border-box;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      border-bottom: 4px solid #f3c3c3;
+    }
+
+    .content {
+      padding: 28px 32px 32px;
+    }
+
+    .greeting {
+      font-size: 18px;
+      font-weight: 500;
+      color: #3b2323;
+      margin-bottom: 16px;
+    }
+
+    .greeting strong {
+      color: #b13e3e;
+    }
+
+    .congrats-big {
+      font-size: 20px;
+      font-weight: 800;
+      color: #aa2d2d;
+      margin: 5px 0 10px;
+      text-transform: uppercase;
+      line-height: 1.2;
+    }
+
+    s .message {
+      font-size: 16px;
+      color: #3a2a2a;
+      line-height: 1.5;
+      margin: 15px 0 10px;
+    }
+
+    .family-block {
+      background: #fef0f0;
+      padding: 16px 20px;
+      border-radius: 30px 10px 30px 10px;
+      margin: 20px 0;
+      border-left: 6px solid #b13e3e;
+      color: #572626;
+      font-weight: 500;
+    }
+
+    .director-quote {
+      background: #fff3f3;
+      border-radius: 40px 12px 40px 12px;
+      padding: 22px 26px;
+      margin: 20px 0 25px;
+      border: 1px solid #e6b2b2;
+      box-shadow: 0 6px 14px rgba(170, 60, 60, 0.1);
+    }
+
+    .quote-mark {
+      font-size: 40px;
+      color: #b44848;
+      font-family: 'Times New Roman', serif;
+      line-height: 0.6;
+      margin-right: 4px;
+    }
+
+    .director-quote p {
+      font-size: 18px;
+      font-style: italic;
+      color: #592b2b;
+      margin: 8px 0 10px 0;
+      font-weight: 500;
+    }
+
+    .director-name {
+      font-weight: 700;
+      color: #862b2b;
+      text-align: right;
+      font-size: 16px;
+    }
+
+    .section-title {
+      font-size: 22px;
+      font-weight: 700;
+      color: #aa2929;
+      border-bottom: 3px solid #e0adad;
+      padding-bottom: 10px;
+      margin: 30px 0 20px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .admission-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #ffffff;
+      border-radius: 24px;
+      overflow: hidden;
+      box-shadow: 0 6px 18px rgba(150, 40, 40, 0.1);
+      border: 1px solid #e9c1c1;
+    }
+
+    .admission-table td {
+      padding: 14px 20px;
+      border-bottom: 1px solid #f2d6d6;
+      font-size: 16px;
+    }
+
+    .admission-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .label-cell {
+      background-color: #fde5e5;
+      color: #892b2b;
+      font-weight: 700;
+      width: 42%;
+      border-right: 1px solid #e2b2b2;
+    }
+
+    .value-cell {
+      background-color: #fffbfb;
+      color: #2e1c1c;
+      font-weight: 500;
+    }
+
+    .value-cell strong {
+      color: #b33838;
+    }
+
+    .documents-section {
+      background: #fef0f0;
+      border-radius: 20px;
+      padding: 20px;
+      margin: 25px 0;
+      border: 1px solid #e6b2b2;
+    }
+
+    .documents-section h3 {
+      color: #aa2929;
+      margin-top: 0;
+      border-bottom: 2px solid #e0adad;
+      padding-bottom: 8px;
+    }
+
+    .documents-section ul {
+      list-style: none;
+      padding: 0;
+      margin: 10px 0 0;
+    }
+
+    .documents-section li {
+      margin: 12px 0;
+      padding: 10px;
+      background: white;
+      border-radius: 8px;
+      border-left: 5px solid #b13e3e;
+    }
+
+    .documents-section a {
+      color: #b13e3e;
+      text-decoration: none;
+      font-weight: bold;
+    }
+
+    .footnote {
+      background: #ffebeb;
+      padding: 18px 24px;
+      border-radius: 60px 10px 60px 10px;
+      margin: 28px 0 20px;
+      color: #792e2e;
+      font-size: 15px;
+      text-align: center;
+      border: 1px solid #e2acac;
+    }
+
+    hr {
+      border: none;
+      height: 2px;
+      background: linear-gradient(to right, #efc2c2, #c96666, #efc2c2);
+      margin: 28px 0;
+    }
+
+    .contact-footer {
+      background: #fae1e1;
+      padding: 18px 25px;
+      border-radius: 30px;
+      color: #6d3131;
+      font-size: 15px;
+      margin: 20px 0;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: center;
+      gap: 12px 8px;
+    }
+
+    .contact-footer a {
+      color: #a13030;
+      text-decoration: underline;
+      white-space: nowrap;
+    }
+
+    .footer-red {
+      background-color: #8f2626;
+      padding: 18px 28px;
+      text-align: center;
+      color: #ffd7d7;
+      font-size: 14px;
+      border-top: 3px solid #b33a3a;
+    }
+
+    .imgformate {
+      width: 1200px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="email-container">
+    <img src="https://res.cloudinary.com/dk9lypgfv/image/upload/v1773463891/Screenshot_2026-03-11_141445_ar7p06.png"
+      alt="" class="imgformate">
+    <div class="content">
+      <div class="greeting">Dear <strong>${student.name}</strong>,</div>
+      <div class="congrats-big">Congratulations!!</div>
+      <div class="message">
+        This single word carries the weight of every late night, every effort, and every dream you have invested in your
+        future. Today, that effort has been acknowledged.
+      </div>
+      <div class="family-block">
+        <strong>On behalf of the entire RYMA ACADEMY family</strong> — it is our immense honour and privilege to
+        officially confirm your admission. You are now a part of an institution that has been built on one singular
+        promise:
+      </div>
+      <div class="director-quote">
+        <span class="quote-mark">“</span>
+        <p>We do not just build careers. We build people who change the world.</p>
+        <div class="director-name">— Mr. Parveen Jain (Director), RYMA ACADEMY</div>
+      </div>
+      <hr>
+      <div class="section-title">RYMA ACADEMY — OFFICIAL ADMISSION RECORD</div>
+      <table class="admission-table" cellpadding="0" cellspacing="0">
+        <tr>
+          <td class="label-cell">Student Name</td>
+          <td class="value-cell"><strong>${student.name}</strong></td>
+        </tr>
+        <tr>
+          <td class="label-cell">Student ID</td>
+          <td class="value-cell"><strong>${student.studentId}</strong></td>
+        </tr>
+        <tr>
+          <td class="label-cell">Applied Program</td>
+          <td class="value-cell"><strong>${course.name}</strong></td>
+        </tr>
+        <tr>
+          <td class="label-cell">Program Duration</td>
+          <td class="value-cell"><strong>${course.duration}</strong></td>
+        </tr>
+        <tr>
+          <td class="label-cell">Training Campus</td>
+          <td class="value-cell"><strong>${admission.trainingBranch}</strong></td>
+        </tr>
+        <tr>
+          <td class="label-cell">Admission Date</td>
+          <td class="value-cell"><strong>${new Date(admission.admissionDate).toLocaleDateString('en-IN')}</strong></td>
+        </tr>
+        <tr>
+          <td class="label-cell">Processed By</td>
+          <td class="value-cell"><strong>${admission.counsellor}</strong></td>
+        </tr>
+      </table>
+      <div class="documents-section">
+        <h3>📄 Your Admission Documents</h3>
+        <ul>
+          ${downloadableDocs.map(doc => `
+          <li>
+            <strong>${doc.name}</strong><br>
+            <a href="${doc.downloadUrl}" download target="_blank">
+              📥 Download
+            </a>
+          </li>
+          `).join('')}
+          <li>
+            <strong>Policy Document</strong><br>
+            <a href='https://res.cloudinary.com/dk9lypgfv/image/upload/fl_attachment/v1773464584/RYMA_ACADEMY_PRIVACY_POLICIES_xjurml.pdf'
+              download="RYMA_ACADEMY_Privacy_Policies.pdf" className="your-button-classes" target="_blank"
+              rel="noopener noreferrer">
+              📥 Download Privacy Policies (PDF)
+            </a>
+          </li>
+        </ul>
+        <p style="font-size:0.9em; color:#666;">Right-click and "Save As" if the download does not start automatically.
+        </p>
+      </div>
+      <div class="footnote">
+        <span style="font-size: 1.2em;">⏳</span> <strong>Please verify all details above.</strong><br>
+        Any discrepancy must be reported to your Education Counsellor within 48 hours.
+      </div>
+
+      <p style="font-size: 18px; color: #7e3939; text-align: center; margin: 30px 0 10px; font-weight: 500;">
+        Welcome to a legacy of excellence, <strong style="color: #b33838;">${student.name}</strong>.<br>
+        Your story begins today. <em>Make it extraordinary.</em>
+      </p>
+
+      <div style="margin: 30px 0 20px; color: #592525;">
+        With the highest regards & warmest welcome,<br>
+        <strong>Team of Admissions & Student Services</strong><br>
+        RYMA ACADEMY
+      </div>
+
+      <!-- CONTACT FOOTER (Email-Safe) -->
+      <table width="100%" cellpadding="0" cellspacing="0" border="0"
+        style="background:#fae1e1; border-radius:30px; margin:20px 0;" bgcolor="#fae1e1">
+        <tr>
+          <td
+            style="padding:18px 25px; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color:#6d3131; font-size:15px;">
+            <table width="100%" cellpadding="0" cellspacing="0" border="0">
               <tr>
-                <td style="padding:18px 25px; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color:#6d3131; font-size:15px;">
-                  <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:4px 0;">📞 +91-9873336133</td></tr></table>
-                  <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:4px 0;"><a href="mailto:services@rymaacademy.com" style="color:#a13030; text-decoration:underline;">services@rymaacademy.com</a></td></tr></table>
-                  <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:4px 0;"><a href="https://www.rymaacademy.com" style="color:#a13030; text-decoration:underline;">www.rymaacademy.com</a></td></tr></table>
-                  <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:8px 0 4px; word-break:break-word;">📍 D-7/32, 1st Floor, Main Vishram Chowk, Sec-6, Rohini, Delhi – 110085</td></tr></table>
-                </td>
+                <td align="center" style="padding:4px 0;">📞 +91-9873336133</td>
               </tr>
             </table>
-          </div>
-          <div class="footer-red">
-            This is an electronically generated communication · No signature or stamp required<br>
-            <span style="opacity: 0.8;">© RYMA ACADEMY – Admission record</span>
-          </div>
-        </div>
-      </body>
-      </html>
+            <table width="100%" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td align="center" style="padding:4px 0;"><a href="mailto:services@rymaacademy.com"
+                    style="color:#a13030; text-decoration:underline;">services@rymaacademy.com</a></td>
+              </tr>
+            </table>
+            <table width="100%" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td align="center" style="padding:4px 0;"><a href="https://www.rymaacademy.com"
+                    style="color:#a13030; text-decoration:underline;">www.rymaacademy.com</a></td>
+              </tr>
+            </table>
+            <table width="100%" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td align="center" style="padding:8px 0 4px; word-break:break-word;">📍 D-7/32, 1st Floor, Main Vishram
+                  Chowk, Sec-6, Rohini, Delhi – 110085</td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+    </div>
+    <div class="footer-red">
+      This is an electronically generated communication · No signature or stamp required<br>
+      <span style="opacity: 0.8;">© RYMA ACADEMY – Admission record</span>
+    </div>
+  </div>
+</body>
+
+</html>
     `;
 
     await sendMail(student.email, subject, html, true);

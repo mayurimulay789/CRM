@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Grievance acknowledgement – RYMAC ACADEMY</title>
+  <title>Grievance Rejection – RYMAC ACADEMY</title>
   <style>
     /* reset & base styles – suitable for email clients and modern browsers */
     * {
@@ -24,7 +24,7 @@
     }
 
     .card {
-      max-width: 800px;        /* 🔹 increased from 600px to 800px for a wider layout */
+      max-width: 800px;
       width: 100%;
       background-color: #ffffff;
       box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
@@ -62,7 +62,7 @@
       padding: 14px 18px;
     }
 
-    /* details grid – exactly like screenshot: label above value */
+    /* details grid – label above value */
     .details-grid {
       background-color: #f2f6fc;
       border-radius: 5px;
@@ -100,10 +100,10 @@
       font-size: 1.1rem;
     }
 
-    .status-badge {
+    .status-badge.rejected {
       display: inline-block;
-      background-color: #ffc107;
-      color: #1e1e1e;
+      background-color: #dc3545;
+      color: #ffffff;
       font-weight: 600;
       padding: 6px 16px;
       border-radius: 40px;
@@ -111,7 +111,6 @@
       letter-spacing: 0.3px;
     }
 
-    /* override for status to keep consistent but we keep inside detail-value */
     .message-block {
       color: #2b3e4f;
       line-height: 1.6;
@@ -210,7 +209,6 @@
       color: #003f6f;
     }
 
-    /* small tweak for inline with original table layout */
     .call-now {
       font-weight: 600;
       color: #1b4c7c;
@@ -220,28 +218,34 @@
 
 <body>
   <div class="card">
-    <!-- image included as per your template (cloudinary link) -->
+    <!-- Academy logo / banner (same as original) -->
     <img src="https://res.cloudinary.com/dk9lypgfv/image/upload/v1773463891/Screenshot_2026-03-11_141445_ar7p06.png"
-      alt="" class="imgformate" style="max-width:100%; height:auto; display:block;">
+      alt="RYMAC ACADEMY" style="max-width:100%; height:auto; display:block;">
     <div class="content">
-      <!-- Dear student (placeholder) -->
+
+      <!-- Greeting (uses student's name) -->
       <div class="greeting">Dear ${grievance.submittedBy?.FullName || grievance.name},</div>
 
-      <!-- confirmation intro (exactly as screenshot) -->
+      <!-- Rejection intro (replaces the acknowledgement text) -->
       <div class="intro-text">
-        This is to confirm that your grievance has been successfully registered with the Office of Grievance Cell. Your
-        complaint is currently under evaluation by the designated review committee.
+        We have completed the review of your grievance (Ref. No. <strong>${grievance._id}</strong>). After careful evaluation by the Grievance Cell, we regret to inform you that your grievance has been <strong>rejected</strong> for the following reason(s):
       </div>
 
-      <!-- complaint details block – label above value style, like image -->
+      <!-- Rejection reason (new block) -->
+      <div style="background-color: #fff4f4; border-left: 4px solid #dc3545; padding: 16px 20px; margin-bottom: 28px; border-radius: 0 8px 8px 0;">
+        <div style="font-weight: 600; color: #a11d2b; margin-bottom: 6px;">Rejection Reason</div>
+        <div style="color: #2d2d2d;">${rejectionReason || 'No specific reason provided.'}</div>
+      </div>
+
+      <!-- Details grid: complaint number, status, subject, submitted on, decided on -->
       <div class="details-grid">
         <div class="detail-item">
           <div class="detail-label">COMPLAINT NUMBER</div>
-          <div class="detail-value">250005688869</div>
+          <div class="detail-value">${grievance._id}</div>
         </div>
         <div class="detail-item">
           <div class="detail-label">STATUS</div>
-          <div class="detail-value"><span class="status-badge">UNDER EVALUATION</span></div>
+          <div class="detail-value"><span class="status-badge rejected">REJECTED</span></div>
         </div>
         <div class="detail-item">
           <div class="detail-label">SUBJECT</div>
@@ -249,48 +253,45 @@
         </div>
         <div class="detail-item">
           <div class="detail-label">SUBMITTED ON</div>
-          <div class="detail-value">18 March 2025</div>
+          <div class="detail-value">${formatDate(grievance.createdAt)}</div>
+        </div>
+        <div class="detail-item">
+          <div class="detail-label">DECIDED ON</div>
+          <div class="detail-value">${formatDate(decisionDate) || formatDate(new Date())}</div>
         </div>
       </div>
 
-      <!-- contact / representative paragraph (exact wording) -->
+      <!-- Next steps / closure paragraph -->
       <div class="message-block">
-        A representative from the Grievance Cell may contact you at your registered mobile number or email address
-        within <strong>48–72 hours</strong> should any additional information be required to facilitate the review
-        process.
+        This decision is final and concludes the grievance process at this level. If you believe there is new evidence or wish to appeal, please refer to the academy's grievance appeal policy available on our website.
       </div>
 
       <div class="message-block" style="margin-top: 8px;">
-        Should you have any queries in the interim, please do not hesitate to reach us through the channels listed
-        below.
+        Should you have any questions regarding this decision, you may contact us through the channels below.
       </div>
 
-      <!-- assistance line before table -->
+      <!-- Assistance line (unchanged) -->
       <div class="assist-text" style="margin-top: 28px;">
-        It would be our pleasure to assist you in case you require any help, you can connect with us through the
-        following modes:
+        It would be our pleasure to assist you in case you require any help. You can connect with us through the following modes:
       </div>
 
-      <!-- TABLE exactly matching the markdown-style layout from screenshot -->
+      <!-- Contact table (exactly as original) -->
       <table class="contact-table">
         <tr>
           <td>Helpline Number</td>
-          <td><span class="call-now">Call us at</span> <a href="tel:9873336133" class="contact-link"
-              style="font-weight:600;">9873336133</a></td>
+          <td><span class="call-now">Call us at</span> <a href="tel:9873336133" class="contact-link" style="font-weight:600;">9873336133</a></td>
         </tr>
         <tr>
           <td>Email ID</td>
-          <td><span class="call-now">Write to us at</span> <a href="mailto:services@rymacademy.com"
-              class="contact-link">services@rymacademy.com</a></td>
+          <td><span class="call-now">Write to us at</span> <a href="mailto:services@rymacademy.com" class="contact-link">services@rymacademy.com</a></td>
         </tr>
         <tr>
           <td>Website</td>
-          <td><a href="#" class="contact-link" style="font-weight:500;">Click here to know more</a>
-            <!-- # is placeholder, actual would be link --></td>
+          <td><a href="#" class="contact-link" style="font-weight:500;">Click here to know more</a></td>
         </tr>
       </table>
 
-      <!-- signature block (as in original) -->
+      <!-- Signature block -->
       <div class="signature-block">
         <div class="regards-line">Regards,</div>
         <div style="font-weight: 500; color: #1f4973;">Office of Grievance Cell</div>
@@ -298,27 +299,16 @@
         <div class="office-name">RYMAC ACADEMY</div>
       </div>
 
-      <!-- disclaimer (exact wording, auto-generated) -->
+      <!-- Disclaimer -->
       <div class="disclaimer">
         Disclaimer: This is an auto-generated email. Please do not reply directly to this message.
       </div>
 
-      <!-- subtle extra note: placeholders are kept, all data from original template appears -->
+      <!-- Optional reference line (updated) -->
       <div style="font-size: 0.7rem; color: #9aaebf; text-align: center; margin-top: 16px;">
-        Complaint reference #250005688869 • 18 March 2025
+        Complaint reference #${grievance._id.slice(-6)} • Decided on ${formatDate(decisionDate) || '18 March 2025'}
       </div>
     </div>
   </div>
-
-  <!-- small note: the design matches screenshot structure:
-       - Dear {{student_name}}
-       - OFFICE OF GRIEVANCE CELL
-       - confirmation paragraph
-       - complaint number / status / subject / date (as separate label+value)
-       - representative contact paragraph
-       - queries line + assistance text
-       - two-column table (helpline, email, website) exactly as shown
-       - signature and disclaimer
-  -->
 </body>
 </html>
