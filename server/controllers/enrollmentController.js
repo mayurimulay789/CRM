@@ -47,417 +47,517 @@ async function sendEnrollmentApprovalMail(enrollment) {
         : '';
 
       const enrollmentHtml = `
-      <!DOCTYPE html>
+     <!DOCTYPE html>
 <html>
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RYMA ACADEMY – Official Enrollment Record</title>
-    <style>
-        /* Base styles (unchanged except where noted) */
-        body {
-            margin: 0;
-            padding: 0;
-            background-color: #f2e5e5;
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RYMA ACADEMY – Official Enrollment Record</title>
+  <style>
+    /* ===== EXACT STYLES FROM ADMISSION TEMPLATE ===== */
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #f3e5e5;
+      font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    }
 
-        .enrollment-container {
-            max-width: 1200px;
-            margin: auto;
-            background-color: #ffffff;
-            overflow: hidden;
-            box-shadow: 0 12px 28px rgba(150, 30, 30, 0.2);
-        }
+    .email-container {
+      max-width: 1200px;
+      margin: auto;
+      background-color: #ffffff;
+      overflow: hidden;
+      box-shadow: 0 12px 28px rgba(150, 30, 30, 0.2);
+    }
 
-        .content {
-            padding: 28px 32px 32px;
-        }
+    /* Gradient header (from admission) */
+    .header {
+      width: 100%;
+      background: linear-gradient(145deg, #b22222, #8b1a1a);
+      color: white;
+      font-size: 32px;
+      font-weight: 800;
+      text-align: center;
+      padding: 40px 20px;
+      box-sizing: border-box;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      border-bottom: 4px solid #f3c3c3;
+    }
 
-        .greeting {
-            font-size: 18px;
-            font-weight: 500;
-            color: #3b2323;
-            margin-bottom: 8px;
-        }
+    .content {
+      padding: 28px 32px 32px;
+    }
 
-        .greeting strong {
-            color: #b13e3e;
-        }
+    .greeting {
+      font-size: 18px;
+      font-weight: 500;
+      color: #3b2323;
+      margin-bottom: 16px;
+    }
 
-        .office-line {
-            color: #7e3939;
-            font-weight: 600;
-            margin: 5px 0 15px;
-            font-size: 16px;
-        }
+    .greeting strong {
+      color: #b13e3e;
+    }
 
-        .message {
-            font-size: 16px;
-            color: #3a2a2a;
-            line-height: 1.5;
-            margin: 15px 0 10px;
-        }
+    .office-line {
+      color: #7e3939;
+      font-weight: 600;
+      margin: 5px 0 15px;
+      font-size: 16px;
+    }
 
-        .highlight {
-            background: #fef0f0;
-            padding: 16px 20px;
-            border-radius: 30px 10px 30px 10px;
-            margin: 20px 0;
-            border-left: 6px solid #b13e3e;
-            color: #572626;
-            font-weight: 500;
-        }
+    .congrats-big {
+      font-size: 20px;
+      font-weight: 800;
+      color: #aa2d2d;
+      margin: 5px 0 10px;
+      text-transform: uppercase;
+      line-height: 1.2;
+    }
 
-        .section-title {
-            font-size: 22px;
-            font-weight: 700;
-            color: #aa2929;
-            border-bottom: 3px solid #e0adad;
-            padding-bottom: 10px;
-            margin: 30px 0 20px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
+    .message {
+      font-size: 16px;
+      color: #3a2a2a;
+      line-height: 1.5;
+      margin: 15px 0 10px;
+    }
 
-        /* ---- TABLE STYLES (desktop first) ---- */
-        .enroll-table {
-            width: 100%;
-            border-collapse: collapse;
-            background: #ffffff;
-            border-radius: 20px;
-            overflow: hidden;
-            box-shadow: 0 6px 18px rgba(150, 40, 40, 0.1);
-            border: 1px solid #e9c1c1;
-            margin-bottom: 25px;
-        }
+    /* Highlight block (styled like .family-block) */
+    .family-block {
+      padding: 16px 20px;
+      margin: 20px 0;
+      color: #572626;
+      font-weight: 500;
 
-        .enroll-table td {
-            padding: 14px 20px;
-            border-bottom: 1px solid #f2d6d6;
-            font-size: 16px;
-        }
+    }
 
-        .enroll-table tr:last-child td {
-            border-bottom: none;
-        }
+    .director-quote {
+      padding: 22px 26px;
+      margin: 20px 0 25px;
+    }
 
-        .label-cell {
-            background-color: #fde5e5;
-            color: #892b2b;
-            font-weight: 700;
-            width: 42%;
-            border-right: 1px solid #e2b2b2;
-        }
+    .quote-mark {
+      font-size: 40px;
+      color: #b44848;
+      font-family: 'Times New Roman', serif;
+      line-height: 0.6;
+      margin-right: 4px;
+    }
 
-        .value-cell {
-            background-color: #fffbfb;
-            color: #2e1c1c;
-            font-weight: 500;
-        }
+    .director-quote p {
+      font-size: 18px;
+      font-style: italic;
+      color: #592b2b;
+      margin: 8px 0 10px 0;
+      font-weight: 500;
+    }
 
-        .value-cell strong {
-            color: #b33838;
-        }
+    .director-name {
+      font-weight: 700;
+      color: #862b2b;
+      text-align: right;
+      font-size: 16px;
+    }
 
-        /* ---- RESPONSIVE STACKING FOR MOBILE ---- */
-        @media screen and (max-width: 600px) {
-            /* Make tables block-level */
-            .enroll-table,
-            .enroll-table tbody,
-            .enroll-table tr,
-            .enroll-table td {
-                display: block;
-                width: 100%;
-                box-sizing: border-box;
-            }
+    .section-title {
+      font-weight: 700;
+      color: #aa2929;
+      border-bottom: 3px solid #e0adad;
+      padding-bottom: 10px;
+      margin: 30px 0 20px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
 
-            /* Each row becomes a card */
-            .enroll-table tr {
-                margin-bottom: 1.5rem;
-                border: 1px solid #e9c1c1;
-                border-radius: 12px;
-                padding: 0.25rem 0;
-                background: #fff;
-            }
+    .section-title {
+      font-size: 12px;
+    }
 
-            /* Cells stack vertically */
-            .enroll-table td {
-                border: none;
-                border-bottom: 1px solid #f2d6d6;
-                padding: 12px 16px;
-                width: 100% !important;  /* override inline width if any */
-            }
+    @media (min-width: 768px) {
+      .section-title {
+        font-size: 22px;
+      }
+    }
 
-            .enroll-table td:last-child {
-                border-bottom: none;
-            }
+    @media (min-width: 1200px) {
+      .section-title {
+        font-size: 28px;
+      }
+    }
 
-            /* Adjust label cell for mobile */
-            .label-cell {
-                border-right: none;
-                background-color: #fde5e5;
-                font-weight: 700;
-            }
+    /* Table styles (admission-table) */
+    .admission-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #ffffff;
+      border-radius: 24px;
+      overflow: hidden;
+      box-shadow: 0 6px 18px rgba(150, 40, 40, 0.1);
+      border: 1px solid #e9c1c1;
+      margin-bottom: 25px;
+    }
 
-            /* Optional: keep value cell background */
-            .value-cell {
-                background-color: #fffbfb;
-            }
-        }
+    .admission-table td {
+      padding: 14px 20px;
+      border-bottom: 1px solid #f2d6d6;
+      font-size: 16px;
+    }
 
-        /* Other existing styles (unchanged) */
-        .warning-note {
-            background: #ffebeb;
-            padding: 18px 24px;
-            border-radius: 60px 10px 60px 10px;
-            margin: 28px 0 20px;
-            color: #792e2e;
-            font-size: 15px;
-            text-align: center;
-            border: 1px solid #e2acac;
-        }
+    .admission-table tr:last-child td {
+      border-bottom: none;
+    }
 
-        .help-box {
-            background-color: #fadfdf;
-            border-radius: 30px;
-            padding: 18px 25px;
-            margin: 25px 0;
-            border: 1px solid #d69494;
-            color: #6d3131;
-        }
+    .label-cell {
+      background-color: #fde5e5;
+      color: #892b2b;
+      font-weight: 700;
+      width: 42%;
+      border-right: 1px solid #e2b2b2;
+    }
 
-        .help-box a {
-            color: #a23131;
-            font-weight: 600;
-            text-decoration: underline;
-        }
+    .value-cell {
+      background-color: #fffbfb;
+      color: #2e1c1c;
+      font-weight: 500;
+    }
 
-        .quote-block {
-            background: #fff3f3;
-            border-radius: 40px 12px 40px 12px;
-            padding: 22px 26px;
-            margin: 20px 0 25px;
-            border: 1px solid #e6b2b2;
-            box-shadow: 0 6px 14px rgba(170, 60, 60, 0.1);
-        }
+    .value-cell strong {
+      color: #b33838;
+    }
 
-        .quote-mark {
-            font-size: 40px;
-            color: #b44848;
-            font-family: 'Times New Roman', serif;
-            line-height: 0.6;
-            margin-right: 4px;
-        }
+    /* Responsive stacking for mobile (from enrollment) */
+    @media screen and (max-width: 600px) {
 
-        .quote-block p {
-            font-size: 18px;
-            font-style: italic;
-            color: #592b2b;
-            margin: 8px 0 10px 0;
-            font-weight: 500;
-        }
+      .admission-table,
+      .admission-table tbody,
+      .admission-table tr,
+      .admission-table td {
+        display: block;
+        width: 100%;
+        box-sizing: border-box;
+      }
 
-        .director-name {
-            font-weight: 700;
-            color: #862b2b;
-            text-align: right;
-            font-size: 16px;
-        }
+      .admission-table tr {
+        margin-bottom: 1.5rem;
+        border: 1px solid #e9c1c1;
+        border-radius: 12px;
+        padding: 0.25rem 0;
+        background: #fff;
+      }
 
-        .signature {
-            margin: 30px 0 20px;
-            color: #592525;
-        }
+      .admission-table td {
+        border: none;
+        border-bottom: 1px solid #f2d6d6;
+        padding: 12px 16px;
+        width: 100% !important;
+      }
 
-        .contact-footer {
-            background: #fae1e1;
-            padding: 18px 25px;
-            border-radius: 30px;
-            color: #6d3131;
-            font-size: 15px;
-            margin: 20px 0;
-            word-break: break-word;
-        }
+      .admission-table td:last-child {
+        border-bottom: none;
+      }
 
-        .contact-footer a {
-            color: #a13030;
-            text-decoration: underline;
-        }
+      .label-cell {
+        border-right: none;
+        background-color: #fde5e5;
+        font-weight: 700;
+      }
 
-        .footer-red {
-            background-color: #8f2626;
-            padding: 18px 28px;
-            text-align: center;
-            color: #ffd7d7;
-            font-size: 14px;
-            border-top: 3px solid #b33a3a;
-        }
+      .value-cell {
+        background-color: #fffbfb;
+      }
+    }
 
-        .disclaimer {
-            font-size: 12px;
-            color: #ffe5e5;
-            background-color: #6d2b2b;
-            padding: 16px 24px;
-            text-align: left;
-            line-height: 1.5;
-            border-top: 1px solid #b27373;
-        }
+    /* Documents section (exactly as admission) */
+    .documents-section {
+      background: #fef0f0;
+      border-radius: 20px;
+      padding: 20px;
+      margin: 25px 0;
+      border: 1px solid #e6b2b2;
+    }
 
-        .disclaimer a {
-            color: #ffd6d6;
-        }
+    .documents-section h3 {
+      color: #aa2929;
+      margin-top: 0;
+      border-bottom: 2px solid #e0adad;
+      padding-bottom: 8px;
+    }
 
-        /* Make header image responsive */
-        .imgformate {
-            width: 100%;
-            max-width: 1200px;
-            height: auto;
-            display: block;
-        }
-        
-        .fee-summary {
-            background: #f0f7ff;
-            padding: 16px 20px;
-            border-radius: 12px;
-            margin: 20px 0;
-            border-left: 6px solid #3498db;
-        }
-    </style>
+    .documents-section ul {
+      list-style: none;
+      padding: 0;
+      margin: 10px 0 0;
+    }
+
+    .documents-section li {
+      margin: 12px 0;
+      padding: 10px;
+      background: white;
+      border-radius: 8px;
+      border-left: 5px solid #b13e3e;
+    }
+
+    .documents-section a {
+      color: #b13e3e;
+      text-decoration: none;
+      font-weight: bold;
+    }
+
+    .footnote {
+      padding: 18px 24px;
+      margin: 28px 0 20px;
+      color: #792e2e;
+      font-size: 15px;
+      text-align: center;
+    }
+
+    hr {
+      border: none;
+      height: 2px;
+      background: linear-gradient(to right, #efc2c2, #c96666, #efc2c2);
+      margin: 28px 0;
+    }
+
+    /* Email-safe contact table (from admission) */
+    .contact-table {
+      width: 100%;
+      margin: 20px 0;
+    }
+
+    .contact-table td {
+      padding: 18px 25px;
+
+
+      color: #6d3131;
+      font-size: 15px;
+      text-align: center;
+    }
+
+    .contact-table a {
+      color: #a13030;
+      text-decoration: underline;
+    }
+
+    .footer-red {
+      background-color: #8f2626;
+      padding: 18px 28px;
+      text-align: center;
+      color: #ffd7d7;
+      font-size: 14px;
+      border-top: 3px solid #b33a3a;
+    }
+
+    .imgformate {
+      width: 100%;
+      max-width: 1200px;
+      height: auto;
+      display: block;
+    }
+
+    /* Additional styles from enrollment */
+    .warning-note {
+
+      padding: 18px 24px;
+
+      margin: 28px 0 20px;
+      color: #792e2e;
+      font-size: 15px;
+      text-align: center;
+
+    }
+
+    .signature {
+      margin: 30px 0 20px;
+      color: #592525;
+    }
+
+    .disclaimer {
+      font-size: 12px;
+      color: #ffe5e5;
+      background-color: #6d2b2b;
+      padding: 16px 24px;
+      text-align: left;
+      line-height: 1.5;
+      border-top: 1px solid #b27373;
+    }
+  </style>
 </head>
+
 <body>
-    <div class="enrollment-container">
-        <!-- Responsive header image -->
-        <img src="https://res.cloudinary.com/dk9lypgfv/image/upload/v1773463891/Screenshot_2026-03-11_141445_ar7p06.png" alt="RYMA Academy Banner" class="imgformate">
-
-        <div class="content">
-            <div class="greeting">Dear <strong>${enrollment.student?.name || 'Student'}</strong>,</div>
-            <div class="office-line">Greetings from the Office of Academic Affairs, RYMA ACADEMY.</div>
-
-            <div class="message">
-                Congratulations! Your enrollment has been <strong>approved</strong>. You have now been formally enrolled as an official student of RYMA ACADEMY. Your unique
-                Enrollment ID has been issued — <strong>${enrollment.enrollmentNo}</strong>. This is your academic identity and will
-                be required for all academic, administrative, and certification purposes throughout your program.
-            </div>
-
-            <div class="highlight">
-                ⚡ Kindly save this email permanently. It is your official enrollment record.
-            </div>
-
-            <div class="section-title">OFFICIAL ENROLLMENT RECORD — RYMA ACADEMY</div>
-
-            <!-- Fixed table: all rows properly included, no nested table -->
-            <table class="enroll-table" cellpadding="0" cellspacing="0">
-                <tr>
-                    <td class="label-cell">Student Name</td>
-                    <td class="value-cell"><strong>${enrollment.student?.name || 'Student'}</strong></td>
-                </tr>
-                <tr>
-                    <td class="label-cell">Enrollment ID</td>
-                    <td class="value-cell"><strong>${enrollment.enrollmentNo}</strong></td>
-                </tr>
-                <tr>
-                    <td class="label-cell">Date of Birth</td>
-                    <td class="value-cell"><strong>${formatDateToDDMMYYYY(enrollment.student?.dateOfBirth)}</strong></td>
-                </tr>
-                <tr>
-                    <td class="label-cell">Registered Mobile</td>
-                    <td class="value-cell"><strong>${enrollment.student?.phone}</strong></td>
-                </tr>
-                <tr>
-                    <td class="label-cell">Registered Email</td>
-                    <td class="value-cell"><strong>${enrollment.student?.email}</strong></td>
-                </tr>
-            </table>
-
-            <div class="section-title">PROGRAM DETAILS</div>
-            <table class="enroll-table" cellpadding="0" cellspacing="0">
-                <tr>
-                    <td class="label-cell">Program Enrolled</td>
-                    <td class="value-cell"><strong>${enrollment.course?.name || 'N/A'}</strong></td>
-                </tr>
-                <tr>
-                    <td class="label-cell">Program Duration</td>
-                    <td class="value-cell"><strong>${enrollment.course?.duration}</strong></td>
-                </tr>
-                <tr>
-                    <td class="label-cell">Batch Code</td>
-                    <td class="value-cell"><strong>${enrollment.batch?.code}</strong></td>
-                </tr>
-                <tr>
-                    <td class="label-cell">Batch Timings</td>
-                    <td class="value-cell"><strong>${enrollment.batch?.timing}</strong></td>
-                </tr>
-                <tr>
-                    <td class="label-cell">Mode of Learning</td>
-                    <td class="value-cell"><strong>${enrollment.mode || 'N/A'}</strong></td>
-                </tr>
-                <tr>
-                    <td class="label-cell">Campus</td>
-                    <td class="value-cell"><strong>${enrollment.admission?.trainingBranch || 'N/A'}</strong></td>
-                </tr>
-                <tr>
-                    <td class="label-cell">Enrollment Date</td>
-                    <td class="value-cell"><strong>${formatDateToDDMMYYYY(enrollment.enrollmentDate)}</strong></td>
-                </tr>
-            </table>
-
-            <div class="section-title">FEE DETAILS</div>
-            <table class="enroll-table" cellpadding="0" cellspacing="0">
-                <tr>
-                    <td class="label-cell">Program Fee (Total Amount)</td>
-                    <td class="value-cell"><strong>₹${enrollment.totalAmount || 0}</strong></td>
-                </tr>
-                <tr>
-                    <td class="label-cell">Registration Payment</td>
-                    <td class="value-cell"><strong>₹${enrollment.admissionRegistrationPayment || 0}</strong></td>
-                </tr>
-                <tr>
-                    <td class="label-cell">Due amount to Pay</td>
-                    <td class="value-cell"><strong>₹${(enrollment.totalAmount || 0) - (enrollment.admissionRegistrationPayment || 0)}</strong></td>
-                </tr>
-                <tr>
-                    <td class="label-cell">Fee Type</td>
-                    <td class="value-cell"><strong>${enrollment.feeType === 'one-time' ? 'One Time Payment' : 'Installment'}</strong></td>
-                </tr>
-            </table>
-
-            <!-- Installment table (if any) will also receive the responsive treatment -->
-            ${installmentTableHTML}
-
-            <div class="warning-note">
-                ⚠️ <strong>Please verify all details carefully.</strong> Any discrepancy must be reported to your
-                Education Counsellor within 48 hours.
-            </div>
-            <div class="quote-block">
-                <span class="quote-mark">“</span>
-                <p>At RYMA ACADEMY, we believe every great journey begins with a single, courageous step forward. You
-                    have taken that step. Now let us walk the rest of this path — together.</p>
-                <div class="director-name">~ Mr. Parveen Jain | Director, RYMA ACADEMY</div>
-            </div>
-
-            <div class="signature">
-                With the highest regards & warmest welcome,<br>
-                <strong>Team of Admissions & Student Services</strong><br>
-                RYMA ACADEMY
-            </div>
-
-            <div class="contact-footer">
-                📞 +91-9873336133<br>
-                📧 <a href="mailto:services@rymaacademy.com">services@rymaacademy.com</a><br>
-                🌐 <a href="https://www.rymaacademy.com">www.rymaacademy.com</a><br>
-                📍 D-7/32, 1st Floor, Main Vishram Chowk, Sec-6, Rohini, Delhi – 110085
-            </div>
-        </div>
-
-        <div class="disclaimer">
-            <strong>Disclaimer:</strong> This is an electronically generated communication.
-        </div>
-        <div class="footer-red">
-            © RYMA ACADEMY – Official Enrollment Record
-        </div>
+  <div class="email-container">
+    <!-- Gradient header (from admission) -->
+    <div class="header">
+      RYMA ACADEMY
     </div>
+
+    <!-- Header image (from admission) -->
+    <img src="https://res.cloudinary.com/dk9lypgfv/image/upload/v1773463891/Screenshot_2026-03-11_141445_ar7p06.png"
+      alt="RYMA Academy Banner" class="imgformate">
+
+    <div class="content">
+      <!-- Greeting and intro (enrollment content) -->
+      <div class="greeting">Dear <strong>${enrollment.student?.name || 'Student'}</strong>,</div>
+      <div class="office-line">Greetings from the Office of Academic Affairs, RYMA ACADEMY.</div>
+
+      <div class="message">
+        Congratulations! Your enrollment has been <strong>approved</strong>. You have now been formally enrolled as an
+        official student of RYMA ACADEMY. Your unique
+        Enrollment ID has been issued — <strong>${enrollment.enrollmentNo}</strong>. This is your academic identity and
+        will
+        be required for all academic, administrative, and certification purposes throughout your program.
+      </div>
+
+      <!-- Highlight block (styled like family-block) -->
+      <div class="family-block">
+        ⚡ Kindly save this email permanently. It is your official enrollment record.
+      </div>
+
+      <!-- SECTION 1: OFFICIAL ENROLLMENT RECORD -->
+      <div class="section-title">OFFICIAL ENROLLMENT RECORD — RYMA ACADEMY</div>
+      <table class="admission-table" cellpadding="0" cellspacing="0">
+        <tr>
+          <td class="label-cell">Student Name</td>
+          <td class="value-cell"><strong>${enrollment.student?.name || 'Student'}</strong></td>
+        </tr>
+        <tr>
+          <td class="label-cell">Enrollment ID</td>
+          <td class="value-cell"><strong>${enrollment.enrollmentNo}</strong></td>
+        </tr>
+        <tr>
+          <td class="label-cell">Date of Birth</td>
+          <td class="value-cell"><strong>${formatDateToDDMMYYYY(enrollment.student?.dateOfBirth)}</strong></td>
+        </tr>
+        <tr>
+          <td class="label-cell">Registered Mobile</td>
+          <td class="value-cell"><strong>${enrollment.student?.phone}</strong></td>
+        </tr>
+        <tr>
+          <td class="label-cell">Registered Email</td>
+          <td class="value-cell"><strong>${enrollment.student?.email}</strong></td>
+        </tr>
+      </table>
+
+      <!-- SECTION 2: PROGRAM DETAILS -->
+      <div class="section-title">PROGRAM DETAILS</div>
+      <table class="admission-table" cellpadding="0" cellspacing="0">
+        <tr>
+          <td class="label-cell">Program Enrolled</td>
+          <td class="value-cell"><strong>${enrollment.course?.name || 'N/A'}</strong></td>
+        </tr>
+        <tr>
+          <td class="label-cell">Program Duration</td>
+          <td class="value-cell"><strong>${enrollment.course?.duration}</strong></td>
+        </tr>
+        <tr>
+          <td class="label-cell">Batch Code</td>
+          <td class="value-cell"><strong>${enrollment.batch?.code}</strong></td>
+        </tr>
+        <tr>
+          <td class="label-cell">Batch Timings</td>
+          <td class="value-cell"><strong>${enrollment.batch?.timing}</strong></td>
+        </tr>
+        <tr>
+          <td class="label-cell">Mode of Learning</td>
+          <td class="value-cell"><strong>${enrollment.mode || 'N/A'}</strong></td>
+        </tr>
+        <tr>
+          <td class="label-cell">Campus</td>
+          <td class="value-cell"><strong>${enrollment.admission?.trainingBranch || 'N/A'}</strong></td>
+        </tr>
+        <tr>
+          <td class="label-cell">Enrollment Date</td>
+          <td class="value-cell"><strong>${formatDateToDDMMYYYY(enrollment.enrollmentDate)}</strong></td>
+        </tr>
+      </table>
+
+      <!-- SECTION 3: FEE DETAILS -->
+      <div class="section-title">FEE DETAILS</div>
+      <table class="admission-table" cellpadding="0" cellspacing="0">
+        <tr>
+          <td class="label-cell">Program Fee (Total Amount)</td>
+          <td class="value-cell"><strong>₹${enrollment.totalAmount || 0}</strong></td>
+        </tr>
+        <tr>
+          <td class="label-cell">Registration Payment</td>
+          <td class="value-cell"><strong>₹${enrollment.admissionRegistrationPayment || 0}</strong></td>
+        </tr>
+        <tr>
+          <td class="label-cell">Due amount to Pay</td>
+          <td class="value-cell"><strong>₹${(enrollment.totalAmount || 0) - (enrollment.admissionRegistrationPayment ||
+              0)}</strong></td>
+        </tr>
+        <tr>
+          <td class="label-cell">Fee Type</td>
+          <td class="value-cell"><strong>${enrollment.feeType === 'one-time' ? 'One Time Payment' :
+              'Installment'}</strong></td>
+        </tr>
+      </table>
+
+      <!-- Installment table (if any) -->
+      ${installmentTableHTML}
+
+      <!-- DOCUMENTS SECTION (from admission, with policy document) -->
+      <div class="documents-section">
+        <h3>📄 Your Enrollment Documents</h3>
+        <ul>
+          <li>
+            <strong>Policy Document</strong><br>
+            <a href='https://res.cloudinary.com/dk9lypgfv/image/upload/fl_attachment/v1773464584/RYMA_ACADEMY_PRIVACY_POLICIES_xjurml.pdf'
+              download="RYMA_ACADEMY_Privacy_Policies.pdf" target="_blank" rel="noopener noreferrer">
+              📥 Download Privacy Policies (PDF)
+            </a>
+          </li>
+        </ul>
+        <p style="font-size:0.9em; color:#666;">Right-click and "Save As" if the download does not start automatically.
+        </p>
+      </div>
+
+      <!-- Verification warning -->
+      <div class="warning-note">
+        ⚠️ <strong>Please verify all details carefully.</strong> Any discrepancy must be reported to your
+        Education Counsellor within 48 hours.
+      </div>
+
+      <!-- Director's quote (from enrollment) -->
+      <div class="director-quote">
+        <span class="quote-mark">“</span>
+        <p>At RYMA ACADEMY, we believe every great journey begins with a single, courageous step forward. You
+          have taken that step. Now let us walk the rest of this path — together.</p>
+        <div class="director-name">~ Mr. Parveen Jain | Director, RYMA ACADEMY</div>
+      </div>
+
+      <!-- Signature block -->
+      <div class="signature">
+        With the highest regards & warmest welcome,<br>
+        <strong>Team of Admissions & Student Services</strong><br>
+        RYMA ACADEMY
+      </div>
+
+      <!-- Contact footer (table-based, email-safe) -->
+      <table class="contact-table" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td>
+            📞 +91-9873336133<br>
+            📧 <a href="mailto:services@rymaacademy.com">services@rymaacademy.com</a><br>
+            🌐 <a href="https://www.rymaacademy.com">www.rymaacademy.com</a><br>
+            📍 D-7/32, 1st Floor, Main Vishram Chowk, Sec-6, Rohini, Delhi – 110085
+          </td>
+        </tr>
+      </table>
+    </div> <!-- end content -->
+
+    <!-- Disclaimer and footer -->
+    <div class="disclaimer">
+      <strong>Disclaimer:</strong> This is an electronically generated communication.
+    </div>
+    <div class="footer-red">
+      © RYMA ACADEMY – Official Enrollment Record
+    </div>
+  </div> <!-- end email-container -->
 </body>
+
 </html>
       `;
 
@@ -481,7 +581,7 @@ async function sendEnrollmentRejectionMail(student, enrollment) {
       console.log(`📧 Sending enrollment rejection email to: ${student.email}`);
 
       const rejectionHtml = `
-        <!DOCTYPE html>
+       <!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
@@ -593,22 +693,22 @@ async function sendEnrollmentRejectionMail(student, enrollment) {
         }
 
         .warning-note {
-            background: #ffebeb;
+           
             padding: 18px 24px;
-            border-radius: 60px 10px 60px 10px;
+           
             margin: 28px 0 20px;
             color: #792e2e;
             font-size: 15px;
             text-align: center;
-            border: 1px solid #e2acac;
+           
         }
 
         .help-box {
-            background-color: #fadfdf;
-            border-radius: 30px;
+           
+          
             padding: 18px 25px;
             margin: 25px 0;
-            border: 1px solid #d69494;
+        
             color: #6d3131;
         }
 
@@ -656,9 +756,9 @@ async function sendEnrollmentRejectionMail(student, enrollment) {
         }
 
         .contact-footer {
-            background: #fae1e1;
+           
             padding: 18px 25px;
-            border-radius: 30px;
+           
             color: #6d3131;
             font-size: 15px;
             margin: 20px 0;
@@ -787,7 +887,7 @@ async function sendEnrollmentRejectionMail(student, enrollment) {
             </div>
 
             <!-- Rejection status badge (styled like the highlight but with different emphasis) -->
-            <div class="warning-note" style="background: #ffd9d9; border-left-color: #a12f2f;">
+            <div class="warning-note">
                 ⛔ <strong>Enrollment Rejected</strong> — Your application did not meet the required criteria at this time.
             </div>
 

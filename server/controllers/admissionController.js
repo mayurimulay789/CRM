@@ -109,7 +109,7 @@ async function sendAdmissionEmail(admission, type = 'approved') {
     let subject, html;
     subject = '🎓 Welcome to RYMA ACADEMY – Your Admission is Officially Confirmed';
     html = `
-     <!DOCTYPE html>
+      <!DOCTYPE html>
 <html>
 
 <head>
@@ -176,22 +176,15 @@ async function sendAdmissionEmail(admission, type = 'approved') {
     }
 
     .family-block {
-      background: #fef0f0;
       padding: 16px 20px;
-      border-radius: 30px 10px 30px 10px;
       margin: 20px 0;
-      border-left: 6px solid #b13e3e;
       color: #572626;
       font-weight: 500;
     }
 
     .director-quote {
-      background: #fff3f3;
-      border-radius: 40px 12px 40px 12px;
       padding: 22px 26px;
       margin: 20px 0 25px;
-      border: 1px solid #e6b2b2;
-      box-shadow: 0 6px 14px rgba(170, 60, 60, 0.1);
     }
 
     .quote-mark {
@@ -218,7 +211,6 @@ async function sendAdmissionEmail(admission, type = 'approved') {
     }
 
     .section-title {
-      font-size: 22px;
       font-weight: 700;
       color: #aa2929;
       border-bottom: 3px solid #e0adad;
@@ -227,6 +219,21 @@ async function sendAdmissionEmail(admission, type = 'approved') {
       text-transform: uppercase;
       letter-spacing: 1px;
     }
+    .section-title {
+  font-size: 18px;
+}
+
+@media (min-width: 768px) {
+  .section-title {
+    font-size: 22px;
+  }
+}
+
+@media (min-width: 1200px) {
+  .section-title {
+    font-size: 28px;
+  }
+}
 
     .admission-table {
       width: 100%;
@@ -302,14 +309,11 @@ async function sendAdmissionEmail(admission, type = 'approved') {
     }
 
     .footnote {
-      background: #ffebeb;
       padding: 18px 24px;
-      border-radius: 60px 10px 60px 10px;
       margin: 28px 0 20px;
       color: #792e2e;
       font-size: 15px;
       text-align: center;
-      border: 1px solid #e2acac;
     }
 
     hr {
@@ -320,9 +324,7 @@ async function sendAdmissionEmail(admission, type = 'approved') {
     }
 
     .contact-footer {
-      background: #fae1e1;
       padding: 18px 25px;
-      border-radius: 30px;
       color: #6d3131;
       font-size: 15px;
       margin: 20px 0;
@@ -371,7 +373,6 @@ async function sendAdmissionEmail(admission, type = 'approved') {
         promise:
       </div>
       <div class="director-quote">
-        <span class="quote-mark">“</span>
         <p>We do not just build careers. We build people who change the world.</p>
         <div class="director-name">— Mr. Parveen Jain (Director), RYMA ACADEMY</div>
       </div>
@@ -448,7 +449,7 @@ async function sendAdmissionEmail(admission, type = 'approved') {
 
       <!-- CONTACT FOOTER (Email-Safe) -->
       <table width="100%" cellpadding="0" cellspacing="0" border="0"
-        style="background:#fae1e1; border-radius:30px; margin:20px 0;" bgcolor="#fae1e1">
+        style="margin:20px 0;">
         <tr>
           <td
             style="padding:18px 25px; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color:#6d3131; font-size:15px;">
