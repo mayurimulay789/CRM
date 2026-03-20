@@ -361,7 +361,7 @@ exports.approveGrievance = async (req, res) => {
       <!-- confirmation intro (exactly as screenshot) -->
       <div class="intro-text">
         This is to confirm that your grievance has been successfully registered with the Office of Grievance Cell. Your
-        complaint is currently under evaluation by the designated review committee.
+        complaint is currently approved by the designated review committee.
       </div>
 
       <!-- complaint details block – label above value style, like image -->
@@ -372,7 +372,7 @@ exports.approveGrievance = async (req, res) => {
         </div>
         <div class="detail-item">
           <div class="detail-label">STATUS</div>
-          <div class="detail-value"><span class="status-badge">UNDER EVALUATION</span></div>
+          <div class="detail-value"><span class="status-badge">APPROVED</span></div>
         </div>
         <div class="detail-item">
           <div class="detail-label">SUBJECT</div>
