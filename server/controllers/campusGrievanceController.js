@@ -362,7 +362,7 @@ exports.approveGrievance = async (req, res) => {
       <div class="intro-text">
         This is to confirm that your grievance has been successfully registered with the Office of Grievance Cell. Your
         complaint is currently approved by the designated review committee.
-      </div>s
+      </div>
       <!-- complaint details block – label above value style, like image -->
       <div class="details-grid">
         <div class="detail-item">
