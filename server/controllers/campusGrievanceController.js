@@ -415,7 +415,7 @@ exports.approveGrievance = async (req, res) => {
         </tr>
         <tr>
           <td>Website</td>
-          <td><a href="#" class="contact-link" style="font-weight:500;">Click here to know more</a>
+          <td><a href="https://rymaacademy.com/" class="contact-link" style="font-weight:500;">Click here to know more</a>
             <!-- # is placeholder, actual would be link --></td>
         </tr>
       </table>
@@ -719,7 +719,7 @@ exports.rejectGrievance = async (req, res) => {
         </tr>
         <tr>
           <td>Website</td>
-          <td><a href="#" class="contact-link" style="font-weight:500;">Click here to know more</a></td>
+          <td><a href="https://rymaacademy.com/" class="contact-link" style="font-weight:500;">Click here to know more</a></td>
         </tr>
       </table>
       <div class="signature-block">

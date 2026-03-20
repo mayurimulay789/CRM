@@ -381,7 +381,7 @@ exports.submitGrievance = async (req, res) => {
         </tr>
         <tr>
           <td>Website</td>
-          <td><a href="#" class="contact-link">Click here to know more</a></td>
+          <td><a href="https://rymaacademy.com/" class="contact-link">Click here to know more</a></td>
         </tr>
       </table>
 
@@ -802,7 +802,7 @@ exports.approveGrievance = async (req, res) => {
         </tr>
         <tr>
           <td>Website</td>
-          <td><a href="#" class="contact-link">Click here to know more</a></td>
+          <td><a href="https://rymaacademy.com/" class="contact-link">Click here to know more</a></td>
         </tr>
       </table>
 
