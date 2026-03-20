@@ -1,5 +1,8 @@
 {
   "dependencies": {
     "react-hot-toast": "^2.6.0"
+  },
+  "devDependencies": {
+    "husky": "^9.1.7"
   }
 }
