@@ -160,7 +160,7 @@ async function sendAdmissionEmail(admission, type = 'approved') {
     }
 
     .congrats-big {
-      font-size: 20px;
+      font-size: 16px;
       font-weight: 800;
       color: #aa2d2d;
       margin: 5px 0 10px;

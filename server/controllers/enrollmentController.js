@@ -24,25 +24,33 @@ async function sendEnrollmentApprovalMail(enrollment) {
       // Generate installment table HTML if fee type is installment
       const installmentTableHTML = enrollment.feeType === 'installment' && enrollment.installments && enrollment.installments.length > 0
         ? `
-          <div class="section-title">INSTALLMENT SCHEDULE</div>
-          <table class="enroll-table" cellpadding="0" cellspacing="0">
-            <thead>
-              <tr>
-                <th class="label-cell" style="text-align: center;">Sr.</th>
-                <th class="label-cell" style="text-align: center;">Amount (₹)</th>
-                <th class="label-cell" style="text-align: center;">Due Date</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${enrollment.installments.map(inst => `
-                <tr>
-                  <td class="value-cell" style="text-align: center;"><strong>${inst.installmentNumber}</strong></td>
-                  <td class="value-cell" style="text-align: center;"><strong>₹${inst.amount}</strong></td>
-                  <td class="value-cell" style="text-align: center;"><strong>${formatDateToDDMMYYYY(inst.dueDate)}</strong></td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
+  <div class="section-title">INSTALLMENT SCHEDULE</div>
+<div class="table-responsive">
+  <table class="enroll-table" cellpadding="0" cellspacing="0" style="font-size:1.2rem;">
+    <thead>
+      <tr>
+        <th class="label-cell" style="text-align:center; padding:8px 12px;">Sr.</th>
+        <th class="label-cell" style="text-align:center; padding:8px 12px;">Amount (₹)</th>
+        <th class="label-cell" style="text-align:center; padding:8px 12px;">Due Date</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${enrollment.installments.map(inst => `
+        <tr>
+          <td class="value-cell" style="text-align:center; padding:8px 12px;" data-label="Sr.">
+            <strong>${inst.installmentNumber}</strong>
+          </td>
+          <td class="value-cell" style="text-align:center; padding:8px 12px;" data-label="Amount (₹)">
+            <strong>₹${inst.amount}</strong>
+          </td>
+          <td class="value-cell" style="text-align:center; padding:8px 12px;" data-label="Due Date">
+            <strong>${formatDateToDDMMYYYY(inst.dueDate)}</strong>
+          </td>
+        </tr>
+      `).join('')}
+    </tbody>
+  </table>
+</div>
         `
         : '';
 
@@ -223,47 +231,60 @@ async function sendEnrollmentApprovalMail(enrollment) {
       color: #b33838;
     }
 
-    /* Responsive stacking for mobile (from enrollment) */
+    
+
     @media screen and (max-width: 600px) {
+  /* Stack both tables */
+  .admission-table,
+  .admission-table tbody,
+  .admission-table tr,
+  .admission-table td,
+  .enroll-table,
+  .enroll-table tbody,
+  .enroll-table tr,
+  .enroll-table td {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+  }
 
-      .admission-table,
-      .admission-table tbody,
-      .admission-table tr,
-      .admission-table td {
-        display: block;
-        width: 100%;
-        box-sizing: border-box;
-      }
+  .admission-table tr,
+  .enroll-table tr {
+    margin-bottom: 1.5rem;
+    border: 1px solid #e9c1c1;
+    border-radius: 12px;
+    padding: 0.25rem 0;
+    background: #fff;
+  }
 
-      .admission-table tr {
-        margin-bottom: 1.5rem;
-        border: 1px solid #e9c1c1;
-        border-radius: 12px;
-        padding: 0.25rem 0;
-        background: #fff;
-      }
+  .admission-table td,
+  .enroll-table td {
+    border: none;
+    border-bottom: 1px solid #f2d6d6;
+    padding: 12px 16px;
+    width: 100% !important;
+  }
 
-      .admission-table td {
-        border: none;
-        border-bottom: 1px solid #f2d6d6;
-        padding: 12px 16px;
-        width: 100% !important;
-      }
+  .admission-table td:last-child,
+  .enroll-table td:last-child {
+    border-bottom: none;
+  }
 
-      .admission-table td:last-child {
-        border-bottom: none;
-      }
+  /* Hide thead on mobile for enroll-table */
+  .enroll-table thead {
+    position: absolute;
+    top: -9999px;
+    left: -9999px;
+  }
 
-      .label-cell {
-        border-right: none;
-        background-color: #fde5e5;
-        font-weight: 700;
-      }
-
-      .value-cell {
-        background-color: #fffbfb;
-      }
-    }
+  /* Show data-label as pseudo-element */
+  .enroll-table td::before {
+    content: attr(data-label);
+    font-weight: bold;
+    margin-right: 10px;
+    color: #555;
+  }
+}
 
     /* Documents section (exactly as admission) */
     .documents-section {

@@ -4,6 +4,24 @@ const { sendMail } = require("../utils/email");
 
 const BCC_EMAIL = process.env.BCC_EMAIL || null; // hidden admin mail
 
+function formatDate(dateString, options = {}) {
+            if (!dateString) return '';
+
+            const date = new Date(dateString);
+            // Check if date is valid
+            if (isNaN(date.getTime())) return '';
+
+            const defaultOptions = {
+                year: 'numeric',
+                month: 'long',   // "March"
+                day: 'numeric',  // "18"
+                timeZone: 'UTC'  // Use UTC to avoid offset shifts (optional)
+            };
+
+            const formatter = new Intl.DateTimeFormat('en-US', { ...defaultOptions, ...options });
+            return formatter.format(date);
+        }
+
 // Student submits complaint (via counsellor)
 exports.submitGrievance = async (req, res) => {
     try {
@@ -302,7 +320,7 @@ exports.submitGrievance = async (req, res) => {
 
     <div class="content">
       <!-- Greeting with placeholder (red name for emphasis) -->
-      <div class="greeting">Dear <strong>${grievance.submittedBy?.FullName || grievance.name}</strong>,</div>
+      <div class="greeting">Dear <strong>${grievance.studentName}</strong>,</div>
 
       <!-- Office line (blue) -->
       <div class="office-line">OFFICE OF GRIEVANCE CELL</div>
@@ -723,7 +741,7 @@ exports.approveGrievance = async (req, res) => {
 
     <div class="content">
       <!-- Greeting with placeholder (red name for emphasis) -->
-      <div class="greeting">Dear <strong>${grievance.submittedBy?.FullName || grievance.name}</strong>,</div>
+      <div class="greeting">Dear <strong>${grievance.studentName}</strong>,</div>
 
       <!-- Office line (blue) -->
       <div class="office-line">OFFICE OF GRIEVANCE CELL</div>
@@ -731,7 +749,7 @@ exports.approveGrievance = async (req, res) => {
       <!-- Confirmation intro -->
       <div class="intro-text">
         This is to confirm that your grievance has been successfully registered with the Office of Grievance Cell. Your
-        complaint is currently under evaluation by the designated review committee.
+        complaint is currently approved by the designated review committee.
       </div>
 
       <!-- Complaint details grid (blue theme) -->
@@ -742,7 +760,7 @@ exports.approveGrievance = async (req, res) => {
         </div>
         <div class="detail-item">
           <div class="detail-label">STATUS</div>
-          <div class="detail-value"><span class="status-badge">UNDER EVALUATION</span></div>
+          <div class="detail-value"><span class="status-badge">APPROVED</span></div>
         </div>
         <div class="detail-item">
           <div class="detail-label">SUBJECT</div>
